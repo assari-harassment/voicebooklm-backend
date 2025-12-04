@@ -1,0 +1,3 @@
+# asdf configuration
+# asdf を使用している場合に自動的にこのバージョンが適用されます
+java temurin-21.0.1+12.0.LTS

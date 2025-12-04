@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: voicebooklm-backend
+
+  datasource:
+    url: jdbc:h2:mem:voicebooklm
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # 日本語設定
+  messages:
+    basename: messages
+    encoding: UTF-8
+
+  web:
+    locale: ja_JP
+    locale-resolver: fixed
+
+server:
+  port: 8080
+
+  # タイムゾーン設定
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# タイムゾーン設定
+spring.jackson.time-zone: Asia/Tokyo
+spring.jackson.locale: ja_JP

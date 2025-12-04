@@ -1,0 +1,4 @@
+# SDKMAN configuration
+# プロジェクトディレクトリに入ると自動的にこのJDKバージョンが使用されます
+# 使用方法: sdk env install
+java=21.0.1-tem
