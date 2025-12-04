@@ -8,8 +8,9 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 - Spring Boot 3.4.12
 - Gradle 8.5 (Kotlin DSL)
 - JDK 21 (LTS)
-- PostgreSQL（本番環境）
-- H2 Database（開発・テスト環境）
+- PostgreSQL 16（開発・本番環境）
+- Docker Compose（開発環境用）
+- H2 Database（テストのみ）
 
 ### 主要な依存関係
 
@@ -37,6 +38,7 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 ## 必須環境
 
 - **JDK 21** (必須)
+- **Docker & Docker Compose** (開発環境用、推奨)
 - Gradle は Wrapper を使用するため、別途インストール不要
 
 ## セットアップ手順
@@ -88,9 +90,37 @@ java -version
 # java version "21.x.x" と表示されることを確認
 ```
 
-### 3. データベースのセットアップ（本番環境用）
+### 3. PostgreSQL のセットアップ
 
-開発環境では H2 を使用するため、この手順は不要です。本番環境で PostgreSQL を使用する場合：
+#### Docker Compose を使用する場合（推奨）
+
+```bash
+# PostgreSQL を起動
+docker compose up -d
+
+# 古いバージョンのDocker Composeを使用している場合
+# docker-compose up -d
+
+# ログを確認
+docker compose logs -f postgres
+
+# 停止
+docker compose down
+
+# データも削除する場合
+docker compose down -v
+```
+
+> **Note**: Docker Compose V2 を使用している場合は `docker compose`、V1 を使用している場合は `docker-compose` を使用してください。
+
+PostgreSQL が起動すると以下で接続できます：
+- Host: `localhost`
+- Port: `5432`
+- Database: `voicebooklm`
+- Username: `postgres`
+- Password: `postgres`
+
+#### ローカルに PostgreSQL をインストールする場合
 
 ```bash
 # PostgreSQL のインストール（macOS）
@@ -99,16 +129,14 @@ brew services start postgresql@16
 
 # データベースの作成
 createdb voicebooklm
-
-# 環境変数の設定（任意）
-export DATABASE_URL=jdbc:postgresql://localhost:5432/voicebooklm
-export DATABASE_USERNAME=postgres
-export DATABASE_PASSWORD=your_password
 ```
 
 ### 4. ビルドと実行
 
 ```bash
+# PostgreSQL を起動（Docker Compose）
+docker compose up -d
+
 # ビルド
 ./gradlew build
 
@@ -118,7 +146,7 @@ export DATABASE_PASSWORD=your_password
 # 実行（本番環境）
 ./gradlew bootRun --args='--spring.profiles.active=prod'
 
-# テスト
+# テスト（H2を使用）
 ./gradlew test
 ```
 
@@ -126,17 +154,42 @@ export DATABASE_PASSWORD=your_password
 
 #### 開発環境
 - アプリケーション: http://localhost:8080
-- H2 Console: http://localhost:8080/h2-console
-  - JDBC URL: `jdbc:h2:mem:voicebooklm`
-  - Username: `sa`
-  - Password: (空白)
 - Actuator: http://localhost:8080/actuator
+- Health Check: http://localhost:8080/actuator/health
 - Basic認証: `dev` / `dev`
+
+#### PostgreSQL（Docker）
+- Host: `localhost:5432`
+- Database: `voicebooklm`
+- Username: `postgres`
+- Password: `postgres`
 
 #### 本番環境
 - アプリケーション: http://localhost:8080
 - Actuator Health: http://localhost:8080/actuator/health
 - Basic認証: 環境変数 `ADMIN_PASSWORD` で設定
+
+### 6. Docker Compose コマンド
+
+```bash
+# 起動
+docker compose up -d
+
+# ログ確認
+docker compose logs -f
+
+# 停止
+docker compose stop
+
+# 停止してコンテナ削除
+docker compose down
+
+# 停止してコンテナ・ボリューム削除（データも削除）
+docker compose down -v
+
+# PostgreSQL に接続
+docker compose exec postgres psql -U postgres -d voicebooklm
+```
 
 ## チーム開発について
 

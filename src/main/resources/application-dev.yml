@@ -1,23 +1,22 @@
 # 開発環境用設定（spring.profiles.active=dev）
 spring:
   datasource:
-    url: jdbc:h2:mem:voicebooklm
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: jdbc:postgresql://localhost:5432/voicebooklm
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
 
   jpa:
     hibernate:
-      ddl-auto: create-drop  # 開発環境では毎回テーブルを再作成
+      ddl-auto: update  # 開発環境ではスキーマを自動更新
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
   # DevTools 設定
   devtools:

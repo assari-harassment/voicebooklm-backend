@@ -29,3 +29,7 @@ application-local.properties
 # Logs
 logs/
 *.log
+
+# Docker
+docker/data/
+.env.local

@@ -44,8 +44,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 
     // Database
-    runtimeOnly("org.postgresql:postgresql")           // 本番環境用
-    runtimeOnly("com.h2database:h2")                   // 開発・テスト用
+    runtimeOnly("org.postgresql:postgresql")
 
     // 開発環境
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -57,6 +56,7 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testRuntimeOnly("com.h2database:h2")  // テスト用のみ
 }
 
 tasks.withType<KotlinCompile> {
