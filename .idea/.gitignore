@@ -1,0 +1,5 @@
+# IntelliJ IDEA の設定で共有するもの以外を除外
+*
+!.gitignore
+!misc.xml
+!vcs.xml
