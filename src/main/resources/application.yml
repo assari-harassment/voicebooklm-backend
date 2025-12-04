@@ -2,24 +2,28 @@ spring:
   application:
     name: voicebooklm-backend
 
+  profiles:
+    active: dev  # デフォルトは開発環境
+
   datasource:
-    url: jdbc:h2:mem:voicebooklm
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/voicebooklm}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
 
   jpa:
     hibernate:
-      ddl-auto: create-drop
-    show-sql: true
+      ddl-auto: validate  # 本番環境は validate、開発環境は update
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
 
   # 日本語設定
   messages:
@@ -44,6 +48,12 @@ spring:
       max-request-size: 100MB
       file-size-threshold: 1MB
 
+  # Spring Security 設定
+  security:
+    user:
+      name: admin
+      password: ${ADMIN_PASSWORD:changeme}  # 本番環境では環境変数で設定
+
 server:
   port: 8080
 
@@ -57,6 +67,20 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+
+# Spring Boot Actuator（モニタリング）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 # Spring Boot 3.4 新機能: Structured Logging
 # AI処理や音声変換のログを構造化して追跡しやすく

@@ -1,0 +1,53 @@
+# 開発環境用設定（spring.profiles.active=dev）
+spring:
+  datasource:
+    url: jdbc:h2:mem:voicebooklm
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 開発環境では毎回テーブルを再作成
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # DevTools 設定
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+  # Security を緩めに設定（開発しやすく）
+  security:
+    user:
+      name: dev
+      password: dev
+
+# Actuator を全公開（開発環境のみ）
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# ログレベルを詳細に
+logging:
+  level:
+    root: INFO
+    com.assari.voicebooklm: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

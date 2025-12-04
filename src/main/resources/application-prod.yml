@@ -1,0 +1,26 @@
+# 本番環境用設定（spring.profiles.active=prod）
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate  # 本番環境ではスキーマ変更を許可しない
+    show-sql: false
+
+  devtools:
+    restart:
+      enabled: false
+
+# Actuator は最小限のみ公開
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+# 本番環境のログは WARNING 以上
+logging:
+  level:
+    root: WARN
+    com.assari.voicebooklm: INFO

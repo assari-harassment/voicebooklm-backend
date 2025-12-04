@@ -8,6 +8,31 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 - Spring Boot 3.4.12
 - Gradle 8.5 (Kotlin DSL)
 - JDK 21 (LTS)
+- PostgreSQL（本番環境）
+- H2 Database（開発・テスト環境）
+
+### 主要な依存関係
+
+**Spring Boot**
+- Web（REST API）
+- WebFlux（AI API との非同期通信）
+- Data JPA（データベース）
+- Security（認証・認可）
+- Actuator（モニタリング）
+- DevTools（開発環境でのホットリロード）
+
+**認証**
+- JWT (io.jsonwebtoken:jjwt)
+
+**Kotlin**
+- Coroutines（非同期処理）
+- Jackson（JSON シリアライゼーション）
+
+**テスト**
+- Spring Boot Test
+- Spring Security Test
+- MockK
+- Coroutines Test
 
 ## 必須環境
 
@@ -63,18 +88,55 @@ java -version
 # java version "21.x.x" と表示されることを確認
 ```
 
-### 3. ビルドと実行
+### 3. データベースのセットアップ（本番環境用）
+
+開発環境では H2 を使用するため、この手順は不要です。本番環境で PostgreSQL を使用する場合：
+
+```bash
+# PostgreSQL のインストール（macOS）
+brew install postgresql@16
+brew services start postgresql@16
+
+# データベースの作成
+createdb voicebooklm
+
+# 環境変数の設定（任意）
+export DATABASE_URL=jdbc:postgresql://localhost:5432/voicebooklm
+export DATABASE_USERNAME=postgres
+export DATABASE_PASSWORD=your_password
+```
+
+### 4. ビルドと実行
 
 ```bash
 # ビルド
 ./gradlew build
 
-# 実行
+# 実行（開発環境）
 ./gradlew bootRun
+
+# 実行（本番環境）
+./gradlew bootRun --args='--spring.profiles.active=prod'
 
 # テスト
 ./gradlew test
 ```
+
+### 5. アプリケーションへのアクセス
+
+#### 開発環境
+- アプリケーション: http://localhost:8080
+- H2 Console: http://localhost:8080/h2-console
+  - JDBC URL: `jdbc:h2:mem:voicebooklm`
+  - Username: `sa`
+  - Password: (空白)
+- Actuator: http://localhost:8080/actuator
+- Basic認証: `dev` / `dev`
+
+#### 本番環境
+- アプリケーション: http://localhost:8080
+- Actuator Health: http://localhost:8080/actuator/health
+- Basic認証: 環境変数 `ADMIN_PASSWORD` で設定
 
 ## チーム開発について
 
