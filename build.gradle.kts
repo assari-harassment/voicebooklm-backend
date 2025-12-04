@@ -46,6 +46,14 @@ dependencies {
     // Database
     runtimeOnly("org.postgresql:postgresql")
 
+    // API ドキュメント（Swagger/OpenAPI）
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
+
+    // AWS SDK（S3 - 音声ファイル保存）
+    implementation(platform("software.amazon.awssdk:bom:2.29.39"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:s3-transfer-manager")
+
     // 開発環境
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

@@ -22,8 +22,17 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 - Actuator（モニタリング）
 - DevTools（開発環境でのホットリロード）
 
+**React Native 連携**
+- Swagger/OpenAPI（API ドキュメント自動生成）
+- CORS 設定（iOS/Android からのアクセス許可）
+- TypeScript 型定義の生成が可能
+
 **認証**
 - JWT (io.jsonwebtoken:jjwt)
+
+**ファイルストレージ**
+- AWS S3（音声ファイル保存）
+- S3 Transfer Manager（大容量ファイル対応）
 
 **Kotlin**
 - Coroutines（非同期処理）
@@ -157,10 +166,16 @@ docker compose up -d
 ### 5. アプリケーションへのアクセス
 
 #### 開発環境
-- アプリケーション: http://localhost:8080
-- Actuator: http://localhost:8080/actuator
-- Health Check: http://localhost:8080/actuator/health
-- Basic認証: `dev` / `dev`
+- **アプリケーション**: http://localhost:8080
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+  - API ドキュメントをブラウザで確認
+  - 直接 API をテスト可能
+- **OpenAPI 仕様**: http://localhost:8080/v3/api-docs
+  - JSON 形式の API 仕様
+  - TypeScript 型定義の生成に使用
+- **Actuator**: http://localhost:8080/actuator
+- **Health Check**: http://localhost:8080/actuator/health
+- **Basic認証**: `dev` / `dev`
 
 #### PostgreSQL（Docker）
 - Host: `localhost:5432`
@@ -295,6 +310,73 @@ testcontainers.reuse.enable=true
 #### CI/CD環境
 
 GitHub Actions などの CI 環境では Docker が利用可能であることを確認してください。
+
+## React Native 連携
+
+### Swagger UI で API を確認
+
+1. アプリケーションを起動
+2. http://localhost:8080/swagger-ui.html にアクセス
+3. API エンドポイントを確認・テスト
+
+### TypeScript 型定義の生成
+
+OpenAPI 仕様から TypeScript の型定義を自動生成できます：
+
+```bash
+# openapi-typescript を使用
+npx openapi-typescript http://localhost:8080/v3/api-docs -o src/types/api.ts
+
+# または openapi-generator を使用
+npx @openapitools/openapi-generator-cli generate \
+  -i http://localhost:8080/v3/api-docs \
+  -g typescript-axios \
+  -o src/api
+```
+
+### CORS 設定
+
+React Native からのアクセスは自動的に許可されます：
+
+- **開発環境**: `localhost:*`, `192.168.*.*:*`（実機テスト用）
+- **本番環境**: `https://*.example.com`（実際のドメインに変更）
+
+## AWS S3 設定
+
+音声ファイルは AWS S3 に保存されます。
+
+### 環境変数の設定
+
+```bash
+# ローカル開発環境
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_REGION=ap-northeast-1
+export AWS_S3_BUCKET_NAME=voicebooklm-audio-files
+```
+
+### application.yml での設定（非推奨）
+
+```yaml
+aws:
+  access-key-id: your_access_key
+  secret-access-key: your_secret_key
+  region: ap-northeast-1
+  s3:
+    bucket-name: voicebooklm-audio-files
+```
+
+> **Note**: 本番環境では環境変数または IAM Role を使用してください。
+
+### S3 バケットの作成
+
+```bash
+# AWS CLI でバケット作成
+aws s3 mb s3://voicebooklm-audio-files --region ap-northeast-1
+
+# CORS 設定
+aws s3api put-bucket-cors --bucket voicebooklm-audio-files --cors-configuration file://s3-cors.json
+```
 
 ## 開発ガイドライン
 

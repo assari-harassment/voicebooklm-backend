@@ -95,3 +95,29 @@ logging:
 # タイムゾーン設定
 spring.jackson.time-zone: Asia/Tokyo
 spring.jackson.locale: ja_JP
+
+# OpenAPI（Swagger）設定
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    try-it-out-enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+  show-actuator: false
+
+# AWS 設定
+aws:
+  # アクセスキー（環境変数推奨: AWS_ACCESS_KEY_ID）
+  access-key-id: ${AWS_ACCESS_KEY_ID:}
+  # シークレットキー（環境変数推奨: AWS_SECRET_ACCESS_KEY）
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+  # リージョン（東京リージョン）
+  region: ${AWS_REGION:ap-northeast-1}
+  s3:
+    # バケット名（環境変数推奨: AWS_S3_BUCKET_NAME）
+    bucket-name: ${AWS_S3_BUCKET_NAME:voicebooklm-audio-files}
