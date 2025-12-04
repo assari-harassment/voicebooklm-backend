@@ -18,7 +18,21 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 
 ### 1. JDK 21 のインストール
 
-#### SDKMAN を使用する場合（推奨）
+#### mise を使用する場合（推奨）
+
+```bash
+# mise のインストール（未インストールの場合）
+curl https://mise.run | sh
+
+# JDK 21 のインストール
+mise install java@temurin-21
+
+# プロジェクトディレクトリに入ると自動的にJDK 21に切り替わります
+cd voicebooklm-backend
+# .tool-versions ファイルがあるため、自動的にJDK 21が有効化されます
+```
+
+#### SDKMAN を使用する場合
 
 ```bash
 # SDKMAN のインストール（未インストールの場合）
@@ -83,6 +97,26 @@ java -version
 - アプリケーションのロケール: 日本語 (ja_JP)
 - タイムゾーン: Asia/Tokyo
 - 文字エンコーディング: UTF-8
+
+## IDE 設定
+
+### IntelliJ IDEA
+
+プロジェクトには IntelliJ IDEA 用の設定ファイルが含まれています：
+
+1. **プロジェクトを開く**: `File` → `Open` → `voicebooklm-backend` ディレクトリを選択
+2. **JDK 設定の確認**:
+   - `File` → `Project Structure` → `Project`
+   - Project SDK が `21` になっていることを確認
+   - なっていない場合は、`Add SDK` → `Download JDK` → `Version: 21` → `Vendor: Eclipse Temurin` を選択
+3. **Gradle 設定**:
+   - `File` → `Settings` → `Build, Execution, Deployment` → `Build Tools` → `Gradle`
+   - `Gradle JVM` が `Project SDK (21)` になっていることを確認
+
+### 推奨プラグイン
+- Kotlin
+- Spring Boot
+- .ignore
 
 ## 開発ガイドライン
 
