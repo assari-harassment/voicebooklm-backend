@@ -33,3 +33,6 @@ logs/
 # Docker
 docker/data/
 .env.local
+
+# Testcontainers
+.testcontainers.properties

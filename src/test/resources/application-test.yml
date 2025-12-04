@@ -1,0 +1,24 @@
+# テスト環境用設定
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # テスト毎にスキーマを再作成
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Security を無効化（テストしやすく）
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+# ログレベル
+logging:
+  level:
+    root: INFO
+    com.assari.voicebooklm: DEBUG
+    org.testcontainers: INFO
+    org.hibernate.SQL: DEBUG
