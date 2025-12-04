@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "3.2.0"
-    id("io.spring.dependency-management") version "1.1.4"
-    kotlin("jvm") version "1.9.21"
-    kotlin("plugin.spring") version "1.9.21"
-    kotlin("plugin.jpa") version "1.9.21"
+    id("org.springframework.boot") version "3.4.12"
+    id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm") version "2.0.21"
+    kotlin("plugin.spring") version "2.0.21"
+    kotlin("plugin.jpa") version "2.0.21"
 }
 
 group = "com.assari"
@@ -36,7 +36,7 @@ dependencies {
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.mockk:mockk:1.13.13")
 }
 
 tasks.withType<KotlinCompile> {

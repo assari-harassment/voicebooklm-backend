@@ -30,8 +30,26 @@ spring:
     locale: ja_JP
     locale-resolver: fixed
 
+  # Spring Boot 3.4 新機能: Virtual Threads
+  # AI API呼び出しや音声処理などのI/Oバウンドな処理を高速化
+  threads:
+    virtual:
+      enabled: true
+
+  # 音声ファイルアップロード設定
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB      # 音声ファイル用に大きめに設定
+      max-request-size: 100MB
+      file-size-threshold: 1MB
+
 server:
   port: 8080
+
+  # Spring Boot 3.4: Graceful Shutdown（デフォルトで有効）
+  # 音声処理中のリクエストを安全に完了させる
+  shutdown: graceful
 
   # タイムゾーン設定
   servlet:
@@ -39,6 +57,16 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+
+# Spring Boot 3.4 新機能: Structured Logging
+# AI処理や音声変換のログを構造化して追跡しやすく
+logging:
+  structured:
+    format:
+      console: logstash  # または ecs
+  level:
+    root: INFO
+    com.assari.voicebooklm: DEBUG
 
 # タイムゾーン設定
 spring.jackson.time-zone: Asia/Tokyo

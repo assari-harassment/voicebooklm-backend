@@ -4,8 +4,8 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 
 ## 技術スタック
 
-- Kotlin 1.9.21
-- Spring Boot 3.2.0
+- Kotlin 2.0.21
+- Spring Boot 3.4.12
 - Gradle 8.5 (Kotlin DSL)
 - JDK 21 (LTS)
 
