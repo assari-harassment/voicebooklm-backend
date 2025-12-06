@@ -32,6 +32,8 @@ dependencies {
 
     // Spring Security（認証・認可）
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 
     // JWT 認証
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")

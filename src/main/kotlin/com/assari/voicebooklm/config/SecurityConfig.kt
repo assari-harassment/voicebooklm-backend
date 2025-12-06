@@ -10,6 +10,13 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.web.cors.CorsConfigurationSource
 
+/**
+ * セキュリティ設定
+ *
+ * 開発環境・本番環境で共通の認証方式を使用:
+ * - JWT トークン認証（API アクセス用）
+ * - Google OAuth2 認証（ソーシャルログイン）
+ */
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
@@ -21,7 +28,7 @@ class SecurityConfig(
         http
             // CORS 有効化（React Native からのアクセスを許可）
             .cors { it.configurationSource(corsConfigurationSource) }
-            // CSRF 無効化（API のため、JWT 使用時）
+            // CSRF 無効化（REST API のため）
             .csrf { it.disable() }
             .authorizeHttpRequests { auth ->
                 auth
@@ -29,8 +36,9 @@ class SecurityConfig(
                     .requestMatchers(
                         "/actuator/health",
                         "/actuator/info",
-                        "/h2-console/**",         // 開発環境用
-                        "/api/auth/**",           // 認証エンドポイント（将来実装）
+                        "/api/auth/**",           // 認証エンドポイント
+                        "/oauth2/**",             // OAuth2 認証フロー
+                        "/login/oauth2/**",       // OAuth2 コールバック
                         "/swagger-ui.html",       // Swagger UI
                         "/swagger-ui/**",         // Swagger UI リソース
                         "/v3/api-docs/**",        // OpenAPI 仕様
@@ -43,12 +51,17 @@ class SecurityConfig(
                 // JWT 使用のためステートレスに設定
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
-            .httpBasic { }  // 開発時は Basic 認証を使用
-
-        // H2 Console のため（開発環境のみ）
-        http.headers { headers ->
-            headers.frameOptions { it.sameOrigin() }
-        }
+            // OAuth2 ログイン設定（Google 認証）
+            .oauth2Login { oauth2 ->
+                oauth2
+                    .loginPage("/api/auth/login")
+                    .defaultSuccessUrl("/api/auth/oauth2/success", true)
+                    .failureUrl("/api/auth/oauth2/failure")
+            }
+            // JWT Resource Server 設定
+            .oauth2ResourceServer { oauth2 ->
+                oauth2.jwt { }
+            }
 
         return http.build()
     }
