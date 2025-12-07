@@ -36,3 +36,6 @@ docker/data/
 
 # Testcontainers
 .testcontainers.properties
+
+# Environment
+.env
