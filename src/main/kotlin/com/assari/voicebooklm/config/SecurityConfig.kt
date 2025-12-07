@@ -58,10 +58,8 @@ class SecurityConfig(
                     .defaultSuccessUrl("/api/auth/oauth2/success", true)
                     .failureUrl("/api/auth/oauth2/failure")
             }
-            // JWT Resource Server 設定
-            .oauth2ResourceServer { oauth2 ->
-                oauth2.jwt { }
-            }
+            // TODO: 自前 JWT 認証フィルターを後で追加
+            // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
     }

@@ -17,13 +17,20 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate  # 本番環境は validate、開発環境は update
+      ddl-auto: validate  # 本番環境は validate、Flyway がスキーマ管理
     show-sql: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+
+  # Flyway マイグレーション設定
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
 
   # 日本語設定
   messages:
@@ -66,16 +73,27 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
-      resourceserver:
-        jwt:
-          issuer-uri: ${JWT_ISSUER_URI:}
-          jwk-set-uri: ${JWT_JWK_SET_URI:}
 
 # JWT 設定
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only}
-  expiration: ${JWT_EXPIRATION:86400000}  # 24時間（ミリ秒）
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7日間（ミリ秒）
+  secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only-must-be-at-least-256-bits}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}  # 15分（ミリ秒）
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}  # 7日間（ミリ秒）
+
+# Google Cloud 設定
+google:
+  cloud:
+    speech:
+      credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
+      project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+
+# CORS 設定
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://192.168.*.*:*}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+  max-age: 3600
 
 server:
   port: 8080
