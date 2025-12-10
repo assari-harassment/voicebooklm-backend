@@ -21,13 +21,17 @@
 -- ==============================================
 CREATE TABLE users (
     id UUID PRIMARY KEY,  -- アプリケーション側で UUIDv7 を生成
+    google_sub VARCHAR(255) NOT NULL, -- Googleのユーザー識別子 (不変)
     email VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    picture_url VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT users_google_sub_unique UNIQUE (google_sub),
     CONSTRAINT users_email_unique UNIQUE (email)
 );
+
+-- google_sub カラムにユニークインデックス (ログイン時検索用)
+CREATE UNIQUE INDEX idx_users_google_sub ON users(google_sub);
 
 -- email カラムにユニークインデックス（高速検索用）
 CREATE UNIQUE INDEX idx_users_email ON users(email);
@@ -38,14 +42,14 @@ CREATE UNIQUE INDEX idx_users_email ON users(email);
 CREATE TABLE memos (
     id UUID PRIMARY KEY,  -- アプリケーション側で UUIDv7 を生成
     user_id UUID NOT NULL,
-    title VARCHAR(500) NOT NULL,
-    content TEXT NOT NULL,
-    recording_start_time TIMESTAMPTZ NOT NULL,
-    recording_end_time TIMESTAMPTZ NOT NULL,
+    transcription_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',  -- PENDING / PROCESSING / COMPLETED / FAILED
+    formatting_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',     -- PENDING / PROCESSING / COMPLETED / FAILED
+    transcription TEXT,           -- 文字起こし（ユーザー編集可、AI整形のソース）
+    title VARCHAR(500),           -- AI整形後に設定
+    content TEXT,                 -- AI整形後に設定（マークダウン形式）
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_memos_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -53,7 +57,7 @@ CREATE TABLE memos (
 CREATE INDEX idx_memos_user_created ON memos(user_id, created_at DESC) WHERE deleted = FALSE;
 
 -- タイトル検索用インデックス（MVP: LIKE 検索用）
-CREATE INDEX idx_memos_title ON memos(title);
+CREATE INDEX idx_memos_title ON memos(title) WHERE title IS NOT NULL;
 
 -- 本番環境では pg_bigm GIN インデックスを作成 (V002__enable_pg_bigm.sql)
 -- CREATE INDEX idx_memos_bigm_title ON memos USING gin (title gin_bigm_ops);
@@ -100,18 +104,18 @@ CREATE INDEX idx_refresh_tokens_family ON refresh_tokens(family_id) WHERE revoke
 -- ==============================================
 COMMENT ON TABLE users IS 'ユーザーアカウント情報（Google OAuth 認証）';
 COMMENT ON COLUMN users.id IS 'ユーザー ID (UUID v4)';
+COMMENT ON COLUMN users.google_sub IS 'Google User ID (sub claim)';
 COMMENT ON COLUMN users.email IS 'メールアドレス（Google アカウント）';
-COMMENT ON COLUMN users.picture_url IS 'プロフィール画像 URL（Google アカウント）';
 
-COMMENT ON TABLE memos IS 'AI 整形済みボイスメモ';
-COMMENT ON COLUMN memos.id IS 'メモ ID (UUID v4)';
+COMMENT ON TABLE memos IS 'AI 整形済みボイスメモ（文字起こし→AI整形の2段階処理）';
+COMMENT ON COLUMN memos.id IS 'メモ ID (UUIDv7)';
 COMMENT ON COLUMN memos.user_id IS 'ユーザー ID（外部キー）';
-COMMENT ON COLUMN memos.title IS 'AI 生成タイトル';
-COMMENT ON COLUMN memos.content IS 'AI 整形済み本文（Markdown 形式）';
-COMMENT ON COLUMN memos.recording_start_time IS '録音開始時刻';
-COMMENT ON COLUMN memos.recording_end_time IS '録音終了時刻';
+COMMENT ON COLUMN memos.transcription_status IS '文字起こし処理ステータス (PENDING/PROCESSING/COMPLETED/FAILED)';
+COMMENT ON COLUMN memos.formatting_status IS 'AI整形処理ステータス (PENDING/PROCESSING/COMPLETED/FAILED)';
+COMMENT ON COLUMN memos.transcription IS '文字起こし結果（ユーザー編集可、AI整形のソース）';
+COMMENT ON COLUMN memos.title IS 'AI 生成タイトル（整形完了後に設定）';
+COMMENT ON COLUMN memos.content IS 'AI 整形済み本文（Markdown 形式、整形完了後に設定）';
 COMMENT ON COLUMN memos.deleted IS '論理削除フラグ';
-COMMENT ON COLUMN memos.deleted_at IS '論理削除日時';
 
 COMMENT ON TABLE memo_tags IS 'メモタグ（AI 生成またはユーザー編集）';
 
