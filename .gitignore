@@ -39,3 +39,6 @@ docker/data/
 
 # Environment
 .env
+
+# AI tools
+.AGENTS.md
