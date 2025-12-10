@@ -120,17 +120,6 @@ class UserRepositoryTest : AbstractIntegrationTest() {
 
 OpenAPI 仕様から TypeScript の型定義を自動生成できます：
 
-```bash
-# openapi-typescript を使用
-npx openapi-typescript http://localhost:8080/v3/api-docs -o src/types/api.ts
-
-# または openapi-generator を使用
-npx @openapitools/openapi-generator-cli generate \
-  -i http://localhost:8080/v3/api-docs \
-  -g typescript-axios \
-  -o src/api
-```
-
 ### CORS 設定
 
 React Native からのアクセスは自動的に許可されます：

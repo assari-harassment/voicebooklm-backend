@@ -27,6 +27,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
+    // Database Migration
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+
     // Spring Boot WebFlux（AI API との非同期通信用）
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
@@ -48,6 +52,12 @@ dependencies {
     // Database
     runtimeOnly("org.postgresql:postgresql")
 
+    // Google Cloud Speech-to-Text（音声文字起こし）
+    implementation("com.google.cloud:google-cloud-speech:4.53.0")
+
+    // UUID v7 生成（タイムオーダー UUID）
+    implementation("com.github.f4b6a3:uuid-creator:6.1.1")
+
     // API ドキュメント（Swagger/OpenAPI）
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
 
@@ -55,6 +65,9 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+    
+    // .env ファイル読み込み
+    implementation("me.paulschwarz:spring-dotenv:4.0.0")
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
