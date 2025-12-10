@@ -6,18 +6,9 @@
 -- - memo_tags テーブル作成
 -- - refresh_tokens テーブル作成
 -- - 必要なインデックスの作成
---
--- NOTE: pg_bigm 日本語全文検索は本番環境 (AWS RDS) のみ有効化
--- ローカル環境では LIKE 検索を使用し、本番では V002__enable_pg_bigm.sql で有効化
 
 -- ==============================================
--- pg_bigm 拡張は本番環境 (AWS RDS) のみ有効化
--- ローカルでは LIKE 検索を使用
--- ==============================================
--- CREATE EXTENSION IF NOT EXISTS pg_bigm;  -- 本番のみ
-
--- ==============================================
--- 2. users テーブル作成
+-- 1. users テーブル作成
 -- ==============================================
 CREATE TABLE users (
     id UUID PRIMARY KEY,  -- アプリケーション側で UUIDv7 を生成
@@ -37,7 +28,7 @@ CREATE UNIQUE INDEX idx_users_google_sub ON users(google_sub);
 CREATE UNIQUE INDEX idx_users_email ON users(email);
 
 -- ==============================================
--- 3. memos テーブル作成
+-- 2. memos テーブル作成
 -- ==============================================
 CREATE TABLE memos (
     id UUID PRIMARY KEY,  -- アプリケーション側で UUIDv7 を生成
@@ -59,12 +50,8 @@ CREATE INDEX idx_memos_user_created ON memos(user_id, created_at DESC) WHERE del
 -- タイトル検索用インデックス（MVP: LIKE 検索用）
 CREATE INDEX idx_memos_title ON memos(title) WHERE title IS NOT NULL;
 
--- 本番環境では pg_bigm GIN インデックスを作成 (V002__enable_pg_bigm.sql)
--- CREATE INDEX idx_memos_bigm_title ON memos USING gin (title gin_bigm_ops);
--- CREATE INDEX idx_memos_bigm_content ON memos USING gin (content gin_bigm_ops);
-
 -- ==============================================
--- 4. memo_tags テーブル作成
+-- 3. memo_tags テーブル作成
 -- ==============================================
 CREATE TABLE memo_tags (
     memo_id UUID NOT NULL,
@@ -77,15 +64,12 @@ CREATE TABLE memo_tags (
 CREATE INDEX idx_memo_tags_tag ON memo_tags(tag);
 
 -- ==============================================
--- 5. refresh_tokens テーブル作成
+-- 4. refresh_tokens テーブル作成（シンプル方式）
 -- ==============================================
 CREATE TABLE refresh_tokens (
     id UUID PRIMARY KEY,  -- アプリケーション側で UUIDv7 を生成
     token VARCHAR(500) NOT NULL,
-    family_id UUID NOT NULL,
     user_id UUID NOT NULL,
-    device_name VARCHAR(255),
-    user_agent VARCHAR(500),
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     revoked BOOLEAN NOT NULL DEFAULT FALSE,
@@ -93,17 +77,17 @@ CREATE TABLE refresh_tokens (
     CONSTRAINT refresh_tokens_token_unique UNIQUE (token)
 );
 
--- リフレッシュトークン検証用インデックス（token + revoked + expires_at）
+-- リフレッシュトークン検証用インデックス
 CREATE INDEX idx_refresh_tokens_valid ON refresh_tokens(token, revoked, expires_at) WHERE revoked = FALSE;
 
--- Token Family 検索用インデックス（リユース検出用）
-CREATE INDEX idx_refresh_tokens_family ON refresh_tokens(family_id) WHERE revoked = FALSE;
+-- ユーザー別トークン検索用インデックス（ログアウト時の全トークン無効化用）
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id) WHERE revoked = FALSE;
 
 -- ==============================================
 -- コメント追加（テーブル・カラムの説明）
 -- ==============================================
 COMMENT ON TABLE users IS 'ユーザーアカウント情報（Google OAuth 認証）';
-COMMENT ON COLUMN users.id IS 'ユーザー ID (UUID v4)';
+COMMENT ON COLUMN users.id IS 'ユーザー ID (UUIDv7)';
 COMMENT ON COLUMN users.google_sub IS 'Google User ID (sub claim)';
 COMMENT ON COLUMN users.email IS 'メールアドレス（Google アカウント）';
 
@@ -120,7 +104,5 @@ COMMENT ON COLUMN memos.deleted IS '論理削除フラグ';
 COMMENT ON TABLE memo_tags IS 'メモタグ（AI 生成またはユーザー編集）';
 
 COMMENT ON TABLE refresh_tokens IS 'JWT リフレッシュトークン（トークンローテーション対応）';
-COMMENT ON COLUMN refresh_tokens.family_id IS 'Token Family ID（リユース検出用）';
-COMMENT ON COLUMN refresh_tokens.device_name IS 'デバイス名（オプション）';
-COMMENT ON COLUMN refresh_tokens.user_agent IS 'User-Agent（オプション）';
 COMMENT ON COLUMN refresh_tokens.revoked IS '無効化フラグ';
+
