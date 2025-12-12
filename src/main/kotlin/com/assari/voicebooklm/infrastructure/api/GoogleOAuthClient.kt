@@ -22,6 +22,7 @@ data class GoogleUserInfo(
  * Google Token Info レスポンス
  */
 data class GoogleTokenInfo(
+    val aud: String,
     val sub: String,
     val email: String,
     @JsonProperty("email_verified")
@@ -79,6 +80,11 @@ class GoogleOAuthClient(
 
             if (tokenInfo == null) {
                 logger.warn("Failed to verify Google ID token: no response")
+                return null
+            }
+
+            if (tokenInfo.aud != clientId) {
+                logger.warn("Google ID token audience mismatch: expected=$clientId, actual=${tokenInfo.aud}")
                 return null
             }
 
