@@ -1,6 +1,5 @@
 package com.assari.voicebooklm.presentation.controller.auth
 
-import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import com.assari.voicebooklm.usecase.auth.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -11,7 +10,9 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
+import java.util.UUID
 
 /**
  * 認証 REST API コントローラー
@@ -26,8 +27,7 @@ class AuthController(
         private val refreshTokenUseCase: RefreshTokenUseCase,
         private val logoutUseCase: LogoutUseCase,
         private val deleteAccountUseCase: DeleteAccountUseCase,
-        private val getCurrentUserUseCase: GetCurrentUserUseCase,
-        private val jwtTokenProvider: JwtTokenProvider
+        private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) {
     /** Google OAuth でログイン */
     @Operation(
@@ -104,11 +104,8 @@ class AuthController(
             )
     )
     @DeleteMapping("/account")
-    fun deleteAccount(@RequestHeader("Authorization") authorization: String): ResponseEntity<Void> {
-        val userId =
-                extractUserIdFromToken(authorization)
-                        ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-
+    fun deleteAccount(@AuthenticationPrincipal userId: UUID?): ResponseEntity<Void> {
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         deleteAccountUseCase.execute(DeleteAccountCommand(userId))
         return ResponseEntity.noContent().build()
     }
@@ -129,28 +126,11 @@ class AuthController(
             )
     )
     @GetMapping("/me")
-    fun getCurrentUser(
-            @RequestHeader("Authorization") authorization: String
-    ): ResponseEntity<UserResponse> {
-        val userId =
-                extractUserIdFromToken(authorization)
-                        ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-
+    fun getCurrentUser(@AuthenticationPrincipal userId: UUID?): ResponseEntity<UserResponse> {
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val userInfo = getCurrentUserUseCase.execute(GetCurrentUserCommand(userId))
         return ResponseEntity.ok(
                 UserResponse(id = userInfo.id, email = userInfo.email, name = userInfo.name)
         )
-    }
-
-    /** Authorization ヘッダーからユーザー ID を抽出 */
-    private fun extractUserIdFromToken(authorization: String): java.util.UUID? {
-        if (!authorization.startsWith("Bearer ")) {
-            return null
-        }
-        val token = authorization.substring(7)
-        if (!jwtTokenProvider.validateToken(token)) {
-            return null
-        }
-        return jwtTokenProvider.getUserIdFromToken(token)
     }
 }

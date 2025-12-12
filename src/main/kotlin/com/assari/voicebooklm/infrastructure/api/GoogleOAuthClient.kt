@@ -48,12 +48,11 @@ class GoogleOAuthClient(
 ) {
     private val logger = LoggerFactory.getLogger(GoogleOAuthClient::class.java)
 
-    private val webClient: WebClient by lazy {
+    private val webClient: WebClient =
         webClientBuilder
             .baseUrl("https://oauth2.googleapis.com")
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build()
-    }
 
     companion object {
         private const val TOKEN_INFO_ENDPOINT = "/tokeninfo"
