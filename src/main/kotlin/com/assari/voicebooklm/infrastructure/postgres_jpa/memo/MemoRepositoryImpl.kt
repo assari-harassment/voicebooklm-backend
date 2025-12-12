@@ -21,10 +21,10 @@ class MemoRepositoryImpl(
     }
 
     override suspend fun findById(id: UUID): Memo? =
-        memoJpaRepository.findByIdAndDeletedFalse(id)?.toDomain()
+        memoJpaRepository.findActiveMemoById(id)?.toDomain()
 
     override suspend fun findByUserId(userId: UUID): List<Memo> =
-        memoJpaRepository.findByUserIdAndDeletedFalseOrderByCreatedAtDesc(userId).map { it.toDomain() }
+        memoJpaRepository.findActiveMemosByUser(userId).map { it.toDomain() }
 
     override fun deleteByUserId(userId: UUID) {
         memoJpaRepository.deleteByUserId(userId)
