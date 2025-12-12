@@ -28,9 +28,7 @@ class JwtTokenProvider(
 ) {
     private val logger = LoggerFactory.getLogger(JwtTokenProvider::class.java)
 
-    private val key: SecretKey by lazy {
-        Keys.hmacShaKeyFor(secret.toByteArray())
-    }
+    private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
 
     companion object {
         private const val CLAIM_USER_ID = "userId"
