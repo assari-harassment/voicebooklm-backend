@@ -12,7 +12,7 @@ class RefreshTokenTest {
         val id = UUID.randomUUID()
         val token = "refresh-token-value"
         val userId = UUID.randomUUID()
-        val expiresAt = Instant.now().plusSeconds(604800) // 7日後
+        val expiresAt = Instant.now().plusSeconds(604800) // 7日後テスト用
         val createdAt = Instant.now()
 
         val refreshToken = RefreshToken(

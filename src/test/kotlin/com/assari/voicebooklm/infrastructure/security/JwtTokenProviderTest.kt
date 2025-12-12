@@ -11,8 +11,8 @@ class JwtTokenProviderTest {
 
     // 256bit 以上のシークレットキー（テスト用）
     private val testSecret = "test-secret-key-for-jwt-token-generation-must-be-at-least-256-bits-long"
-    private val accessTokenExpiration = 900000L  // 15分
-    private val refreshTokenExpiration = 604800000L  // 7日
+    private val accessTokenExpiration = 900000L  // 15分テスト用
+    private val refreshTokenExpiration = 604800000L  // 7日テスト用
 
     @BeforeEach
     fun setUp() {
