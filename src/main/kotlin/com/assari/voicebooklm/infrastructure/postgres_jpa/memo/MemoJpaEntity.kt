@@ -19,7 +19,7 @@ import java.util.UUID
  */
 @Entity
 @Table(name = "memos")
-class MemoEntity(
+class MemoJpaEntity(
     @Id
     var id: UUID = UUID.randomUUID(),
     @Column(name = "user_id", nullable = false)
@@ -61,22 +61,19 @@ class MemoEntity(
         updatedAt = Instant.now()
     }
 
-    fun toDomain(): Memo {
-        val nonNullTitle = title ?: error("title must not be null for Memo ${id}")
-        val nonNullContent = content ?: error("content must not be null for Memo ${id}")
-        return Memo(
+    fun toDomain(): Memo =
+        Memo(
             id = id,
-            title = nonNullTitle,
-            content = nonNullContent,
+            title = title ?: error("title must not be null for Memo ${id}"),
+            content = content ?: error("content must not be null for Memo ${id}"),
             tags = tags.toList(),
             userId = userId,
             deleted = deleted,
         )
-    }
 
     companion object {
-        fun fromDomain(memo: Memo, transcriptionText: String? = null): MemoEntity =
-            MemoEntity(
+        fun fromDomain(memo: Memo, transcriptionText: String? = null): MemoJpaEntity =
+            MemoJpaEntity(
                 id = memo.id,
                 userId = memo.userId,
                 transcriptionStatus = "COMPLETED",

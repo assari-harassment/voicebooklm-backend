@@ -17,13 +17,13 @@ import org.springframework.beans.factory.annotation.Autowired
  * JPA 実装経由で MemoRepository ポートを検証。
  */
 @Tag("integration")
-class JpaMemoRepositoryTest : AbstractIntegrationTest() {
+class MemoRepositoryJpaAdapterTest : AbstractIntegrationTest() {
 
     @Autowired
     lateinit var memoRepository: MemoRepository
 
     @Autowired
-    lateinit var memoJpaRepository: MemoJpaRepository
+    lateinit var memoJpaRepository: MemoJpaDataRepository
 
     @AfterEach
     fun tearDown() {
