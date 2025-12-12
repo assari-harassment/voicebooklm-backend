@@ -12,6 +12,7 @@ import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
 import kotlin.time.TimeSource
 import org.slf4j.LoggerFactory
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 音声文字起こしと AI 整形を経てメモを生成するユースケース実装。
@@ -28,6 +29,7 @@ class CreateMemoService(
     private val logger = LoggerFactory.getLogger(CreateMemoService::class.java)
     private val defaultTranscriptFallback = "[transcription unavailable]"
 
+    @Transactional
     override suspend fun execute(command: CreateMemoCommand): CreateMemoResult {
         require(command.audio.isNotEmpty()) { "Audio data must not be empty" }
 

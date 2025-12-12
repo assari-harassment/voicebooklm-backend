@@ -76,26 +76,12 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
 }
 
-// Force Java toolchain and compilation to JVM 21 to avoid mixing with older defaults.
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xjsr305=strict")
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
     jvmToolchain(21)
-}
-
-// Ensure all Kotlin compile tasks target JVM 21 (some IDEs default to 1.8).
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_21.toString()
 }
 
 tasks.withType<Test> {
