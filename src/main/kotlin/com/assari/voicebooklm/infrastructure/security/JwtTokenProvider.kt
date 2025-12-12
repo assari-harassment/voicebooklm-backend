@@ -100,6 +100,38 @@ class JwtTokenProvider(
     }
 
     /**
+     * アクセストークンかどうかを検証する
+     *
+     * @param token JWT トークン
+     * @return アクセストークンの場合は true
+     */
+    fun isAccessToken(token: String): Boolean {
+        return try {
+            val claims = getClaims(token)
+            claims[TOKEN_TYPE] == TOKEN_TYPE_ACCESS
+        } catch (e: Exception) {
+            logger.debug("Failed to check token type: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * リフレッシュトークンかどうかを検証する
+     *
+     * @param token JWT トークン
+     * @return リフレッシュトークンの場合は true
+     */
+    fun isRefreshToken(token: String): Boolean {
+        return try {
+            val claims = getClaims(token)
+            claims[TOKEN_TYPE] == TOKEN_TYPE_REFRESH
+        } catch (e: Exception) {
+            logger.debug("Failed to check token type: ${e.message}")
+            false
+        }
+    }
+
+    /**
      * トークンからユーザー ID を取得する
      *
      * @param token JWT トークン
