@@ -86,6 +86,15 @@ google:
     speech:
       credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
       project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+      default-language: ja-JP
+      timeout-seconds: 60
+      enabled: false
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: gemini-1.5-flash
+  timeout-seconds: 60
+  base-url: https://generativelanguage.googleapis.com
 
 # CORS 設定
 cors:
