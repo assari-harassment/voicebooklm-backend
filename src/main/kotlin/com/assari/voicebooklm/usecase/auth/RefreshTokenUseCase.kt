@@ -43,8 +43,8 @@ class RefreshTokenUseCase(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
     private val jwtTokenProvider: JwtTokenProvider,
-    @Value("\${jwt.refresh-token-expiration:604800000}")
-    private val refreshTokenExpiration: Long = 604800000L // 7日間
+    @Value("\${jwt.refresh-token-expiration:15552000000}")
+    private val refreshTokenExpiration: Long = 15552000000L // 180日間
 ) {
     /**
      * リフレッシュトークンを使用して新しいトークンペアを発行する

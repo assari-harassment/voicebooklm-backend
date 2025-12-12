@@ -46,8 +46,8 @@ class LoginUseCase(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val jwtTokenProvider: JwtTokenProvider,
-    @Value("\${jwt.refresh-token-expiration:604800000}")
-    private val refreshTokenExpiration: Long = 604800000L // 7日間
+    @Value("\${jwt.refresh-token-expiration:15552000000}")
+    private val refreshTokenExpiration: Long = 15552000000L // 180日間
 ) {
     /**
      * Google ID トークンで認証し、JWT トークンペアを発行する

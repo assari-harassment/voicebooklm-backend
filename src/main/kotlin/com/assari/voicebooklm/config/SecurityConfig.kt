@@ -15,7 +15,6 @@ import org.springframework.web.cors.CorsConfigurationSource
 /**
  * セキュリティ設定
  * - JWTトークン認証
- * - OAuth2 google認証
  */
 
 @Configuration

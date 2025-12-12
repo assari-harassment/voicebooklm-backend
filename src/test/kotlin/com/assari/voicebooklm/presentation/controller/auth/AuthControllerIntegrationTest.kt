@@ -72,7 +72,7 @@ class AuthControllerIntegrationTest : AbstractIntegrationTest() {
             id = UUID.randomUUID(),
             token = refreshTokenString,
             userId = testUser.id,
-            expiresAt = Instant.now().plusSeconds(604800), // 7日後
+            expiresAt = Instant.now().plusSeconds(604800), // 7日後テスト用
             createdAt = Instant.now(),
             revoked = false
         )
