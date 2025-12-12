@@ -77,8 +77,8 @@ spring:
 # JWT 設定
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only-must-be-at-least-256-bits}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}  # 15分（ミリ秒）
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}  # 7日間（ミリ秒）
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}  # 1日（ミリ秒）
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:15552000000}  # 180日（ミリ秒）
 
 # Google Cloud 設定
 google:
