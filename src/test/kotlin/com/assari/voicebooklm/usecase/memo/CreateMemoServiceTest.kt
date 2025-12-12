@@ -1,13 +1,13 @@
 package com.assari.voicebooklm.usecase.memo
 
-import com.assari.voicebooklm.domain.model.memo.Memo
-import com.assari.voicebooklm.domain.repository.memo.MemoRepository
-import com.assari.voicebooklm.usecase.memo.port.AiMemoDraft
-import com.assari.voicebooklm.usecase.memo.port.AiMemoFormatCommand
-import com.assari.voicebooklm.usecase.memo.port.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscription
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscriptionCommand
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscriber
+import com.assari.voicebooklm.domain.model.Memo
+import com.assari.voicebooklm.domain.repository.MemoRepository
+import com.assari.voicebooklm.usecase.memo.client.AiMemoDraft
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriptionCommand
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.TimedResult
 import java.util.UUID
@@ -151,6 +151,10 @@ private class FakeMemoRepository : MemoRepository {
     override suspend fun findById(id: UUID): Memo? = savedMemos.find { it.id == id }
 
     override suspend fun findByUserId(userId: UUID): List<Memo> = savedMemos.filter { it.userId == userId }
+
+    override fun deleteByUserId(userId: UUID) {
+        savedMemos.removeIf { it.userId == userId }
+    }
 }
 
 private class FakeExecutionTimer(

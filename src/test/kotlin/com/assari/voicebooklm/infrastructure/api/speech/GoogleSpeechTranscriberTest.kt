@@ -1,6 +1,6 @@
 package com.assari.voicebooklm.infrastructure.api.speech
 
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscriptionCommand
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriptionCommand
 import com.google.cloud.speech.v1.RecognitionAudio
 import com.google.cloud.speech.v1.RecognitionConfig
 import com.google.cloud.speech.v1.RecognizeResponse

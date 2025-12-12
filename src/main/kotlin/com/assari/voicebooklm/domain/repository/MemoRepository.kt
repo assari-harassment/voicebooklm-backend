@@ -1,19 +1,17 @@
 package com.assari.voicebooklm.domain.repository
 
+import com.assari.voicebooklm.domain.model.Memo
 import java.util.UUID
 
 /**
- * メモリポジトリインターフェース
- *
- * Domain Layer で定義されるリポジトリインターフェース。
- * 実装は Infrastructure Layer で行う。
- *
- * NOTE: アカウント削除に必要なメソッドのみ定義。
- * 他のメソッドは Phase 3 で追加予定。
+ * Memo 集約の永続化ポート。
  */
 interface MemoRepository {
-    /**
-     * ユーザー ID でメモを物理削除する（アカウント削除時）
-     */
+    suspend fun save(memo: Memo): Memo
+
+    suspend fun findById(id: UUID): Memo?
+
+    suspend fun findByUserId(userId: UUID): List<Memo>
+
     fun deleteByUserId(userId: UUID)
 }

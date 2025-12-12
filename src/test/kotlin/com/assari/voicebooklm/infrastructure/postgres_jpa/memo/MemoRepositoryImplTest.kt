@@ -1,23 +1,23 @@
 package com.assari.voicebooklm.infrastructure.postgres_jpa.memo
 
 import com.assari.voicebooklm.AbstractIntegrationTest
-import com.assari.voicebooklm.domain.model.memo.Memo
-import com.assari.voicebooklm.domain.repository.memo.MemoRepository
+import com.assari.voicebooklm.domain.model.Memo
+import com.assari.voicebooklm.domain.repository.MemoRepository
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 
 /**
  * JPA 実装経由で MemoRepository ポートを検証。
  */
 @Tag("integration")
-class MemoRepositoryJpaAdapterTest : AbstractIntegrationTest() {
+class MemoRepositoryImplTest : AbstractIntegrationTest() {
 
     @Autowired
     lateinit var memoRepository: MemoRepository

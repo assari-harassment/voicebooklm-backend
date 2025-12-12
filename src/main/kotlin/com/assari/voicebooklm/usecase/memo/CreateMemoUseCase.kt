@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.usecase.memo
 
-import com.assari.voicebooklm.domain.model.memo.Memo
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscription
+import com.assari.voicebooklm.domain.model.Memo
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
 import java.util.UUID
 import kotlin.time.Duration
 

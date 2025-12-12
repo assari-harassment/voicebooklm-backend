@@ -1,6 +1,6 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
-import com.assari.voicebooklm.domain.model.memo.Memo
+import com.assari.voicebooklm.domain.model.Memo
 import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import com.assari.voicebooklm.presentation.exception.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
@@ -8,7 +8,7 @@ import com.assari.voicebooklm.usecase.memo.CreateMemoResult
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
 import com.assari.voicebooklm.usecase.memo.FallbackUsage
 import com.assari.voicebooklm.usecase.memo.ProcessingTime
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscription
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
 import com.assari.voicebooklm.presentation.exception.ApiExceptionHandler
 import com.assari.voicebooklm.config.SecurityConfig
 import com.ninjasquad.springmockk.MockkBean
