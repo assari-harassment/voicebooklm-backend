@@ -17,6 +17,11 @@ import java.util.UUID
 interface RefreshTokenJpaRepository : JpaRepository<RefreshTokenEntity, UUID> {
 
     /**
+     * リフレッシュトークンを保存する（JpaRepository から継承）
+     */
+    override fun <S : RefreshTokenEntity> save(entity: S): S
+
+    /**
      * 有効なトークンを取得する（未失効かつ有効期限内）
      */
     @Query("""
