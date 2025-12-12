@@ -7,7 +7,6 @@ import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.infrastructure.api.GoogleOAuthClient
 import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import com.github.f4b6a3.uuid.UuidCreator
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -45,9 +44,7 @@ class LoginUseCase(
     private val googleOAuthClient: GoogleOAuthClient,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val jwtTokenProvider: JwtTokenProvider,
-    @Value("\${jwt.refresh-token-expiration:15552000000}")
-    private val refreshTokenExpiration: Long = 15552000000L // 180日間
+    private val jwtTokenProvider: JwtTokenProvider
 ) {
     /**
      * Google ID トークンで認証し、JWT トークンペアを発行する
@@ -75,7 +72,7 @@ class LoginUseCase(
             id = UuidCreator.getTimeOrderedEpoch(),
             token = refreshTokenValue,
             userId = user.id,
-            expiresAt = Instant.now().plusMillis(refreshTokenExpiration),
+            expiresAt = Instant.now().plusMillis(jwtTokenProvider.refreshTokenExpiration),
             createdAt = Instant.now(),
             revoked = false
         )

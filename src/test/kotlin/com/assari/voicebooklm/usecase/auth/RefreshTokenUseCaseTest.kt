@@ -25,6 +25,8 @@ class RefreshTokenUseCaseTest {
         userRepository = mockk()
         jwtTokenProvider = mockk()
 
+        every { jwtTokenProvider.refreshTokenExpiration } returns 15552000000L
+
         refreshTokenUseCase = RefreshTokenUseCase(
             refreshTokenRepository = refreshTokenRepository,
             userRepository = userRepository,

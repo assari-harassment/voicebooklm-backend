@@ -29,6 +29,8 @@ class LoginUseCaseTest {
         refreshTokenRepository = mockk()
         jwtTokenProvider = mockk()
 
+        every { jwtTokenProvider.refreshTokenExpiration } returns 15552000000L
+
         loginUseCase = LoginUseCase(
             googleOAuthClient = googleOAuthClient,
             userRepository = userRepository,

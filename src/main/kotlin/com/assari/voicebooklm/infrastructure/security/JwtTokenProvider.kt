@@ -24,7 +24,7 @@ class JwtTokenProvider(
     private val accessTokenExpiration: Long,
 
     @Value("\${jwt.refresh-token-expiration}")
-    private val refreshTokenExpiration: Long
+    val refreshTokenExpiration: Long
 ) {
     private val logger = LoggerFactory.getLogger(JwtTokenProvider::class.java)
 

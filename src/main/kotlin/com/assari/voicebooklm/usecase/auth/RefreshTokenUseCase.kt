@@ -5,7 +5,6 @@ import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import com.github.f4b6a3.uuid.UuidCreator
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -42,9 +41,7 @@ class InvalidRefreshTokenException(message: String) : RuntimeException(message)
 class RefreshTokenUseCase(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
-    private val jwtTokenProvider: JwtTokenProvider,
-    @Value("\${jwt.refresh-token-expiration:15552000000}")
-    private val refreshTokenExpiration: Long = 15552000000L // 180日間
+    private val jwtTokenProvider: JwtTokenProvider
 ) {
     /**
      * リフレッシュトークンを使用して新しいトークンペアを発行する
@@ -77,7 +74,7 @@ class RefreshTokenUseCase(
             id = UuidCreator.getTimeOrderedEpoch(),
             token = newRefreshTokenValue,
             userId = user.id,
-            expiresAt = Instant.now().plusMillis(refreshTokenExpiration),
+            expiresAt = Instant.now().plusMillis(jwtTokenProvider.refreshTokenExpiration),
             createdAt = Instant.now(),
             revoked = false
         )
