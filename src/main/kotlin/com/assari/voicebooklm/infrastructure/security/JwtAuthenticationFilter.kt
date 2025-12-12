@@ -3,7 +3,6 @@ package com.assari.voicebooklm.infrastructure.security
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
@@ -21,8 +20,6 @@ class JwtAuthenticationFilter(
     private val jwtTokenProvider: JwtTokenProvider
 ) : OncePerRequestFilter() {
 
-    private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
-
     companion object {
         private const val AUTHORIZATION_HEADER = "Authorization"
         private const val BEARER_PREFIX = "Bearer "
@@ -36,7 +33,7 @@ class JwtAuthenticationFilter(
         try {
             val token = extractToken(request)
 
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+            if (token != null && jwtTokenProvider.validateToken(token) && jwtTokenProvider.isAccessToken(token)) {
                 val userId = jwtTokenProvider.getUserIdFromToken(token)
                 val email = jwtTokenProvider.getEmailFromToken(token)
 
@@ -47,11 +44,11 @@ class JwtAuthenticationFilter(
                         listOf(SimpleGrantedAuthority("ROLE_USER"))
                     )
                     SecurityContextHolder.getContext().authentication = authentication
-                    log.debug("Set authentication for user: $userId")
+                    logger.debug("Set authentication for user: $userId")
                 }
             }
         } catch (e: Exception) {
-            log.debug("Could not set user authentication: ${e.message}")
+            logger.debug("Could not set user authentication: ${e.message}")
         }
 
         filterChain.doFilter(request, response)
