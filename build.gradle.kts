@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("org.springframework.boot") version "3.4.12"
     id("io.spring.dependency-management") version "1.1.7"
@@ -10,12 +8,6 @@ plugins {
 
 group = "com.assari"
 version = "0.0.1-SNAPSHOT"
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
 
 repositories {
     mavenCentral()
@@ -77,6 +69,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
 
     // Testcontainers（PostgreSQL でテスト）
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
@@ -85,13 +79,45 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs += "-Xjsr305=strict"
-        jvmTarget = "21"
+// Force Java toolchain and compilation to JVM 21 to avoid mixing with older defaults.
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+    jvmToolchain(21)
+}
+
+// Ensure all Kotlin compile tasks target JVM 21 (some IDEs default to 1.8).
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_21.toString()
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("integration")
+    }
+}
+
+val integrationTest by tasks.register<Test>("integrationTest") {
+    description = "Runs tests tagged with @Tag(\"integration\") (requires Docker for Testcontainers)."
+    group = JavaBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    shouldRunAfter(tasks.test)
+}
+
+tasks.check {
+    dependsOn(integrationTest)
 }
