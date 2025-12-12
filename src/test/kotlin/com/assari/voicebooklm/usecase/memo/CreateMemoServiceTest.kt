@@ -13,10 +13,12 @@ import com.assari.voicebooklm.usecase.support.TimedResult
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.TestTimeSource
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 
@@ -80,6 +82,41 @@ class CreateMemoServiceTest {
         assertEquals(350.milliseconds, result.processingTime.total)
         assertEquals(false, result.fallbackUsage.transcription)
         assertEquals(false, result.fallbackUsage.formatting)
+    }
+
+    @Test
+    fun `処理全体が30秒未満で完了する`() = runTest {
+        val userId = UUID.randomUUID()
+        val timeSource = TestTimeSource()
+
+        val useCase = CreateMemoService(
+            memoRepository = FakeMemoRepository(),
+            speechTranscriber = FakeSpeechTranscriber("text"),
+            aiMemoFormatter = FakeAiMemoFormatter(
+                title = "title",
+                content = "content",
+                tags = emptyList(),
+            ),
+            executionTimer = FakeExecutionTimer(
+                timeSource = timeSource,
+                durations = listOf(5.seconds, 10.seconds, 5.seconds),
+            ),
+            timeSource = timeSource,
+        )
+
+        val result = useCase.execute(
+            CreateMemoCommand(
+                userId = userId,
+                audio = ByteArray(1) { 1 },
+                audioMimeType = "audio/wav",
+                language = "ja-JP",
+            ),
+        )
+
+        assertTrue(
+            result.processingTime.total < 30.seconds,
+            "processing should finish under 30 seconds",
+        )
     }
 
     @Test

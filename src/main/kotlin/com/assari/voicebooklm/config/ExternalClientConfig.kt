@@ -59,7 +59,7 @@ class ExternalClientConfig {
     fun aiMemoFormatter(
         webClient: WebClient,
         @Value("\${gemini.api-key}") apiKey: String,
-        @Value("\${gemini.model:gemini-1.5-flash}") model: String,
+        @Value("\${gemini.model:gemini-2.0-flash}") model: String,
         @Value("\${gemini.timeout-seconds:60}") timeoutSeconds: Long,
         @Value("\${gemini.base-url:https://generativelanguage.googleapis.com}") baseUrl: String,
     ): AiMemoFormatter =

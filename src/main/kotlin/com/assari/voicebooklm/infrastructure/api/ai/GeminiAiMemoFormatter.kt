@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono
 class GeminiAiMemoFormatter(
     private val webClient: WebClient,
     private val apiKey: String,
-    private val model: String = "gemini-1.5-flash",
+    private val model: String = "gemini-2.0-flash",
     private val timeout: Duration = Duration.ofSeconds(60),
     baseUrl: String = "https://generativelanguage.googleapis.com",
 ) : AiMemoFormatter {
