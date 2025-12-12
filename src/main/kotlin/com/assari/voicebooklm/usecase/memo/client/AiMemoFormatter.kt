@@ -1,9 +1,9 @@
-package com.assari.voicebooklm.usecase.memo.port
+package com.assari.voicebooklm.usecase.memo.client
 
 import java.util.UUID
 
 /**
- * 文字起こしテキストをメモとして整形する AI ポート。
+ * 文字起こしテキストをメモとして整形する AI クライアント。
  */
 interface AiMemoFormatter {
     suspend fun format(command: AiMemoFormatCommand): AiMemoDraft

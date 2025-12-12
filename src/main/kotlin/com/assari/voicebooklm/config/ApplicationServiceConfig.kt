@@ -1,10 +1,10 @@
 package com.assari.voicebooklm.config
 
-import com.assari.voicebooklm.domain.repository.memo.MemoRepository
+import com.assari.voicebooklm.domain.repository.MemoRepository
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
 import com.assari.voicebooklm.usecase.memo.CreateMemoService
-import com.assari.voicebooklm.usecase.memo.port.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.port.SpeechTranscriber
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
 import kotlin.time.TimeSource

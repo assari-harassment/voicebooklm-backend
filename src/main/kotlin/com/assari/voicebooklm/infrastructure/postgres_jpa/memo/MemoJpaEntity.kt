@@ -1,6 +1,6 @@
 package com.assari.voicebooklm.infrastructure.postgres_jpa.memo
 
-import com.assari.voicebooklm.domain.model.memo.Memo
+import com.assari.voicebooklm.domain.model.Memo
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection

@@ -1,8 +1,8 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
-import com.assari.voicebooklm.usecase.memo.port.AiMemoDraft
-import com.assari.voicebooklm.usecase.memo.port.AiMemoFormatCommand
-import com.assari.voicebooklm.usecase.memo.port.AiMemoFormatter
+import com.assari.voicebooklm.usecase.memo.client.AiMemoDraft
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
 import java.time.Duration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull

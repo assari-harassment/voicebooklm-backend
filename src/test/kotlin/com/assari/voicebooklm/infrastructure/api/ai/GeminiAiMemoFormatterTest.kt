@@ -1,6 +1,6 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
-import com.assari.voicebooklm.usecase.memo.port.AiMemoFormatCommand
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
 import java.time.Duration
 import java.util.UUID
 import kotlinx.coroutines.runBlocking

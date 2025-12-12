@@ -1,4 +1,4 @@
-package com.assari.voicebooklm.domain.model.memo
+package com.assari.voicebooklm.domain.model
 
 import java.util.UUID
 

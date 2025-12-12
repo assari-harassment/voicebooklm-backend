@@ -1,9 +1,9 @@
-package com.assari.voicebooklm.usecase.memo.port
+package com.assari.voicebooklm.usecase.memo.client
 
 import java.util.UUID
 
 /**
- * 音声をテキストへ変換するポート。
+ * 音声をテキストへ変換するクライアント。
  */
 interface SpeechTranscriber {
     suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscription
