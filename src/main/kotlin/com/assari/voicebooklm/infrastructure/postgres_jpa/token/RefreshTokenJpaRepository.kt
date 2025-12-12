@@ -1,45 +1,53 @@
 package com.assari.voicebooklm.infrastructure.postgres_jpa.token
 
-import com.assari.voicebooklm.domain.model.RefreshToken
-import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
 /**
- * リフレッシュトークンリポジトリ実装
+ * Spring Data JPA リフレッシュトークンリポジトリインターフェース
  *
- * Domain Layer の RefreshTokenRepository インターフェースを実装する。
- * Infrastructure Layer に属し、JPA を使用してデータベースアクセスを行う。
+ * 内部使用専用。外部からは RefreshTokenRepository インターフェースを使用する。
  */
 @Repository
-class RefreshTokenJpaRepository(
-    private val jpaRepo: SpringDataRefreshTokenRepository
-) : RefreshTokenRepository {
+interface RefreshTokenJpaRepository : JpaRepository<RefreshTokenEntity, UUID> {
 
-    override fun save(token: RefreshToken): RefreshToken {
-        val entity = RefreshTokenEntity.fromDomain(token)
-        val savedEntity = jpaRepo.save(entity)
-        return savedEntity.toDomain()
-    }
+    /**
+     * 有効なトークンを取得する（未失効かつ有効期限内）
+     */
+    @Query("""
+        SELECT t FROM RefreshTokenEntity t
+        WHERE t.token = :token
+        AND t.revoked = false
+        AND t.expiresAt > :now
+    """)
+    fun findByTokenAndValid(
+        @Param("token") token: String,
+        @Param("now") now: Instant
+    ): RefreshTokenEntity?
 
-    override fun findByTokenAndValid(token: String, now: Instant): RefreshToken? {
-        return jpaRepo.findByTokenAndValid(token, now)?.toDomain()
-    }
+    /**
+     * トークン文字列でトークンを無効化する
+     */
+    @Modifying
+    @Query("UPDATE RefreshTokenEntity t SET t.revoked = true WHERE t.token = :token")
+    fun revokeByToken(@Param("token") token: String)
 
-    @Transactional
-    override fun revokeByToken(token: String) {
-        jpaRepo.revokeByToken(token)
-    }
+    /**
+     * ユーザー ID で全トークンを無効化する（ログアウト時）
+     */
+    @Modifying
+    @Query("UPDATE RefreshTokenEntity t SET t.revoked = true WHERE t.userId = :userId")
+    fun revokeByUserId(@Param("userId") userId: UUID)
 
-    @Transactional
-    override fun revokeByUserId(userId: UUID) {
-        jpaRepo.revokeByUserId(userId)
-    }
-
-    @Transactional
-    override fun deleteByUserId(userId: UUID) {
-        jpaRepo.deleteByUserId(userId)
-    }
+    /**
+     * ユーザー ID で全トークンを削除する（アカウント削除時）
+     */
+    @Modifying
+    @Query("DELETE FROM RefreshTokenEntity t WHERE t.userId = :userId")
+    fun deleteByUserId(@Param("userId") userId: UUID)
 }

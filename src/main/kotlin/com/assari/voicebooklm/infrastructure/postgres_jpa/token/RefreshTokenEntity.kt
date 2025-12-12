@@ -33,14 +33,6 @@ class RefreshTokenEntity(
     @Column(nullable = false)
     var revoked: Boolean = false
 ) {
-    // JPA no-arg constructor
-    constructor() : this(
-        id = UUID.randomUUID(),
-        token = "",
-        userId = UUID.randomUUID(),
-        expiresAt = Instant.now()
-    )
-
     /**
      * Entity -> Domain 変換
      */

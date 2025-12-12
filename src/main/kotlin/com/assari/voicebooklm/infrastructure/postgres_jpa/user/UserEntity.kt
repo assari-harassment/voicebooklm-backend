@@ -33,14 +33,6 @@ class UserEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
-    // JPA no-arg constructor
-    constructor() : this(
-        id = UUID.randomUUID(),
-        googleSub = "",
-        email = "",
-        name = ""
-    )
-
     /**
      * Entity -> Domain 変換
      */

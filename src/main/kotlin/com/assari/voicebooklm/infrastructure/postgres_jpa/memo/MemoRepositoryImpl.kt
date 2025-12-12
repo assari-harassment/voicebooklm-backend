@@ -15,7 +15,7 @@ import java.util.UUID
  * Phase 3 で Memo 機能実装時に実装を更新する。
  */
 @Repository
-class MemoJpaRepository : MemoRepository {
+class MemoRepositoryImpl : MemoRepository {
 
     override fun deleteByUserId(userId: UUID) {
         // NOTE: Memo テーブルがまだ存在しないため、no-op として実装
