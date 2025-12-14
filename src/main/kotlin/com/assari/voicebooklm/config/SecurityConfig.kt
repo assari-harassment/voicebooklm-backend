@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.config
 
+import com.assari.voicebooklm.infrastructure.ratelimit.RateLimitFilter
 import com.assari.voicebooklm.infrastructure.security.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -15,13 +16,15 @@ import org.springframework.web.cors.CorsConfigurationSource
 /**
  * セキュリティ設定
  * - JWTトークン認証
+ * - レート制限
  */
 
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
         private val corsConfigurationSource: CorsConfigurationSource,
-        private val jwtAuthenticationFilter: JwtAuthenticationFilter
+        private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+        private val rateLimitFilter: RateLimitFilter
 ) {
 
     @Bean
@@ -52,6 +55,11 @@ class SecurityConfig(
                     // JWT 使用のためステートレスに設定
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 }
+                // レート制限フィルターを追加（認証フィルターの前）
+                .addFilterBefore(
+                        rateLimitFilter,
+                        UsernamePasswordAuthenticationFilter::class.java
+                )
                 // JWT 認証フィルターを追加
                 .addFilterBefore(
                         jwtAuthenticationFilter,

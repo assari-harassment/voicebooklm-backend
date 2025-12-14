@@ -15,6 +15,10 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+# Rate Limit 無効化（統合テスト用）
+rate-limit:
+  enabled: false
+
 # ログレベル
 logging:
   level:
