@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 
@@ -21,14 +20,7 @@ class RateLimitFilterTest {
 
     @BeforeEach
     fun setUp() {
-        val properties = RateLimitProperties(
-            enabled = true,
-            auth = RateLimitProperties.EndpointRateLimitConfig(
-                capacity = 5,
-                refillTokens = 5,
-                refillDurationSeconds = 60
-            )
-        )
+        val properties = createProperties(capacity = 5)
         rateLimitService = RateLimitService(properties)
         rateLimitService.clearCache()
         objectMapper = ObjectMapper()
@@ -154,5 +146,16 @@ class RateLimitFilterTest {
         rateLimitFilter.doFilter(request, response, filterChain)
 
         assertTrue(response.contentAsString.contains("リクエスト数の上限に達しました"))
+    }
+
+    private fun createProperties(capacity: Long): RateLimitProperties {
+        return RateLimitProperties().apply {
+            this.enabled = true
+            this.auth = RateLimitProperties.EndpointRateLimitConfig().apply {
+                this.capacity = capacity
+                this.refillTokens = capacity
+                this.refillDurationSeconds = 60
+            }
+        }
     }
 }

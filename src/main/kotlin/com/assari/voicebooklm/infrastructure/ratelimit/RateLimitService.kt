@@ -4,6 +4,7 @@ import com.assari.voicebooklm.config.RateLimitProperties
 import io.github.bucket4j.Bandwidth
 import io.github.bucket4j.Bucket
 import org.slf4j.LoggerFactory
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Bucket4j ライブラリを使用したトークンバケットアルゴリズムを実装。
  */
 @Service
+@EnableConfigurationProperties(RateLimitProperties::class)
 class RateLimitService(
     private val rateLimitProperties: RateLimitProperties
 ) {

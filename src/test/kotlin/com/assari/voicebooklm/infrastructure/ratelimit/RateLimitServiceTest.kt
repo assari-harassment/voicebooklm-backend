@@ -11,14 +11,7 @@ class RateLimitServiceTest {
 
     @BeforeEach
     fun setUp() {
-        val properties = RateLimitProperties(
-            enabled = true,
-            auth = RateLimitProperties.EndpointRateLimitConfig(
-                capacity = 5,
-                refillTokens = 5,
-                refillDurationSeconds = 60
-            )
-        )
+        val properties = createProperties(enabled = true, capacity = 5)
         rateLimitService = RateLimitService(properties)
         rateLimitService.clearCache()
     }
@@ -89,14 +82,7 @@ class RateLimitServiceTest {
 
     @Test
     fun `should allow all requests when disabled`() {
-        val disabledProperties = RateLimitProperties(
-            enabled = false,
-            auth = RateLimitProperties.EndpointRateLimitConfig(
-                capacity = 1,
-                refillTokens = 1,
-                refillDurationSeconds = 60
-            )
-        )
+        val disabledProperties = createProperties(enabled = false, capacity = 1)
         val disabledService = RateLimitService(disabledProperties)
         val clientIp = "192.168.1.6"
 
@@ -104,6 +90,17 @@ class RateLimitServiceTest {
         repeat(100) {
             assertTrue(disabledService.tryConsumeForAuth(clientIp)) {
                 "All requests should be allowed when rate limiting is disabled"
+            }
+        }
+    }
+
+    private fun createProperties(enabled: Boolean, capacity: Long): RateLimitProperties {
+        return RateLimitProperties().apply {
+            this.enabled = enabled
+            this.auth = RateLimitProperties.EndpointRateLimitConfig().apply {
+                this.capacity = capacity
+                this.refillTokens = capacity
+                this.refillDurationSeconds = 60
             }
         }
     }
