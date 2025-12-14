@@ -8,10 +8,10 @@ import java.util.UUID
  */
 @Schema(description = "認証トークンレスポンス")
 data class TokenResponse(
-    @Schema(description = "アクセストークン（1日有効）", example = "eyJhbGciOiJIUzI1NiIsInR...")
+    @Schema(description = "アクセストークン（1日有効）", example = "eyJhbGciOiJIUzI1NiIsInR")
     val accessToken: String,
 
-    @Schema(description = "リフレッシュトークン（180日間有効）", example = "eyJhbGciOiJIUzI1NiIsInR...")
+    @Schema(description = "リフレッシュトークン（180日間有効）", example = "eyJhbGciOiJIUzI1NiIsInR")
     val refreshToken: String
 )
 

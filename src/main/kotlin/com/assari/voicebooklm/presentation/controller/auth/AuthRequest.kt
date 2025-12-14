@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotBlank
  */
 @Schema(description = "Google OAuth ログインリクエスト")
 data class GoogleAuthRequest(
-    @Schema(description = "Google ID トークン", example = "eyJhbGciOiJSUzI1NiIsInR...")
+    @Schema(description = "Google ID トークン", example = "eyJhbGciOiJSUzI1NiIsInR")
     @field:NotBlank(message = "ID トークンは必須です")
     val idToken: String
 )
@@ -18,7 +18,7 @@ data class GoogleAuthRequest(
  */
 @Schema(description = "トークンリフレッシュリクエスト")
 data class RefreshTokenRequest(
-    @Schema(description = "リフレッシュトークン", example = "eyJhbGciOiJIUzI1NiIsInR...")
+    @Schema(description = "リフレッシュトークン", example = "eyJhbGciOiJIUzI1NiIsInR")
     @field:NotBlank(message = "リフレッシュトークンは必須です")
     val refreshToken: String
 )
@@ -28,7 +28,7 @@ data class RefreshTokenRequest(
  */
 @Schema(description = "ログアウトリクエスト")
 data class LogoutRequest(
-    @Schema(description = "リフレッシュトークン", example = "eyJhbGciOiJIUzI1NiIsInR...")
+    @Schema(description = "リフレッシュトークン", example = "eyJhbGciOiJIUzI1NiIsInR")
     @field:NotBlank(message = "リフレッシュトークンは必須です")
     val refreshToken: String
 )
