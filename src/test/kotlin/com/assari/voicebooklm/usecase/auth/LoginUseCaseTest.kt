@@ -4,8 +4,8 @@ import com.assari.voicebooklm.domain.model.RefreshToken
 import com.assari.voicebooklm.domain.model.User
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
-import com.assari.voicebooklm.infrastructure.api.GoogleOAuthClient
-import com.assari.voicebooklm.infrastructure.api.GoogleUserInfo
+import com.assari.voicebooklm.domain.gateway.OAuthClient
+import com.assari.voicebooklm.domain.model.OAuthUserInfo
 import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.*
@@ -17,14 +17,14 @@ import java.util.UUID
 class LoginUseCaseTest {
 
     private lateinit var loginUseCase: LoginUseCase
-    private lateinit var googleOAuthClient: GoogleOAuthClient
+    private lateinit var oAuthClient: OAuthClient
     private lateinit var userRepository: UserRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
     private lateinit var jwtTokenProvider: JwtTokenProvider
 
     @BeforeEach
     fun setUp() {
-        googleOAuthClient = mockk()
+        oAuthClient = mockk()
         userRepository = mockk()
         refreshTokenRepository = mockk()
         jwtTokenProvider = mockk()
@@ -32,7 +32,7 @@ class LoginUseCaseTest {
         every { jwtTokenProvider.refreshTokenExpiration } returns 15552000000L
 
         loginUseCase = LoginUseCase(
-            googleOAuthClient = googleOAuthClient,
+            oAuthClient = oAuthClient,
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
             jwtTokenProvider = jwtTokenProvider
@@ -42,24 +42,24 @@ class LoginUseCaseTest {
     @Test
     fun `should login existing user successfully`() {
         // Given
-        val idToken = "valid-google-id-token"
-        val googleUserInfo = GoogleUserInfo(
-            googleSub = "google-sub-123",
+        val idToken = "valid-id-token"
+        val oAuthUserInfo = OAuthUserInfo(
+            providerId = "provider-id-123",
             email = "test@example.com",
             name = "Test User",
             picture = null
         )
         val existingUser = User(
             id = UUID.randomUUID(),
-            googleSub = googleUserInfo.googleSub,
-            email = googleUserInfo.email,
-            name = googleUserInfo.name,
+            googleSub = oAuthUserInfo.providerId,
+            email = oAuthUserInfo.email,
+            name = oAuthUserInfo.name,
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
 
-        every { googleOAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns googleUserInfo
-        every { userRepository.findByGoogleSub(googleUserInfo.googleSub) } returns existingUser
+        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns existingUser
         every { jwtTokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
         every { jwtTokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
@@ -73,23 +73,23 @@ class LoginUseCaseTest {
         assertEquals("refresh-token", result.refreshToken)
         assertEquals(existingUser.id, result.userId)
 
-        verify { userRepository.findByGoogleSub(googleUserInfo.googleSub) }
+        verify { userRepository.findByGoogleSub(oAuthUserInfo.providerId) }
         verify(exactly = 0) { userRepository.save(any()) }
     }
 
     @Test
     fun `should create new user on first login`() {
         // Given
-        val idToken = "valid-google-id-token"
-        val googleUserInfo = GoogleUserInfo(
-            googleSub = "google-sub-new",
+        val idToken = "valid-id-token"
+        val oAuthUserInfo = OAuthUserInfo(
+            providerId = "provider-id-new",
             email = "newuser@example.com",
             name = "New User",
             picture = null
         )
 
-        every { googleOAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns googleUserInfo
-        every { userRepository.findByGoogleSub(googleUserInfo.googleSub) } returns null
+        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns null
         every { userRepository.save(any()) } answers { firstArg() }
         every { jwtTokenProvider.generateAccessToken(any(), any()) } returns "access-token"
         every { jwtTokenProvider.generateRefreshToken(any()) } returns "refresh-token"
@@ -107,41 +107,41 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `should throw exception when Google ID token is invalid`() {
+    fun `should throw exception when ID token is invalid`() {
         // Given
         val invalidIdToken = "invalid-token"
 
-        every { googleOAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
+        every { oAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
 
         // When & Then
-        val exception = assertThrows(InvalidGoogleTokenException::class.java) {
+        val exception = assertThrows(InvalidIdTokenException::class.java) {
             loginUseCase.execute(LoginCommand(invalidIdToken))
         }
 
-        assertEquals("Google ID トークンの検証に失敗しました", exception.message)
+        assertEquals("ID トークンの検証に失敗しました", exception.message)
     }
 
     @Test
     fun `should save refresh token to repository`() {
         // Given
-        val idToken = "valid-google-id-token"
-        val googleUserInfo = GoogleUserInfo(
-            googleSub = "google-sub-123",
+        val idToken = "valid-id-token"
+        val oAuthUserInfo = OAuthUserInfo(
+            providerId = "provider-id-123",
             email = "test@example.com",
             name = "Test User",
             picture = null
         )
         val existingUser = User(
             id = UUID.randomUUID(),
-            googleSub = googleUserInfo.googleSub,
-            email = googleUserInfo.email,
-            name = googleUserInfo.name,
+            googleSub = oAuthUserInfo.providerId,
+            email = oAuthUserInfo.email,
+            name = oAuthUserInfo.name,
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
 
-        every { googleOAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns googleUserInfo
-        every { userRepository.findByGoogleSub(googleUserInfo.googleSub) } returns existingUser
+        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns existingUser
         every { jwtTokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
         every { jwtTokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
 
@@ -156,5 +156,15 @@ class LoginUseCaseTest {
         assertEquals("refresh-token", savedToken.token)
         assertEquals(existingUser.id, savedToken.userId)
         assertFalse(savedToken.revoked)
+    }
+
+    @Test
+    fun `InvalidGoogleTokenException should be subtype of InvalidIdTokenException for backward compatibility`() {
+        // Given
+        val exception = InvalidGoogleTokenException("test message")
+
+        // Then
+        assertTrue(exception is InvalidIdTokenException)
+        assertEquals("test message", exception.message)
     }
 }

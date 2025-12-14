@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.infrastructure.api
 
+import com.assari.voicebooklm.domain.gateway.OAuthClient
+import com.assari.voicebooklm.domain.model.OAuthUserInfo
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -7,16 +9,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
-
-/**
- * Google OAuth ユーザー情報
- */
-data class GoogleUserInfo(
-    val googleSub: String,
-    val email: String,
-    val name: String,
-    val picture: String?
-)
 
 /**
  * Google Token Info レスポンス
@@ -38,6 +30,7 @@ data class GoogleTokenInfo(
 /**
  * Google OAuth クライアント
  *
+ * OAuthClient インターフェースの Google 実装。
  * Google ID トークンの検証とユーザー情報の取得を行う。
  * モバイルアプリからの ID トークンを検証する用途を想定。
  */
@@ -46,7 +39,8 @@ class GoogleOAuthClient(
     @Value("\${spring.security.oauth2.client.registration.google.client-id}")
     private val clientId: String,
     private val webClientBuilder: WebClient.Builder
-) {
+) : OAuthClient {
+
     private val logger = LoggerFactory.getLogger(GoogleOAuthClient::class.java)
 
     private val webClient: WebClient =
@@ -65,7 +59,7 @@ class GoogleOAuthClient(
      * @param idToken Google ID トークン
      * @return ユーザー情報（検証失敗時は null）
      */
-    fun verifyIdTokenAndGetUserInfo(idToken: String): GoogleUserInfo? {
+    override fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo? {
         return try {
             val tokenInfo = webClient.get()
                 .uri { uriBuilder ->
@@ -93,8 +87,8 @@ class GoogleOAuthClient(
                 return null
             }
 
-            GoogleUserInfo(
-                googleSub = tokenInfo.sub,
+            OAuthUserInfo(
+                providerId = tokenInfo.sub,
                 email = tokenInfo.email,
                 name = tokenInfo.name ?: tokenInfo.givenName ?: "Unknown",
                 picture = tokenInfo.picture

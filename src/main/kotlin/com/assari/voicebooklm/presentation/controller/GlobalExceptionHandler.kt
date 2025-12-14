@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.presentation.controller
 
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
-import com.assari.voicebooklm.usecase.auth.InvalidGoogleTokenException
+import com.assari.voicebooklm.usecase.auth.InvalidIdTokenException
 import com.assari.voicebooklm.usecase.auth.InvalidRefreshTokenException
 import com.assari.voicebooklm.usecase.auth.UserNotFoundException
 import org.slf4j.LoggerFactory
@@ -23,16 +23,17 @@ class GlobalExceptionHandler {
     private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
     /**
-     * Google ID トークン検証失敗
+     * ID トークン検証失敗（OAuth プロバイダー共通）
+     * InvalidGoogleTokenException も InvalidIdTokenException のサブクラスとしてキャッチされる
      */
-    @ExceptionHandler(InvalidGoogleTokenException::class)
-    fun handleInvalidGoogleToken(e: InvalidGoogleTokenException): ResponseEntity<ErrorResponse> {
-        logger.warn("Google token validation failed: ${e.message}")
+    @ExceptionHandler(InvalidIdTokenException::class)
+    fun handleInvalidIdToken(e: InvalidIdTokenException): ResponseEntity<ErrorResponse> {
+        logger.warn("ID token validation failed: ${e.message}")
         return ResponseEntity
             .status(HttpStatus.UNAUTHORIZED)
             .body(ErrorResponse(
-                error = e.message ?: "Google ID トークンの検証に失敗しました",
-                code = "INVALID_GOOGLE_TOKEN"
+                error = e.message ?: "ID トークンの検証に失敗しました",
+                code = "INVALID_ID_TOKEN"
             ))
     }
 
