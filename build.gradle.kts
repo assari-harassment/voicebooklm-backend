@@ -61,6 +61,9 @@ dependencies {
     // API ドキュメント（Swagger/OpenAPI）
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
 
+    // Rate Limiting（Bucket4j）
+    implementation("com.bucket4j:bucket4j_jdk17-core:8.14.0")
+
     // 開発環境
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
