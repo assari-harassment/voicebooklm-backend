@@ -1,11 +1,10 @@
 package com.assari.voicebooklm.usecase.auth
 
 import com.assari.voicebooklm.domain.model.RefreshToken
+import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
-import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import com.github.f4b6a3.uuid.UuidCreator
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
@@ -37,12 +36,15 @@ class InvalidRefreshTokenException(message: String) : RuntimeException(message)
  * リフレッシュトークンローテーションを実装。
  * 旧トークンを無効化し、新しいトークンペアを発行する。
  */
-@Service
-class RefreshTokenUseCase(
+interface RefreshTokenUseCase {
+    fun execute(command: RefreshTokenCommand): RefreshTokenResult
+}
+
+open class RefreshTokenInteractor(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
-    private val jwtTokenProvider: JwtTokenProvider
-) {
+    private val tokenProvider: TokenProvider,
+) : RefreshTokenUseCase {
     /**
      * リフレッシュトークンを使用して新しいトークンペアを発行する
      *
@@ -51,7 +53,7 @@ class RefreshTokenUseCase(
      * @throws InvalidRefreshTokenException リフレッシュトークンが無効または期限切れの場合
      */
     @Transactional
-    fun execute(command: RefreshTokenCommand): RefreshTokenResult {
+    override fun execute(command: RefreshTokenCommand): RefreshTokenResult {
         // リフレッシュトークンを検証
         val storedToken = refreshTokenRepository.findByTokenAndValid(
             command.refreshToken,
@@ -62,19 +64,19 @@ class RefreshTokenUseCase(
         val user = userRepository.findById(storedToken.userId)
             ?: throw InvalidRefreshTokenException("ユーザーが見つかりません")
 
-        // 旧トークンを無効化
+        // 旧トークンを無効化してローテーション（盗難対策）
         refreshTokenRepository.revokeByToken(command.refreshToken)
 
         // 新しいトークンペアを生成
-        val newAccessToken = jwtTokenProvider.generateAccessToken(user.id, user.email)
-        val newRefreshTokenValue = jwtTokenProvider.generateRefreshToken(user.id)
+        val newAccessToken = tokenProvider.generateAccessToken(user.id, user.email)
+        val newRefreshTokenValue = tokenProvider.generateRefreshToken(user.id)
 
         // 新しいリフレッシュトークンを保存
         val newRefreshToken = RefreshToken(
             id = UuidCreator.getTimeOrderedEpoch(),
             token = newRefreshTokenValue,
             userId = user.id,
-            expiresAt = Instant.now().plusMillis(jwtTokenProvider.refreshTokenExpiration),
+            expiresAt = Instant.now().plusMillis(tokenProvider.refreshTokenExpiration),
             createdAt = Instant.now(),
             revoked = false
         )

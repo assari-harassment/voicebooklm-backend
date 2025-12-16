@@ -1,7 +1,6 @@
 package com.assari.voicebooklm.usecase.auth
 
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
@@ -16,17 +15,20 @@ data class LogoutCommand(
  *
  * リフレッシュトークンを無効化してログアウトする。
  */
-@Service
-class LogoutUseCase(
-    private val refreshTokenRepository: RefreshTokenRepository
-) {
+interface LogoutUseCase {
+    fun execute(command: LogoutCommand)
+}
+
+open class LogoutInteractor(
+    private val refreshTokenRepository: RefreshTokenRepository,
+) : LogoutUseCase {
     /**
      * ログアウトを実行する
      *
      * @param command ログアウトコマンド（リフレッシュトークン）
      */
     @Transactional
-    fun execute(command: LogoutCommand) {
+    override fun execute(command: LogoutCommand) {
         refreshTokenRepository.revokeByToken(command.refreshToken)
     }
 }

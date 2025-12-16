@@ -25,6 +25,9 @@ class JwtAuthenticationFilter(
         private const val BEARER_PREFIX = "Bearer "
     }
 
+    // 非同期ディスパッチでも必ずトークン検証を行う
+    override fun shouldNotFilterAsyncDispatch(): Boolean = false
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,

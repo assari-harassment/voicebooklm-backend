@@ -49,7 +49,7 @@ class GeminiAiMemoFormatterTest {
         val formatter = GeminiAiMemoFormatter(
             webClient = WebClient.builder().build(),
             apiKey = "dummy",
-            model = "gemini-1.5-flash",
+            model = "gemini-2.0-flash",
             timeout = Duration.ofSeconds(5),
             baseUrl = server.url("/").toString().removeSuffix("/"),
         )

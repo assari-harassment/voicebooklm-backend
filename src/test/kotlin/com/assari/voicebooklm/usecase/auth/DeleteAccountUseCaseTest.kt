@@ -24,10 +24,10 @@ class DeleteAccountUseCaseTest {
         memoRepository = mockk()
         refreshTokenRepository = mockk()
 
-        deleteAccountUseCase = DeleteAccountUseCase(
+        deleteAccountUseCase = DeleteAccountInteractor(
             userRepository = userRepository,
             memoRepository = memoRepository,
-            refreshTokenRepository = refreshTokenRepository
+            refreshTokenRepository = refreshTokenRepository,
         )
     }
 

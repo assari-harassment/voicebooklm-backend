@@ -1,8 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
-import com.assari.voicebooklm.domain.repository.UserRepository
-import org.springframework.stereotype.Service
 import java.util.UUID
+import com.assari.voicebooklm.domain.repository.UserRepository
 
 /**
  * 現在のユーザー取得コマンド
@@ -25,10 +24,13 @@ data class UserInfo(
  *
  * JWT トークンから取得したユーザー ID でユーザー情報を取得する。
  */
-@Service
-class GetCurrentUserUseCase(
-    private val userRepository: UserRepository
-) {
+interface GetCurrentUserUseCase {
+    fun execute(command: GetCurrentUserCommand): UserInfo
+}
+
+class GetCurrentUserInteractor(
+    private val userRepository: UserRepository,
+) : GetCurrentUserUseCase {
     /**
      * 現在のユーザー情報を取得する
      *
@@ -36,7 +38,7 @@ class GetCurrentUserUseCase(
      * @return ユーザー情報
      * @throws UserNotFoundException ユーザーが見つからない場合
      */
-    fun execute(command: GetCurrentUserCommand): UserInfo {
+    override fun execute(command: GetCurrentUserCommand): UserInfo {
         val user = userRepository.findById(command.userId)
             ?: throw UserNotFoundException("ユーザーが見つかりません")
 
