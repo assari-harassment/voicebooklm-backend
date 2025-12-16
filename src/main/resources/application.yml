@@ -41,6 +41,10 @@ spring:
     locale: ja_JP
     locale-resolver: fixed
 
+  mvc:
+    async:
+      request-timeout: 65s   # 音声→AI で時間がかかるため Tomcat デフォルト30秒を超えるタイムアウトを設定
+
   # Spring Boot 3.4 新機能: Virtual Threads
   # AI API呼び出しや音声処理などのI/Oバウンドな処理を高速化
   threads:
@@ -88,7 +92,6 @@ google:
       project-id: ${GOOGLE_CLOUD_PROJECT:}
       default-language: ja-JP
       timeout-seconds: 60
-      enabled: false
 
 gemini:
   api-key: ${GEMINI_API_KEY:}

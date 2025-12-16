@@ -1,6 +1,7 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
 import com.assari.voicebooklm.domain.model.Memo
+import com.assari.voicebooklm.domain.repository.MemoRepository
 import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
 import com.assari.voicebooklm.presentation.exception.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
@@ -8,7 +9,10 @@ import com.assari.voicebooklm.usecase.memo.CreateMemoResult
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
 import com.assari.voicebooklm.usecase.memo.FallbackUsage
 import com.assari.voicebooklm.usecase.memo.ProcessingTime
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
 import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
+import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.presentation.exception.ApiExceptionHandler
 import com.assari.voicebooklm.config.SecurityConfig
 import com.ninjasquad.springmockk.MockkBean
@@ -59,6 +63,18 @@ class VoiceControllerJwtWebMvcTest {
 
     @Autowired
     lateinit var jwtTokenProvider: JwtTokenProvider
+
+    @MockkBean(relaxed = true)
+    lateinit var memoRepository: MemoRepository
+
+    @MockkBean(relaxed = true)
+    lateinit var speechTranscriber: SpeechTranscriber
+
+    @MockkBean(relaxed = true)
+    lateinit var aiMemoFormatter: AiMemoFormatter
+
+    @MockkBean(relaxed = true)
+    lateinit var executionTimer: ExecutionTimer
 
     @MockkBean
     lateinit var createMemoUseCase: CreateMemoUseCase

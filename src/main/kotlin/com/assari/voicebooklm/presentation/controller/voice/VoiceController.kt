@@ -1,9 +1,15 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
+import com.assari.voicebooklm.domain.repository.MemoRepository
 import com.assari.voicebooklm.presentation.exception.ErrorResponse
+import com.assari.voicebooklm.usecase.memo.CreateMemoInteractor
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
 import com.assari.voicebooklm.usecase.memo.CreateMemoResult
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
+import com.assari.voicebooklm.usecase.support.ExecutionTimer
+import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -34,10 +40,26 @@ import kotlin.time.toJavaDuration
 @RequestMapping("/api/voice")
 @Tag(name = "Voice", description = "音声入力によるメモ生成 API")
 class VoiceController(
-    private val createMemoUseCase: CreateMemoUseCase,
+    // ユースケースは Bean 登録せず、このレイヤーで組み立てる
+    memoRepository: MemoRepository,
+    speechTranscriber: SpeechTranscriber,
+    aiMemoFormatter: AiMemoFormatter,
+    executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
+    // テストでユースケースの差し替えを可能にするオプション
+    createMemoUseCaseOverride: CreateMemoUseCase? = null,
 ) {
 
     private val logger = LoggerFactory.getLogger(VoiceController::class.java)
+    // createMemoUseCaseOverride が指定されればそれを使用し、通常はここで手動 new。
+    // Bean 化しないことでユースケースをフレームワーク非依存に保つ。
+    private val createMemoUseCase: CreateMemoUseCase =
+        createMemoUseCaseOverride
+            ?: CreateMemoInteractor(
+                memoRepository = memoRepository,
+                speechTranscriber = speechTranscriber,
+                aiMemoFormatter = aiMemoFormatter,
+                executionTimer = executionTimer,
+            )
 
     @PostMapping(
         "/memos",

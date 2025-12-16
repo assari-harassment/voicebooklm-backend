@@ -9,7 +9,6 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.springframework.web.reactive.function.client.WebClient
 
 /**
  * Gemini クライアントの正常系・フォールバックをモックサーバで検証。
@@ -47,7 +46,6 @@ class GeminiAiMemoFormatterTest {
         server.start()
 
         val formatter = GeminiAiMemoFormatter(
-            webClient = WebClient.builder().build(),
             apiKey = "dummy",
             model = "gemini-2.0-flash",
             timeout = Duration.ofSeconds(5),
@@ -79,7 +77,6 @@ class GeminiAiMemoFormatterTest {
         server.start()
 
         val formatter = GeminiAiMemoFormatter(
-            webClient = WebClient.builder().build(),
             apiKey = "dummy",
             timeout = Duration.ofSeconds(1),
             baseUrl = server.url("/").toString().removeSuffix("/"),
@@ -112,7 +109,6 @@ class GeminiAiMemoFormatterTest {
         server.start()
 
         val formatter = GeminiAiMemoFormatter(
-            webClient = WebClient.builder().build(),
             apiKey = "dummy",
             timeout = Duration.ofMillis(200),
             baseUrl = server.url("/").toString().removeSuffix("/"),

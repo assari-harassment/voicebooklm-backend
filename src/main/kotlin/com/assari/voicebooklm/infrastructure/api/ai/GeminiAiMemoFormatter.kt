@@ -9,21 +9,29 @@ import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClient
 
 /**
  * Gemini（Flash）を用いてメモを整形するクライアント実装。
  * 失敗時はフォールバックとしてプレーンなメモを生成する。
  */
 class GeminiAiMemoFormatter(
-    private val webClient: WebClient,
     private val apiKey: String,
     private val model: String = "gemini-2.0-flash",
     private val timeout: Duration = Duration.ofSeconds(60),
     baseUrl: String = "https://generativelanguage.googleapis.com",
 ) : AiMemoFormatter {
 
-    private val client = webClient.mutate()
+    // WebClient を Bean にせず、必要なタイムアウト付きでここに閉じ込める
+    private val client = WebClient.builder()
+        .clientConnector(
+            ReactorClientHttpConnector(
+                HttpClient.create()
+                    .responseTimeout(timeout),
+            ),
+        )
         .baseUrl(baseUrl)
         .build()
 

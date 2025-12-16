@@ -79,7 +79,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
 }
 
-// Force Java toolchain and compilation to JVM 21 to avoid mixing with older defaults.
+// JDK/ターゲットを21に固定（IDEやプラグインが1.8等に落とさないため）
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
@@ -96,7 +96,7 @@ kotlin {
     jvmToolchain(21)
 }
 
-// Ensure all Kotlin compile tasks target JVM 21 (some IDEs default to 1.8).
+// Kotlinコンパイルもタスク単位で21に固定（IDEデフォルト上書き防止）
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     kotlinOptions.jvmTarget = JavaVersion.VERSION_21.toString()
 }
@@ -108,6 +108,7 @@ tasks.withType<Test> {
 }
 
 val integrationTest by tasks.register<Test>("integrationTest") {
+    // 統合テスト（@Tag(\"integration\")）だけをDocker/Testcontainers前提で実行
     description = "Runs tests tagged with @Tag(\"integration\") (requires Docker for Testcontainers)."
     group = JavaBasePlugin.VERIFICATION_GROUP
     testClassesDirs = sourceSets["test"].output.classesDirs

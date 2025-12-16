@@ -22,8 +22,8 @@ import org.springframework.web.cors.CorsConfigurationSource
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-        private val corsConfigurationSource: CorsConfigurationSource,
-        private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val corsConfigurationSource: CorsConfigurationSource,
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val rateLimitFilter: RateLimitFilter
 ) {
 

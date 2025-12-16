@@ -14,7 +14,6 @@ import kotlin.time.Duration.Companion.seconds
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
-import org.springframework.web.reactive.function.client.WebClient
 
 /**
  * 外部クライアントの DI 設定（Google Speech / Gemini）。
@@ -51,11 +50,9 @@ class ExternalClientConfig {
 
     @Bean
     fun aiMemoFormatter(
-        webClient: WebClient,
         geminiProperties: GeminiProperties,
     ): AiMemoFormatter =
         GeminiAiMemoFormatter(
-            webClient = webClient,
             apiKey = geminiProperties.apiKey,
             model = geminiProperties.model,
             timeout = Duration.ofSeconds(geminiProperties.timeoutSeconds),

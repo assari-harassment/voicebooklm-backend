@@ -9,6 +9,9 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import reactor.netty.http.client.HttpClient
+import java.time.Duration
 
 /**
  * Google Token Info レスポンス
@@ -38,13 +41,19 @@ data class GoogleTokenInfo(
 class GoogleOAuthClient(
     @Value("\${spring.security.oauth2.client.registration.google.client-id}")
     private val clientId: String,
-    private val webClientBuilder: WebClient.Builder
 ) : OAuthClient {
 
     private val logger = LoggerFactory.getLogger(GoogleOAuthClient::class.java)
 
+    // WebClient を Bean にせず、ここで必要な設定（タイムアウト含む）を付けて組み立てる
     private val webClient: WebClient =
-        webClientBuilder
+        WebClient.builder()
+            .clientConnector(
+                ReactorClientHttpConnector(
+                    HttpClient.create()
+                        .responseTimeout(Duration.ofSeconds(60)),
+                ),
+            )
             .baseUrl("https://oauth2.googleapis.com")
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build()

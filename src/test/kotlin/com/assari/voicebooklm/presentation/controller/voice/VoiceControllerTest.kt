@@ -1,13 +1,17 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
 import com.assari.voicebooklm.domain.model.Memo
+import com.assari.voicebooklm.domain.repository.MemoRepository
 import com.assari.voicebooklm.presentation.exception.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
 import com.assari.voicebooklm.usecase.memo.CreateMemoResult
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
 import com.assari.voicebooklm.usecase.memo.FallbackUsage
 import com.assari.voicebooklm.usecase.memo.ProcessingTime
+import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
+import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
 import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
+import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -31,12 +35,27 @@ import org.springframework.web.server.ResponseStatusException
 class VoiceControllerTest {
 
     private lateinit var createMemoUseCase: CreateMemoUseCase
+    private lateinit var memoRepository: MemoRepository
+    private lateinit var speechTranscriber: SpeechTranscriber
+    private lateinit var aiMemoFormatter: AiMemoFormatter
+    private lateinit var executionTimer: ExecutionTimer
     private lateinit var controller: VoiceController
 
     @BeforeEach
     fun setup() {
         createMemoUseCase = mockk()
-        controller = VoiceController(createMemoUseCase)
+        memoRepository = mockk(relaxed = true)
+        speechTranscriber = mockk(relaxed = true)
+        aiMemoFormatter = mockk(relaxed = true)
+        executionTimer = mockk(relaxed = true)
+        // テストではユースケース生成を差し替えるため、Compose 済みのモックを渡す
+        controller = VoiceController(
+            memoRepository = memoRepository,
+            speechTranscriber = speechTranscriber,
+            aiMemoFormatter = aiMemoFormatter,
+            executionTimer = executionTimer,
+            createMemoUseCaseOverride = createMemoUseCase,
+        )
     }
 
     @Test
