@@ -11,63 +11,54 @@ import com.google.cloud.speech.v1.SpeechSettings
 import java.io.FileInputStream
 import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.web.reactive.function.client.WebClient
 
 /**
  * 外部クライアントの DI 設定（Google Speech / Gemini）。
  */
 @Configuration
+@Profile("!test")
 class ExternalClientConfig {
 
     @Bean
-    @ConditionalOnProperty(name = ["google.cloud.speech.enabled"], havingValue = "true")
     fun speechClient(
-        @Value("\${google.cloud.speech.credentials-path:}") credentialsPath: String,
+        speechProperties: GoogleSpeechProperties,
     ): SpeechClient {
         val settingsBuilder = SpeechSettings.newBuilder()
 
-        if (credentialsPath.isNotBlank()) {
-            FileInputStream(credentialsPath).use { input: FileInputStream ->
-                val credentials = GoogleCredentials.fromStream(input)
-                val provider = FixedCredentialsProvider.create(credentials)
-                settingsBuilder.setCredentialsProvider(provider)
-            }
+        FileInputStream(speechProperties.credentialsPath).use { input: FileInputStream ->
+            val credentials = GoogleCredentials.fromStream(input)
+            val provider = FixedCredentialsProvider.create(credentials)
+            settingsBuilder.setCredentialsProvider(provider)
         }
 
         return SpeechClient.create(settingsBuilder.build())
     }
 
     @Bean
-    @ConditionalOnProperty(name = ["google.cloud.speech.enabled"], havingValue = "true")
     fun speechTranscriber(
         speechClient: SpeechClient,
-        @Value("\${google.cloud.speech.default-language:ja-JP}") defaultLanguage: String,
-        @Value("\${google.cloud.speech.timeout-seconds:60}") timeoutSeconds: Long,
+        speechProperties: GoogleSpeechProperties,
     ): SpeechTranscriber =
         GoogleSpeechTranscriber(
             speechClient = speechClient,
-            defaultLanguageCode = defaultLanguage,
-            timeout = timeoutSeconds.seconds,
+            defaultLanguageCode = speechProperties.defaultLanguage,
+            timeout = speechProperties.timeoutSeconds.seconds,
         )
 
     @Bean
-    @ConditionalOnProperty(name = ["gemini.api-key"])
     fun aiMemoFormatter(
         webClient: WebClient,
-        @Value("\${gemini.api-key}") apiKey: String,
-        @Value("\${gemini.model:gemini-2.0-flash}") model: String,
-        @Value("\${gemini.timeout-seconds:60}") timeoutSeconds: Long,
-        @Value("\${gemini.base-url:https://generativelanguage.googleapis.com}") baseUrl: String,
+        geminiProperties: GeminiProperties,
     ): AiMemoFormatter =
         GeminiAiMemoFormatter(
             webClient = webClient,
-            apiKey = apiKey,
-            model = model,
-            timeout = Duration.ofSeconds(timeoutSeconds),
-            baseUrl = baseUrl,
+            apiKey = geminiProperties.apiKey,
+            model = geminiProperties.model,
+            timeout = Duration.ofSeconds(geminiProperties.timeoutSeconds),
+            baseUrl = geminiProperties.baseUrl,
         )
 }

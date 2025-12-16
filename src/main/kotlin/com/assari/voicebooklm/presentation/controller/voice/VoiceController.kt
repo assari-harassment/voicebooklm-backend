@@ -4,11 +4,15 @@ import com.assari.voicebooklm.presentation.exception.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
 import com.assari.voicebooklm.usecase.memo.CreateMemoResult
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -17,11 +21,6 @@ import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
-import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
-import io.swagger.v3.oas.annotations.responses.ApiResponse
-import io.swagger.v3.oas.annotations.tags.Tag
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -33,7 +32,6 @@ import kotlin.time.toJavaDuration
  */
 @RestController
 @RequestMapping("/api/voice")
-@ConditionalOnBean(CreateMemoUseCase::class)
 @Tag(name = "Voice", description = "音声入力によるメモ生成 API")
 class VoiceController(
     private val createMemoUseCase: CreateMemoUseCase,

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test
  * CreateMemoUseCase の振る舞いをテストダブルで検証。
  */
 @OptIn(ExperimentalTime::class)
-class CreateMemoServiceTest {
+class CreateMemoInteractorTest {
 
     @Test
     fun `文字起こしから保存までを計測しつつ実行する`() = runTest {
@@ -46,7 +46,7 @@ class CreateMemoServiceTest {
             durations = listOf(100.milliseconds, 200.milliseconds, 50.milliseconds),
         )
 
-        val useCase = CreateMemoService(
+        val useCase = CreateMemoInteractor(
             memoRepository = memoRepository,
             speechTranscriber = speechTranscriber,
             aiMemoFormatter = aiMemoFormatter,
@@ -89,7 +89,7 @@ class CreateMemoServiceTest {
         val userId = UUID.randomUUID()
         val timeSource = TestTimeSource()
 
-        val useCase = CreateMemoService(
+        val useCase = CreateMemoInteractor(
             memoRepository = FakeMemoRepository(),
             speechTranscriber = FakeSpeechTranscriber("text"),
             aiMemoFormatter = FakeAiMemoFormatter(
@@ -121,7 +121,7 @@ class CreateMemoServiceTest {
 
     @Test
     fun `音声が空の場合は例外を返す`() = runTest {
-        val useCase = CreateMemoService(
+        val useCase = CreateMemoInteractor(
             memoRepository = FakeMemoRepository(),
             speechTranscriber = FakeSpeechTranscriber(""),
             aiMemoFormatter = FakeAiMemoFormatter(
