@@ -87,11 +87,19 @@ jwt:
 # Google Cloud 設定
 google:
   cloud:
+    # サービスアカウント認証情報（GCS・Speech-to-Text 共通）
+    credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
+    project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+
+    # Cloud Storage（音声ファイル一時保存）
+    storage:
+      bucket-name: ${GCS_BUCKET_NAME:}
+      location: ${GCS_LOCATION:asia-northeast2}
+
+    # Speech-to-Text（音声文字起こし）
     speech:
-      credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
-      project-id: ${GOOGLE_CLOUD_PROJECT:}
       default-language: ja-JP
-      timeout-seconds: 60
+      timeout-seconds: 300  # LongRunningRecognize 用に延長
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
