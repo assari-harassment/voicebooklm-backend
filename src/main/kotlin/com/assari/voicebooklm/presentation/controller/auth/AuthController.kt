@@ -89,7 +89,7 @@ class AuthController(
             )
     )
     @PostMapping("/google")
-    fun loginWithGoogle(
+    suspend fun loginWithGoogle(
             @Valid @RequestBody request: GoogleAuthRequest
     ): ResponseEntity<TokenResponse> {
         val result = loginUseCase.execute(LoginCommand(request.idToken))

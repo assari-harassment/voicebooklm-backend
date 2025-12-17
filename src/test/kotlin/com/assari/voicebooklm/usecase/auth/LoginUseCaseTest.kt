@@ -7,10 +7,13 @@ import com.assari.voicebooklm.domain.model.RefreshToken
 import com.assari.voicebooklm.domain.model.User
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -47,7 +50,7 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `should login existing user successfully`() {
+    fun `should login existing user successfully`() = runTest {
         // Given
         val idToken = "valid-id-token"
         val oAuthUserInfo = OAuthUserInfo(
@@ -65,7 +68,7 @@ class LoginUseCaseTest {
             updatedAt = Instant.now()
         )
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
         every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns existingUser
         every { tokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
         every { tokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
@@ -85,7 +88,7 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `should create new user on first login`() {
+    fun `should create new user on first login`() = runTest {
         // Given
         val idToken = "valid-id-token"
         val oAuthUserInfo = OAuthUserInfo(
@@ -95,7 +98,7 @@ class LoginUseCaseTest {
             picture = null
         )
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
         every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns null
         every { userRepository.save(any()) } answers { firstArg() }
         every { tokenProvider.generateAccessToken(any(), any()) } returns "access-token"
@@ -114,22 +117,24 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `should throw exception when ID token is invalid`() {
+    fun `should throw exception when ID token is invalid`() = runTest {
         // Given
         val invalidIdToken = "invalid-token"
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
 
         // When & Then
         val exception = assertThrows(InvalidIdTokenException::class.java) {
-            loginUseCase.execute(LoginCommand(invalidIdToken))
+            kotlinx.coroutines.runBlocking {
+                loginUseCase.execute(LoginCommand(invalidIdToken))
+            }
         }
 
         assertEquals("ID トークンの検証に失敗しました", exception.message)
     }
 
     @Test
-    fun `should save refresh token to repository`() {
+    fun `should save refresh token to repository`() = runTest {
         // Given
         val idToken = "valid-id-token"
         val oAuthUserInfo = OAuthUserInfo(
@@ -147,7 +152,7 @@ class LoginUseCaseTest {
             updatedAt = Instant.now()
         )
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
         every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns existingUser
         every { tokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
         every { tokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"

@@ -46,7 +46,7 @@ class InvalidGoogleTokenException(message: String) : InvalidIdTokenException(mes
  * OAuthClient インターフェースを使用し、プロバイダーに依存しない設計。
  */
 interface LoginUseCase {
-    fun execute(command: LoginCommand): LoginResult
+    suspend fun execute(command: LoginCommand): LoginResult
 }
 
 open class LoginInteractor(
@@ -63,7 +63,7 @@ open class LoginInteractor(
      * @throws InvalidIdTokenException ID トークンの検証に失敗した場合
      */
     @Transactional
-    override fun execute(command: LoginCommand): LoginResult {
+    override suspend fun execute(command: LoginCommand): LoginResult {
         // ID トークンを検証してユーザー情報を取得
         val oAuthUserInfo = oAuthClient.verifyIdTokenAndGetUserInfo(command.idToken)
             ?: throw InvalidIdTokenException("ID トークンの検証に失敗しました")

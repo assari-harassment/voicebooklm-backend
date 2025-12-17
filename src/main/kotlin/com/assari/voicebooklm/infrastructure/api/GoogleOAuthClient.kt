@@ -3,6 +3,7 @@ package com.assari.voicebooklm.infrastructure.api
 import com.assari.voicebooklm.domain.gateway.OAuthClient
 import com.assari.voicebooklm.domain.model.OAuthUserInfo
 import com.fasterxml.jackson.annotation.JsonProperty
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -68,7 +69,7 @@ class GoogleOAuthClient(
      * @param idToken Google ID トークン
      * @return ユーザー情報（検証失敗時は null）
      */
-    override fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo? {
+    override suspend fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo? {
         return try {
             val tokenInfo = webClient.get()
                 .uri { uriBuilder ->
@@ -79,7 +80,7 @@ class GoogleOAuthClient(
                 }
                 .retrieve()
                 .bodyToMono(GoogleTokenInfo::class.java)
-                .block()
+                .awaitSingleOrNull()
 
             if (tokenInfo == null) {
                 logger.warn("Failed to verify Google ID token: no response")

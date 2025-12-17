@@ -21,5 +21,5 @@ interface OAuthClient {
      * @param idToken OAuth プロバイダーから発行された ID トークン
      * @return ユーザー情報（検証失敗時は null）
      */
-    fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo?
+    suspend fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo?
 }

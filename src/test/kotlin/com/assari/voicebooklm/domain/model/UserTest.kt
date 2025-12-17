@@ -110,7 +110,7 @@ class UserTest {
     }
 
     @Test
-    fun `should update name`() {
+    fun `should update name and return new instance`() {
         val now = Instant.now()
         val user = User(
             id = UUID.randomUUID(),
@@ -121,9 +121,15 @@ class UserTest {
             updatedAt = now
         )
 
-        user.updateName("New Name")
+        val updatedUser = user.updateName("New Name")
 
-        assertEquals("New Name", user.name)
-        assertTrue(user.updatedAt.isAfter(now) || user.updatedAt == now)
+        // 元のインスタンスは変更されない（イミュータブル）
+        assertEquals("Old Name", user.name)
+        assertEquals(now, user.updatedAt)
+        // 新しいインスタンスが返される
+        assertEquals("New Name", updatedUser.name)
+        assertTrue(updatedUser.updatedAt.isAfter(now) || updatedUser.updatedAt == now)
+        // ID は同じ
+        assertEquals(user.id, updatedUser.id)
     }
 }
