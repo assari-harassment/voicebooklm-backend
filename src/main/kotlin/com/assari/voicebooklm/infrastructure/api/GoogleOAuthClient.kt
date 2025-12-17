@@ -41,10 +41,17 @@ data class GoogleTokenInfo(
 @Component
 class GoogleOAuthClient(
     @Value("\${spring.security.oauth2.client.registration.google.client-id}")
-    private val clientId: String,
+    private val webClientId: String,
+    @Value("\${google.ios-client-id:}")
+    private val iosClientId: String,
 ) : OAuthClient {
 
     private val logger = LoggerFactory.getLogger(GoogleOAuthClient::class.java)
+
+    // 有効な Client ID リスト（Web + iOS）
+    private val validClientIds: Set<String> = listOf(webClientId, iosClientId)
+        .filter { it.isNotBlank() }
+        .toSet()
 
     // WebClient を Bean にせず、ここで必要な設定（タイムアウト含む）を付けて組み立てる
     private val webClient: WebClient =
@@ -87,8 +94,8 @@ class GoogleOAuthClient(
                 return null
             }
 
-            if (tokenInfo.aud != clientId) {
-                logger.warn("Google ID token audience mismatch: expected=$clientId, actual=${tokenInfo.aud}")
+            if (tokenInfo.aud !in validClientIds) {
+                logger.warn("Google ID token audience mismatch: expected one of $validClientIds, actual=${tokenInfo.aud}")
                 return null
             }
 

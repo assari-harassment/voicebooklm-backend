@@ -86,6 +86,9 @@ jwt:
 
 # Google Cloud 設定
 google:
+  # iOS アプリ用 Client ID（ネイティブログイン検証用）
+  ios-client-id: ${GOOGLE_IOS_CLIENT_ID:}
+
   cloud:
     # サービスアカウント認証情報（GCS・Speech-to-Text 共通）
     credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
