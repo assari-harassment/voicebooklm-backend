@@ -145,8 +145,9 @@ class VoiceController(
         }
         val mime = file.contentType ?: ""
         // WAV形式のみ受け付ける（Google Speech-to-Text公式サポート）
-        val isWav = mime == "audio/wav" || mime == "audio/wave" || mime == "audio/x-wav"
-        if (!isWav) {
+        // audio/vnd.wave はiOSが送信する正式なWAV MIMEタイプ
+        val allowedWavTypes = setOf("audio/wav", "audio/wave", "audio/x-wav", "audio/vnd.wave")
+        if (mime !in allowedWavTypes) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
                 "Only WAV format is supported. Received: $mime",
