@@ -1,14 +1,24 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.gateway.OAuthClient
+import com.assari.voicebooklm.domain.gateway.TokenProvider
+import com.assari.voicebooklm.domain.model.OAuthUserInfo
 import com.assari.voicebooklm.domain.model.RefreshToken
 import com.assari.voicebooklm.domain.model.User
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
-import com.assari.voicebooklm.domain.gateway.OAuthClient
-import com.assari.voicebooklm.domain.model.OAuthUserInfo
-import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
-import io.mockk.*
-import org.junit.jupiter.api.Assertions.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -20,27 +30,27 @@ class LoginUseCaseTest {
     private lateinit var oAuthClient: OAuthClient
     private lateinit var userRepository: UserRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
-    private lateinit var jwtTokenProvider: JwtTokenProvider
+    private lateinit var tokenProvider: TokenProvider
 
     @BeforeEach
     fun setUp() {
         oAuthClient = mockk()
         userRepository = mockk()
         refreshTokenRepository = mockk()
-        jwtTokenProvider = mockk()
+        tokenProvider = mockk()
 
-        every { jwtTokenProvider.refreshTokenExpiration } returns 15552000000L
+        every { tokenProvider.refreshTokenExpiration } returns 15552000000L
 
-        loginUseCase = LoginUseCase(
+        loginUseCase = LoginInteractor(
             oAuthClient = oAuthClient,
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
-            jwtTokenProvider = jwtTokenProvider
+            tokenProvider = tokenProvider,
         )
     }
 
     @Test
-    fun `should login existing user successfully`() {
+    fun `should login existing user successfully`() = runTest {
         // Given
         val idToken = "valid-id-token"
         val oAuthUserInfo = OAuthUserInfo(
@@ -58,10 +68,10 @@ class LoginUseCaseTest {
             updatedAt = Instant.now()
         )
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
         every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns existingUser
-        every { jwtTokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
-        every { jwtTokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
+        every { tokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
+        every { tokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
 
         // When
@@ -78,7 +88,7 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `should create new user on first login`() {
+    fun `should create new user on first login`() = runTest {
         // Given
         val idToken = "valid-id-token"
         val oAuthUserInfo = OAuthUserInfo(
@@ -88,11 +98,11 @@ class LoginUseCaseTest {
             picture = null
         )
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
         every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns null
         every { userRepository.save(any()) } answers { firstArg() }
-        every { jwtTokenProvider.generateAccessToken(any(), any()) } returns "access-token"
-        every { jwtTokenProvider.generateRefreshToken(any()) } returns "refresh-token"
+        every { tokenProvider.generateAccessToken(any(), any()) } returns "access-token"
+        every { tokenProvider.generateRefreshToken(any()) } returns "refresh-token"
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
 
         // When
@@ -107,22 +117,24 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `should throw exception when ID token is invalid`() {
+    fun `should throw exception when ID token is invalid`() = runTest {
         // Given
         val invalidIdToken = "invalid-token"
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
 
         // When & Then
         val exception = assertThrows(InvalidIdTokenException::class.java) {
-            loginUseCase.execute(LoginCommand(invalidIdToken))
+            kotlinx.coroutines.runBlocking {
+                loginUseCase.execute(LoginCommand(invalidIdToken))
+            }
         }
 
         assertEquals("ID トークンの検証に失敗しました", exception.message)
     }
 
     @Test
-    fun `should save refresh token to repository`() {
+    fun `should save refresh token to repository`() = runTest {
         // Given
         val idToken = "valid-id-token"
         val oAuthUserInfo = OAuthUserInfo(
@@ -140,10 +152,10 @@ class LoginUseCaseTest {
             updatedAt = Instant.now()
         )
 
-        every { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
+        coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(idToken) } returns oAuthUserInfo
         every { userRepository.findByGoogleSub(oAuthUserInfo.providerId) } returns existingUser
-        every { jwtTokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
-        every { jwtTokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
+        every { tokenProvider.generateAccessToken(existingUser.id, existingUser.email) } returns "access-token"
+        every { tokenProvider.generateRefreshToken(existingUser.id) } returns "refresh-token"
 
         val savedTokenSlot = slot<RefreshToken>()
         every { refreshTokenRepository.save(capture(savedTokenSlot)) } answers { firstArg() }

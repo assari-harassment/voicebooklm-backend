@@ -41,6 +41,10 @@ spring:
     locale: ja_JP
     locale-resolver: fixed
 
+  mvc:
+    async:
+      request-timeout: 65s   # 音声→AI で時間がかかるため Tomcat デフォルト30秒を超えるタイムアウトを設定
+
   # Spring Boot 3.4 新機能: Virtual Threads
   # AI API呼び出しや音声処理などのI/Oバウンドな処理を高速化
   threads:
@@ -83,9 +87,25 @@ jwt:
 # Google Cloud 設定
 google:
   cloud:
+    # サービスアカウント認証情報（GCS・Speech-to-Text 共通）
+    credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
+    project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+
+    # Cloud Storage（音声ファイル一時保存）
+    storage:
+      bucket-name: ${GCS_BUCKET_NAME:}
+      location: ${GCS_LOCATION:asia-northeast2}
+
+    # Speech-to-Text（音声文字起こし）
     speech:
-      credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
-      project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+      default-language: ja-JP
+      timeout-seconds: 300  # LongRunningRecognize 用に延長
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: gemini-2.0-flash
+  timeout-seconds: 60
+  base-url: https://generativelanguage.googleapis.com
 
 # Rate Limit 設定（認証エンドポイント）
 rate-limit:

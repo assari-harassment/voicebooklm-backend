@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.infrastructure.security
 
+import com.assari.voicebooklm.domain.gateway.TokenProvider
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -24,10 +25,11 @@ class JwtTokenProvider(
     private val accessTokenExpiration: Long,
 
     @Value("\${jwt.refresh-token-expiration}")
-    val refreshTokenExpiration: Long
-) {
+    override val refreshTokenExpiration: Long
+) : TokenProvider {
     private val logger = LoggerFactory.getLogger(JwtTokenProvider::class.java)
 
+    // HS256 用の秘密鍵（秘密鍵長が短いと例外になる）
     private val key: SecretKey = Keys.hmacShaKeyFor(secret.toByteArray())
 
     companion object {
@@ -45,7 +47,7 @@ class JwtTokenProvider(
      * @param email メールアドレス
      * @return JWT アクセストークン
      */
-    fun generateAccessToken(userId: UUID, email: String): String {
+    override fun generateAccessToken(userId: UUID, email: String): String {
         val now = Date()
         val expiry = Date(now.time + accessTokenExpiration)
 
@@ -66,7 +68,7 @@ class JwtTokenProvider(
      * @param userId ユーザー ID
      * @return JWT リフレッシュトークン
      */
-    fun generateRefreshToken(userId: UUID): String {
+    override fun generateRefreshToken(userId: UUID): String {
         val now = Date()
         val expiry = Date(now.time + refreshTokenExpiration)
 

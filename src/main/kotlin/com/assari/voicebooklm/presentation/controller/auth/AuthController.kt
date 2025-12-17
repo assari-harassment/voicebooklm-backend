@@ -1,6 +1,25 @@
 package com.assari.voicebooklm.presentation.controller.auth
 
-import com.assari.voicebooklm.usecase.auth.*
+import com.assari.voicebooklm.domain.gateway.OAuthClient
+import com.assari.voicebooklm.domain.gateway.TokenProvider
+import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
+import com.assari.voicebooklm.domain.repository.UserRepository
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.assari.voicebooklm.usecase.auth.DeleteAccountCommand
+import com.assari.voicebooklm.usecase.auth.DeleteAccountInteractor
+import com.assari.voicebooklm.usecase.auth.DeleteAccountUseCase
+import com.assari.voicebooklm.usecase.auth.GetCurrentUserCommand
+import com.assari.voicebooklm.usecase.auth.GetCurrentUserInteractor
+import com.assari.voicebooklm.usecase.auth.GetCurrentUserUseCase
+import com.assari.voicebooklm.usecase.auth.LoginCommand
+import com.assari.voicebooklm.usecase.auth.LoginInteractor
+import com.assari.voicebooklm.usecase.auth.LoginUseCase
+import com.assari.voicebooklm.usecase.auth.LogoutCommand
+import com.assari.voicebooklm.usecase.auth.LogoutInteractor
+import com.assari.voicebooklm.usecase.auth.LogoutUseCase
+import com.assari.voicebooklm.usecase.auth.RefreshTokenCommand
+import com.assari.voicebooklm.usecase.auth.RefreshTokenInteractor
+import com.assari.voicebooklm.usecase.auth.RefreshTokenUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -23,12 +42,39 @@ import java.util.UUID
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "認証関連 API")
 class AuthController(
-        private val loginUseCase: LoginUseCase,
-        private val refreshTokenUseCase: RefreshTokenUseCase,
-        private val logoutUseCase: LogoutUseCase,
-        private val deleteAccountUseCase: DeleteAccountUseCase,
-        private val getCurrentUserUseCase: GetCurrentUserUseCase
+    // ユースケースを Bean 登録せず、このコントローラで組み立てて依存を閉じる
+    // （オニオンアーキテクチャのコンポジションルートをここに置く）
+    private val oAuthClient: OAuthClient,
+    private val userRepository: UserRepository,
+    private val refreshTokenRepository: RefreshTokenRepository,
+    private val tokenProvider: TokenProvider,
+    private val voiceMemoRepository: VoiceMemoRepository,
 ) {
+    // Auth 系ユースケースをここで明示的に生成し、外部からは Spring に依存しない形で扱う。
+    // Bean 化しない代わりに、依存をコンストラクタで受けて手動 new する。
+    private val loginUseCase: LoginUseCase =
+        LoginInteractor(
+            oAuthClient = oAuthClient,
+            userRepository = userRepository,
+            refreshTokenRepository = refreshTokenRepository,
+            tokenProvider = tokenProvider,
+        )
+    private val refreshTokenUseCase: RefreshTokenUseCase =
+        RefreshTokenInteractor(
+            refreshTokenRepository = refreshTokenRepository,
+            userRepository = userRepository,
+            tokenProvider = tokenProvider,
+        )
+    // リフレッシュトークンの破棄のみを行うシンプルなユースケース
+    private val logoutUseCase: LogoutUseCase = LogoutInteractor(refreshTokenRepository)
+    private val deleteAccountUseCase: DeleteAccountUseCase =
+        DeleteAccountInteractor(
+            userRepository = userRepository,
+            voiceMemoRepository = voiceMemoRepository,
+            refreshTokenRepository = refreshTokenRepository,
+        )
+    private val getCurrentUserUseCase: GetCurrentUserUseCase =
+        GetCurrentUserInteractor(userRepository)
     /** Google OAuth でログイン */
     @Operation(
             summary = "Google OAuth ログイン",
@@ -43,7 +89,7 @@ class AuthController(
             )
     )
     @PostMapping("/google")
-    fun loginWithGoogle(
+    suspend fun loginWithGoogle(
             @Valid @RequestBody request: GoogleAuthRequest
     ): ResponseEntity<TokenResponse> {
         val result = loginUseCase.execute(LoginCommand(request.idToken))

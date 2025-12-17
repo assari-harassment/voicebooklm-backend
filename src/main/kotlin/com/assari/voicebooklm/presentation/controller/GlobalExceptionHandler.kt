@@ -4,6 +4,7 @@ import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.auth.InvalidIdTokenException
 import com.assari.voicebooklm.usecase.auth.InvalidRefreshTokenException
 import com.assari.voicebooklm.usecase.auth.UserNotFoundException
+import com.assari.voicebooklm.usecase.memo.TranscriptionFailedException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -11,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingRequestHeaderException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.server.ResponseStatusException
 
 /**
  * グローバル例外ハンドラ
@@ -76,6 +78,34 @@ class GlobalExceptionHandler {
             .body(ErrorResponse(
                 error = "認証情報がありません",
                 code = "UNAUTHORIZED"
+            ))
+    }
+
+    /**
+     * 文字起こし失敗
+     */
+    @ExceptionHandler(TranscriptionFailedException::class)
+    fun handleTranscriptionFailed(e: TranscriptionFailedException): ResponseEntity<ErrorResponse> {
+        logger.warn("Transcription failed: ${e.message}")
+        return ResponseEntity
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(ErrorResponse(
+                error = e.message ?: "音声の文字起こしに失敗しました",
+                code = "TRANSCRIPTION_FAILED"
+            ))
+    }
+
+    /**
+     * ResponseStatusException（コントローラーで明示的にスローされた HTTP ステータス例外）
+     */
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatus(e: ResponseStatusException): ResponseEntity<ErrorResponse> {
+        logger.warn("Request failed: status={} message={}", e.statusCode.value(), e.reason ?: e.message)
+        return ResponseEntity
+            .status(e.statusCode)
+            .body(ErrorResponse(
+                error = e.reason ?: "Bad Request",
+                code = "REQUEST_FAILED"
             ))
     }
 

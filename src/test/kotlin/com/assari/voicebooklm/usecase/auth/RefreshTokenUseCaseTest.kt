@@ -1,12 +1,20 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.model.RefreshToken
 import com.assari.voicebooklm.domain.model.User
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
-import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
-import io.mockk.*
-import org.junit.jupiter.api.Assertions.*
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -17,20 +25,20 @@ class RefreshTokenUseCaseTest {
     private lateinit var refreshTokenUseCase: RefreshTokenUseCase
     private lateinit var refreshTokenRepository: RefreshTokenRepository
     private lateinit var userRepository: UserRepository
-    private lateinit var jwtTokenProvider: JwtTokenProvider
+    private lateinit var tokenProvider: TokenProvider
 
     @BeforeEach
     fun setUp() {
         refreshTokenRepository = mockk()
         userRepository = mockk()
-        jwtTokenProvider = mockk()
+        tokenProvider = mockk()
 
-        every { jwtTokenProvider.refreshTokenExpiration } returns 15552000000L
+        every { tokenProvider.refreshTokenExpiration } returns 15552000000L
 
-        refreshTokenUseCase = RefreshTokenUseCase(
+        refreshTokenUseCase = RefreshTokenInteractor(
             refreshTokenRepository = refreshTokenRepository,
             userRepository = userRepository,
-            jwtTokenProvider = jwtTokenProvider
+            tokenProvider = tokenProvider,
         )
     }
 
@@ -59,8 +67,8 @@ class RefreshTokenUseCaseTest {
         every { refreshTokenRepository.findByTokenAndValid(oldRefreshToken, any()) } returns storedToken
         every { userRepository.findById(userId) } returns user
         every { refreshTokenRepository.revokeByToken(oldRefreshToken) } just Runs
-        every { jwtTokenProvider.generateAccessToken(userId, user.email) } returns "new-access-token"
-        every { jwtTokenProvider.generateRefreshToken(userId) } returns "new-refresh-token"
+        every { tokenProvider.generateAccessToken(userId, user.email) } returns "new-access-token"
+        every { tokenProvider.generateRefreshToken(userId) } returns "new-refresh-token"
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
 
         // When
@@ -140,8 +148,8 @@ class RefreshTokenUseCaseTest {
         every { refreshTokenRepository.findByTokenAndValid(oldRefreshToken, any()) } returns storedToken
         every { userRepository.findById(userId) } returns user
         every { refreshTokenRepository.revokeByToken(oldRefreshToken) } just Runs
-        every { jwtTokenProvider.generateAccessToken(userId, user.email) } returns "new-access-token"
-        every { jwtTokenProvider.generateRefreshToken(userId) } returns "new-refresh-token"
+        every { tokenProvider.generateAccessToken(userId, user.email) } returns "new-access-token"
+        every { tokenProvider.generateRefreshToken(userId) } returns "new-refresh-token"
 
         val savedTokenSlot = slot<RefreshToken>()
         every { refreshTokenRepository.save(capture(savedTokenSlot)) } answers { firstArg() }

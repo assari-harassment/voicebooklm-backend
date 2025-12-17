@@ -3,12 +3,16 @@ package com.assari.voicebooklm.infrastructure.api
 import com.assari.voicebooklm.domain.gateway.OAuthClient
 import com.assari.voicebooklm.domain.model.OAuthUserInfo
 import com.fasterxml.jackson.annotation.JsonProperty
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import reactor.netty.http.client.HttpClient
+import java.time.Duration
 
 /**
  * Google Token Info レスポンス
@@ -38,13 +42,19 @@ data class GoogleTokenInfo(
 class GoogleOAuthClient(
     @Value("\${spring.security.oauth2.client.registration.google.client-id}")
     private val clientId: String,
-    private val webClientBuilder: WebClient.Builder
 ) : OAuthClient {
 
     private val logger = LoggerFactory.getLogger(GoogleOAuthClient::class.java)
 
+    // WebClient を Bean にせず、ここで必要な設定（タイムアウト含む）を付けて組み立てる
     private val webClient: WebClient =
-        webClientBuilder
+        WebClient.builder()
+            .clientConnector(
+                ReactorClientHttpConnector(
+                    HttpClient.create()
+                        .responseTimeout(Duration.ofSeconds(60)),
+                ),
+            )
             .baseUrl("https://oauth2.googleapis.com")
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build()
@@ -59,7 +69,7 @@ class GoogleOAuthClient(
      * @param idToken Google ID トークン
      * @return ユーザー情報（検証失敗時は null）
      */
-    override fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo? {
+    override suspend fun verifyIdTokenAndGetUserInfo(idToken: String): OAuthUserInfo? {
         return try {
             val tokenInfo = webClient.get()
                 .uri { uriBuilder ->
@@ -70,7 +80,7 @@ class GoogleOAuthClient(
                 }
                 .retrieve()
                 .bodyToMono(GoogleTokenInfo::class.java)
-                .block()
+                .awaitSingleOrNull()
 
             if (tokenInfo == null) {
                 logger.warn("Failed to verify Google ID token: no response")

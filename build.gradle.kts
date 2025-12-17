@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("org.springframework.boot") version "3.4.12"
     id("io.spring.dependency-management") version "1.1.7"
@@ -10,12 +8,6 @@ plugins {
 
 group = "com.assari"
 version = "0.0.1-SNAPSHOT"
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
 
 repositories {
     mavenCentral()
@@ -55,6 +47,9 @@ dependencies {
     // Google Cloud Speech-to-Text（音声文字起こし）
     implementation("com.google.cloud:google-cloud-speech:4.53.0")
 
+    // Google Cloud Storage（音声ファイル一時保存）
+    implementation("com.google.cloud:google-cloud-storage:2.45.0")
+
     // UUID v7 生成（タイムオーダー UUID）
     implementation("com.github.f4b6a3:uuid-creator:6.1.1")
 
@@ -77,6 +72,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
 
     // Testcontainers（PostgreSQL でテスト）
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
@@ -85,13 +82,46 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs += "-Xjsr305=strict"
-        jvmTarget = "21"
+// JDK/ターゲットを21に固定（IDEやプラグインが1.8等に落とさないため）
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
+    jvmToolchain(21)
+}
+
+// Kotlinコンパイルもタスク単位で21に固定（IDEデフォルト上書き防止）
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_21.toString()
 }
 
 tasks.withType<Test> {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("integration")
+    }
+}
+
+val integrationTest by tasks.register<Test>("integrationTest") {
+    // 統合テスト（@Tag(\"integration\")）だけをDocker/Testcontainers前提で実行
+    description = "Runs tests tagged with @Tag(\"integration\") (requires Docker for Testcontainers)."
+    group = JavaBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    shouldRunAfter(tasks.test)
+}
+
+tasks.check {
+    dependsOn(integrationTest)
 }
