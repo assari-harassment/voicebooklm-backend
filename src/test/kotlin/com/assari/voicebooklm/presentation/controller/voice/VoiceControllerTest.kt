@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.mock.web.MockMultipartFile
@@ -134,6 +135,29 @@ class VoiceControllerTest {
             }
         }
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
+    }
+
+
+    @Test
+    fun `WAV以外の音声形式は 400`() {
+        val file = MockMultipartFile(
+            "file",
+            "voice.mp3",
+            "audio/mp3",
+            byteArrayOf(1, 2, 3),
+        )
+
+        val ex = assertThrows(ResponseStatusException::class.java) {
+            runBlocking {
+                controller.createMemo(
+                    authentication = UsernamePasswordAuthenticationToken("11111111-1111-1111-1111-111111111111", "pw"),
+                    file = file,
+                    language = null,
+                )
+            }
+        }
+        assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
+        assertTrue(ex.reason?.contains("Only WAV format is supported") == true)
     }
 
     @Test
