@@ -144,8 +144,13 @@ class VoiceController(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "audio file is empty")
         }
         val mime = file.contentType ?: ""
-        if (!mime.startsWith("audio/")) {
-            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "audio content-type required")
+        // WAV形式のみ受け付ける（Google Speech-to-Text公式サポート）
+        val isWav = mime == "audio/wav" || mime == "audio/wave" || mime == "audio/x-wav"
+        if (!isWav) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Only WAV format is supported. Received: $mime",
+            )
         }
     }
 
