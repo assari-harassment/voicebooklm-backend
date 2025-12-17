@@ -1,9 +1,9 @@
 package com.assari.voicebooklm.infrastructure.api.speech
 
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
 import com.assari.voicebooklm.infrastructure.api.storage.GcsStorageService
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriptionCommand
 import com.google.cloud.speech.v1.RecognitionAudio
 import com.google.cloud.speech.v1.RecognitionConfig
 import com.google.cloud.speech.v1.SpeechClient
@@ -32,7 +32,7 @@ class GoogleSpeechTranscriber(
 
     private val logger = LoggerFactory.getLogger(GoogleSpeechTranscriber::class.java)
 
-    override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscription {
+    override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
         val languageCode = command.languageCode ?: defaultLanguageCode
 
         logger.info(
@@ -80,7 +80,7 @@ class GoogleSpeechTranscriber(
                         logger.info("Transcription successful: textLength={}", text.length)
                     }
 
-                    SpeechTranscription(
+                    SpeechTranscriptionResult(
                         text = text,
                         languageCode = languageCode,
                     )

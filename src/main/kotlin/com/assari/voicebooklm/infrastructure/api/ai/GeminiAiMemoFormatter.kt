@@ -1,8 +1,8 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
-import com.assari.voicebooklm.usecase.memo.client.AiMemoDraft
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
+import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
+import com.assari.voicebooklm.domain.gateway.MemoFormatResult
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import java.time.Duration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -22,7 +22,7 @@ class GeminiAiMemoFormatter(
     private val model: String = "gemini-2.0-flash",
     private val timeout: Duration = Duration.ofSeconds(60),
     baseUrl: String = "https://generativelanguage.googleapis.com",
-) : AiMemoFormatter {
+) : MemoFormatter {
 
     // WebClient を Bean にせず、必要なタイムアウト付きでここに閉じ込める
     private val client = WebClient.builder()
@@ -35,7 +35,7 @@ class GeminiAiMemoFormatter(
         .baseUrl(baseUrl)
         .build()
 
-    override suspend fun format(command: AiMemoFormatCommand): AiMemoDraft {
+    override suspend fun format(command: MemoFormatCommand): MemoFormatResult {
         val request = GeminiRequest.fromTranscript(command.transcript)
 
         return runCatching {
@@ -53,16 +53,16 @@ class GeminiAiMemoFormatter(
                 .timeout(timeout)
                 .onErrorResume { Mono.empty() } // フォールバックへ
                 .awaitSingleOrNull()
-                ?.toDraft(command.transcript)
-                ?: fallbackDraft(command.transcript)
-        }.getOrElse { fallbackDraft(command.transcript) }
+                ?.toResult(command.transcript)
+                ?: fallbackResult(command.transcript)
+        }.getOrElse { fallbackResult(command.transcript) }
     }
 
-    private fun fallbackDraft(transcript: String): AiMemoDraft {
+    private fun fallbackResult(transcript: String): MemoFormatResult {
         val normalizedTranscript = transcript.trim()
         val title = normalizedTranscript.lines().firstOrNull().orEmpty().take(40).ifBlank { "ボイスメモ" }
         val content = normalizedTranscript.ifBlank { "音声内容を取得できませんでした。" }
-        return AiMemoDraft(
+        return MemoFormatResult(
             title = title,
             content = content,
             tags = emptyList(),
@@ -85,7 +85,7 @@ data class GeminiRequest(
                                     - 50 文字以内のタイトル
                                     - Markdown本文
                                     - 2-4 個の英単語タグ
-                                    
+
                                     Transcript:
                                     $transcript
                                 """.trimIndent(),
@@ -108,7 +108,7 @@ data class Part(
 data class GeminiResponse(
     val candidates: List<Candidate> = emptyList(),
 ) {
-    fun toDraft(fallbackTranscript: String): AiMemoDraft {
+    fun toResult(fallbackTranscript: String): MemoFormatResult {
         val text = candidates.firstOrNull()
             ?.content
             ?.parts
@@ -116,7 +116,7 @@ data class GeminiResponse(
             ?.text
             ?.trim()
             .orEmpty()
-        if (text.isBlank()) return AiMemoDraft(
+        if (text.isBlank()) return MemoFormatResult(
             title = "ボイスメモ",
             content = fallbackTranscript.ifBlank { "音声内容を取得できませんでした。" },
             tags = emptyList(),
@@ -125,7 +125,7 @@ data class GeminiResponse(
         val title = text.lineSequence().firstOrNull().orEmpty().take(50).ifBlank { "ボイスメモ" }
         val tags = parseTags(text)
 
-        return AiMemoDraft(
+        return MemoFormatResult(
             title = title,
             content = text,
             tags = tags,

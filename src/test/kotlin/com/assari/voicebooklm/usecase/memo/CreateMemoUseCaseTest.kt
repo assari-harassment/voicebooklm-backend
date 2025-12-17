@@ -1,13 +1,13 @@
 package com.assari.voicebooklm.usecase.memo
 
-import com.assari.voicebooklm.domain.model.Memo
-import com.assari.voicebooklm.domain.repository.MemoRepository
-import com.assari.voicebooklm.usecase.memo.client.AiMemoDraft
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriptionCommand
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
+import com.assari.voicebooklm.domain.gateway.MemoFormatResult
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
+import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.TimedResult
 import java.util.UUID
@@ -19,14 +19,13 @@ import kotlin.time.TestTimeSource
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 
 /**
  * CreateMemoUseCase の振る舞いをテストダブルで検証。
  */
 @OptIn(ExperimentalTime::class)
-class CreateMemoInteractorTest {
+class CreateMemoUseCaseTest {
 
     @Test
     fun `文字起こしから保存までを計測しつつ実行する`() = runTest {
@@ -35,27 +34,27 @@ class CreateMemoInteractorTest {
         val timeSource = TestTimeSource()
 
         val speechTranscriber = FakeSpeechTranscriber(transcribedText)
-        val aiMemoFormatter = FakeAiMemoFormatter(
+        val memoFormatter = FakeMemoFormatter(
             title = "AI が作ったタイトル",
             content = "整形済みの本文",
             tags = listOf(" voice ", " memo"),
         )
-        val memoRepository = FakeMemoRepository()
+        val voiceMemoRepository = FakeVoiceMemoRepository()
         val executionTimer = FakeExecutionTimer(
             timeSource = timeSource,
             durations = listOf(100.milliseconds, 200.milliseconds, 50.milliseconds),
         )
 
-        val useCase = CreateMemoInteractor(
-            memoRepository = memoRepository,
+        val useCase = CreateMemoUseCase(
+            voiceMemoRepository = voiceMemoRepository,
             speechTranscriber = speechTranscriber,
-            aiMemoFormatter = aiMemoFormatter,
+            memoFormatter = memoFormatter,
             executionTimer = executionTimer,
             timeSource = timeSource,
         )
 
         val result = useCase.execute(
-            CreateMemoCommand(
+            CreateMemoInput(
                 userId = userId,
                 audio = ByteArray(4) { 1 },
                 audioMimeType = "audio/wav",
@@ -68,9 +67,9 @@ class CreateMemoInteractorTest {
         }
         assertEquals("audio/wav", sentTranscriptionCommand.mimeType)
         assertEquals("ja-JP", sentTranscriptionCommand.languageCode)
-        assertEquals(transcribedText, aiMemoFormatter.receivedCommand?.transcript)
+        assertEquals(transcribedText, memoFormatter.receivedCommand?.transcript)
 
-        val savedMemo = memoRepository.savedMemos.single()
+        val savedMemo = voiceMemoRepository.savedMemos.single()
         assertEquals(userId, savedMemo.userId)
         assertEquals("AI が作ったタイトル", savedMemo.title)
         assertEquals("整形済みの本文", savedMemo.content)
@@ -80,8 +79,8 @@ class CreateMemoInteractorTest {
         assertEquals(200.milliseconds, result.processingTime.formatting)
         assertEquals(50.milliseconds, result.processingTime.persistence)
         assertEquals(350.milliseconds, result.processingTime.total)
-        assertEquals(false, result.fallbackUsage.transcription)
-        assertEquals(false, result.fallbackUsage.formatting)
+        assertEquals(false, result.voiceMemo.transcription.fallbackUsed)
+        assertEquals(false, result.voiceMemo.formatting.fallbackUsed)
     }
 
     @Test
@@ -89,10 +88,10 @@ class CreateMemoInteractorTest {
         val userId = UUID.randomUUID()
         val timeSource = TestTimeSource()
 
-        val useCase = CreateMemoInteractor(
-            memoRepository = FakeMemoRepository(),
+        val useCase = CreateMemoUseCase(
+            voiceMemoRepository = FakeVoiceMemoRepository(),
             speechTranscriber = FakeSpeechTranscriber("text"),
-            aiMemoFormatter = FakeAiMemoFormatter(
+            memoFormatter = FakeMemoFormatter(
                 title = "title",
                 content = "content",
                 tags = emptyList(),
@@ -105,7 +104,7 @@ class CreateMemoInteractorTest {
         )
 
         val result = useCase.execute(
-            CreateMemoCommand(
+            CreateMemoInput(
                 userId = userId,
                 audio = ByteArray(1) { 1 },
                 audioMimeType = "audio/wav",
@@ -121,10 +120,10 @@ class CreateMemoInteractorTest {
 
     @Test
     fun `音声が空の場合は例外を返す`() = runTest {
-        val useCase = CreateMemoInteractor(
-            memoRepository = FakeMemoRepository(),
+        val useCase = CreateMemoUseCase(
+            voiceMemoRepository = FakeVoiceMemoRepository(),
             speechTranscriber = FakeSpeechTranscriber(""),
-            aiMemoFormatter = FakeAiMemoFormatter(
+            memoFormatter = FakeMemoFormatter(
                 title = "",
                 content = "",
                 tags = emptyList(),
@@ -135,7 +134,7 @@ class CreateMemoInteractorTest {
 
         assertThrowsSuspend<IllegalArgumentException> {
             useCase.execute(
-                CreateMemoCommand(
+                CreateMemoInput(
                     userId = UUID.randomUUID(),
                     audio = ByteArray(0),
                     audioMimeType = "audio/wav",
@@ -151,25 +150,25 @@ private class FakeSpeechTranscriber(
 ) : SpeechTranscriber {
     var receivedCommand: SpeechTranscriptionCommand? = null
 
-    override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscription {
+    override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
         receivedCommand = command
-        return SpeechTranscription(
+        return SpeechTranscriptionResult(
             text = transcript,
             languageCode = command.languageCode,
         )
     }
 }
 
-private class FakeAiMemoFormatter(
+private class FakeMemoFormatter(
     private val title: String,
     private val content: String,
     private val tags: List<String>,
-) : AiMemoFormatter {
-    var receivedCommand: AiMemoFormatCommand? = null
+) : MemoFormatter {
+    var receivedCommand: MemoFormatCommand? = null
 
-    override suspend fun format(command: AiMemoFormatCommand): AiMemoDraft {
+    override suspend fun format(command: MemoFormatCommand): MemoFormatResult {
         receivedCommand = command
-        return AiMemoDraft(
+        return MemoFormatResult(
             title = title,
             content = content,
             tags = tags,
@@ -177,17 +176,17 @@ private class FakeAiMemoFormatter(
     }
 }
 
-private class FakeMemoRepository : MemoRepository {
-    val savedMemos = mutableListOf<Memo>()
+private class FakeVoiceMemoRepository : VoiceMemoRepository {
+    val savedMemos = mutableListOf<VoiceMemo>()
 
-    override suspend fun save(memo: Memo): Memo {
-        savedMemos += memo
-        return memo
+    override suspend fun save(voiceMemo: VoiceMemo): VoiceMemo {
+        savedMemos += voiceMemo
+        return voiceMemo
     }
 
-    override suspend fun findById(id: UUID): Memo? = savedMemos.find { it.id == id }
+    override suspend fun findById(id: UUID): VoiceMemo? = savedMemos.find { it.id == id }
 
-    override suspend fun findByUserId(userId: UUID): List<Memo> = savedMemos.filter { it.userId == userId }
+    override suspend fun findByUserId(userId: UUID): List<VoiceMemo> = savedMemos.filter { it.userId == userId }
 
     override fun deleteByUserId(userId: UUID) {
         savedMemos.removeIf { it.userId == userId }

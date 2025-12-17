@@ -35,7 +35,7 @@ class RefreshTokenUseCaseTest {
 
         every { tokenProvider.refreshTokenExpiration } returns 15552000000L
 
-        refreshTokenUseCase = RefreshTokenInteractor(
+        refreshTokenUseCase = RefreshTokenUseCase(
             refreshTokenRepository = refreshTokenRepository,
             userRepository = userRepository,
             tokenProvider = tokenProvider,
@@ -72,7 +72,7 @@ class RefreshTokenUseCaseTest {
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
 
         // When
-        val result = refreshTokenUseCase.execute(RefreshTokenCommand(oldRefreshToken))
+        val result = refreshTokenUseCase.execute(RefreshTokenInput(oldRefreshToken))
 
         // Then
         assertNotNull(result)
@@ -92,7 +92,7 @@ class RefreshTokenUseCaseTest {
 
         // When & Then
         val exception = assertThrows(InvalidRefreshTokenException::class.java) {
-            refreshTokenUseCase.execute(RefreshTokenCommand(invalidToken))
+            refreshTokenUseCase.execute(RefreshTokenInput(invalidToken))
         }
 
         assertEquals("リフレッシュトークンが無効または期限切れです", exception.message)
@@ -117,7 +117,7 @@ class RefreshTokenUseCaseTest {
 
         // When & Then
         val exception = assertThrows(InvalidRefreshTokenException::class.java) {
-            refreshTokenUseCase.execute(RefreshTokenCommand(refreshToken))
+            refreshTokenUseCase.execute(RefreshTokenInput(refreshToken))
         }
 
         assertEquals("ユーザーが見つかりません", exception.message)
@@ -155,7 +155,7 @@ class RefreshTokenUseCaseTest {
         every { refreshTokenRepository.save(capture(savedTokenSlot)) } answers { firstArg() }
 
         // When
-        refreshTokenUseCase.execute(RefreshTokenCommand(oldRefreshToken))
+        refreshTokenUseCase.execute(RefreshTokenInput(oldRefreshToken))
 
         // Then
         verify(exactly = 1) { refreshTokenRepository.revokeByToken(oldRefreshToken) }

@@ -4,31 +4,31 @@ import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * ログアウトコマンド
- */
-data class LogoutCommand(
-    val refreshToken: String
-)
-
-/**
  * ログアウトユースケース
  *
  * リフレッシュトークンを無効化してログアウトする。
  */
-interface LogoutUseCase {
-    fun execute(command: LogoutCommand)
-}
-
-open class LogoutInteractor(
+open class LogoutUseCase(
     private val refreshTokenRepository: RefreshTokenRepository,
-) : LogoutUseCase {
+) {
     /**
      * ログアウトを実行する
      *
-     * @param command ログアウトコマンド（リフレッシュトークン）
+     * @param input ログアウトInput（リフレッシュトークン）
      */
     @Transactional
-    override fun execute(command: LogoutCommand) {
-        refreshTokenRepository.revokeByToken(command.refreshToken)
+    open fun execute(input: LogoutInput) {
+        refreshTokenRepository.revokeByToken(input.refreshToken)
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Input
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * ログアウトInput
+ */
+data class LogoutInput(
+    val refreshToken: String
+)

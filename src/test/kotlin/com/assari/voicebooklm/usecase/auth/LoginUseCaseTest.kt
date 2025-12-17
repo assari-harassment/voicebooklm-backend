@@ -41,7 +41,7 @@ class LoginUseCaseTest {
 
         every { tokenProvider.refreshTokenExpiration } returns 15552000000L
 
-        loginUseCase = LoginInteractor(
+        loginUseCase = LoginUseCase(
             oAuthClient = oAuthClient,
             userRepository = userRepository,
             refreshTokenRepository = refreshTokenRepository,
@@ -75,7 +75,7 @@ class LoginUseCaseTest {
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
 
         // When
-        val result = loginUseCase.execute(LoginCommand(idToken))
+        val result = loginUseCase.execute(LoginInput(idToken))
 
         // Then
         assertNotNull(result)
@@ -106,7 +106,7 @@ class LoginUseCaseTest {
         every { refreshTokenRepository.save(any()) } answers { firstArg() }
 
         // When
-        val result = loginUseCase.execute(LoginCommand(idToken))
+        val result = loginUseCase.execute(LoginInput(idToken))
 
         // Then
         assertNotNull(result)
@@ -126,7 +126,7 @@ class LoginUseCaseTest {
         // When & Then
         val exception = assertThrows(InvalidIdTokenException::class.java) {
             kotlinx.coroutines.runBlocking {
-                loginUseCase.execute(LoginCommand(invalidIdToken))
+                loginUseCase.execute(LoginInput(invalidIdToken))
             }
         }
 
@@ -161,7 +161,7 @@ class LoginUseCaseTest {
         every { refreshTokenRepository.save(capture(savedTokenSlot)) } answers { firstArg() }
 
         // When
-        loginUseCase.execute(LoginCommand(idToken))
+        loginUseCase.execute(LoginInput(idToken))
 
         // Then
         val savedToken = savedTokenSlot.captured
