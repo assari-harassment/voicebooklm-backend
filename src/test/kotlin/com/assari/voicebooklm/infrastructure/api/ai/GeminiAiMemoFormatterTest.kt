@@ -1,6 +1,6 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
+import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import java.time.Duration
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
@@ -54,7 +54,7 @@ class GeminiAiMemoFormatterTest {
 
         val draft = runBlocking {
             formatter.format(
-                AiMemoFormatCommand(
+                MemoFormatCommand(
                     userId = UUID.randomUUID(),
                     transcript = "会議内容",
                 ),
@@ -85,7 +85,7 @@ class GeminiAiMemoFormatterTest {
         val transcript = "議事録 テスト"
         val draft = runBlocking {
             formatter.format(
-                AiMemoFormatCommand(
+                MemoFormatCommand(
                     userId = UUID.randomUUID(),
                     transcript = transcript,
                 ),
@@ -116,7 +116,7 @@ class GeminiAiMemoFormatterTest {
 
         val draft = runBlocking {
             formatter.format(
-                AiMemoFormatCommand(
+                MemoFormatCommand(
                     userId = UUID.randomUUID(),
                     transcript = "遅延テスト",
                 ),

@@ -1,11 +1,11 @@
 package com.assari.voicebooklm.config
 
-import com.assari.voicebooklm.usecase.memo.client.AiMemoDraft
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriptionCommand
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
+import com.assari.voicebooklm.domain.gateway.MemoFormatResult
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -20,9 +20,9 @@ class ExternalClientTestConfig {
 
     @Bean
     fun speechTranscriber(): SpeechTranscriber = object : SpeechTranscriber {
-        override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscription {
+        override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
             // テストではアップロード内容に依存せず固定文字列を返す
-            return SpeechTranscription(
+            return SpeechTranscriptionResult(
                 text = "stub transcription",
                 languageCode = command.languageCode,
             )
@@ -30,10 +30,10 @@ class ExternalClientTestConfig {
     }
 
     @Bean
-    fun aiMemoFormatter(): AiMemoFormatter = object : AiMemoFormatter {
-        override suspend fun format(command: AiMemoFormatCommand): AiMemoDraft {
+    fun memoFormatter(): MemoFormatter = object : MemoFormatter {
+        override suspend fun format(command: MemoFormatCommand): MemoFormatResult {
             // テストではシンプルにタイトル・本文を組み立てる
-            return AiMemoDraft(
+            return MemoFormatResult(
                 title = "stub title",
                 content = command.transcript,
                 tags = emptyList(),
