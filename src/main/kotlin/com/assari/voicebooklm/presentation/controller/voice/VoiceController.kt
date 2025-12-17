@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
-import com.assari.voicebooklm.presentation.exception.ErrorResponse
+import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoInteractor
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
 import com.assari.voicebooklm.usecase.memo.CreateMemoResult
