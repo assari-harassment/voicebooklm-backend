@@ -3,8 +3,8 @@ package com.assari.voicebooklm.config
 import com.assari.voicebooklm.infrastructure.api.ai.GeminiAiMemoFormatter
 import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
 import com.assari.voicebooklm.infrastructure.api.storage.GcsStorageService
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.speech.v1.SpeechClient
@@ -98,7 +98,7 @@ class ExternalClientConfig {
     @Bean
     fun aiMemoFormatter(
         geminiProperties: GeminiProperties,
-    ): AiMemoFormatter =
+    ): MemoFormatter =
         GeminiAiMemoFormatter(
             apiKey = geminiProperties.apiKey,
             model = geminiProperties.model,

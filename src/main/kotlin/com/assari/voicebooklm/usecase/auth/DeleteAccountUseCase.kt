@@ -7,13 +7,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * アカウント削除コマンド
- */
-data class DeleteAccountCommand(
-    val userId: UUID
-)
-
-/**
  * ユーザーが見つからない例外
  */
 class UserNotFoundException(message: String) : RuntimeException(message)
@@ -24,35 +17,42 @@ class UserNotFoundException(message: String) : RuntimeException(message)
  * ユーザーのすべてのデータを物理削除する。
  * 削除順序: VoiceMemo → リフレッシュトークン → ユーザー（参照整合性を維持）
  */
-interface DeleteAccountUseCase {
-    fun execute(command: DeleteAccountCommand)
-}
-
-open class DeleteAccountInteractor(
+open class DeleteAccountUseCase(
     private val userRepository: UserRepository,
     private val voiceMemoRepository: VoiceMemoRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
-) : DeleteAccountUseCase {
+) {
     /**
      * アカウントを削除する
      *
-     * @param command アカウント削除コマンド（ユーザー ID）
+     * @param input アカウント削除Input（ユーザー ID）
      * @throws UserNotFoundException ユーザーが見つからない場合
      */
     @Transactional
-    override fun execute(command: DeleteAccountCommand) {
+    open fun execute(input: DeleteAccountInput) {
         // ユーザーが存在するか確認
-        userRepository.findById(command.userId)
+        userRepository.findById(input.userId)
             ?: throw UserNotFoundException("ユーザーが見つかりません")
 
         // 参照整合性を維持するため、順番に削除
         // 1. VoiceMemo を削除
-        voiceMemoRepository.deleteByUserId(command.userId)
+        voiceMemoRepository.deleteByUserId(input.userId)
 
         // 2. リフレッシュトークンを削除
-        refreshTokenRepository.deleteByUserId(command.userId)
+        refreshTokenRepository.deleteByUserId(input.userId)
 
         // 3. ユーザーを削除
-        userRepository.deleteById(command.userId)
+        userRepository.deleteById(input.userId)
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Input
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * アカウント削除Input
+ */
+data class DeleteAccountInput(
+    val userId: UUID
+)

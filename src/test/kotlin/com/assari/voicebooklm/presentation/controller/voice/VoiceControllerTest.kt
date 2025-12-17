@@ -1,16 +1,15 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
-import com.assari.voicebooklm.domain.model.Memo
-import com.assari.voicebooklm.domain.repository.MemoRepository
-import com.assari.voicebooklm.presentation.exception.ErrorResponse
-import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
-import com.assari.voicebooklm.usecase.memo.CreateMemoResult
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
+import com.assari.voicebooklm.domain.model.Formatting
+import com.assari.voicebooklm.domain.model.Transcription
+import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.assari.voicebooklm.usecase.memo.CreateMemoInput
+import com.assari.voicebooklm.usecase.memo.CreateMemoOutput
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
-import com.assari.voicebooklm.usecase.memo.FallbackUsage
 import com.assari.voicebooklm.usecase.memo.ProcessingTime
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -35,24 +34,24 @@ import org.springframework.web.server.ResponseStatusException
 class VoiceControllerTest {
 
     private lateinit var createMemoUseCase: CreateMemoUseCase
-    private lateinit var memoRepository: MemoRepository
+    private lateinit var voiceMemoRepository: VoiceMemoRepository
     private lateinit var speechTranscriber: SpeechTranscriber
-    private lateinit var aiMemoFormatter: AiMemoFormatter
+    private lateinit var memoFormatter: MemoFormatter
     private lateinit var executionTimer: ExecutionTimer
     private lateinit var controller: VoiceController
 
     @BeforeEach
     fun setup() {
         createMemoUseCase = mockk()
-        memoRepository = mockk(relaxed = true)
+        voiceMemoRepository = mockk(relaxed = true)
         speechTranscriber = mockk(relaxed = true)
-        aiMemoFormatter = mockk(relaxed = true)
+        memoFormatter = mockk(relaxed = true)
         executionTimer = mockk(relaxed = true)
         // テストではユースケース生成を差し替えるため、Compose 済みのモックを渡す
         controller = VoiceController(
-            memoRepository = memoRepository,
+            voiceMemoRepository = voiceMemoRepository,
             speechTranscriber = speechTranscriber,
-            aiMemoFormatter = aiMemoFormatter,
+            memoFormatter = memoFormatter,
             executionTimer = executionTimer,
             createMemoUseCaseOverride = createMemoUseCase,
         )
@@ -62,7 +61,7 @@ class VoiceControllerTest {
     fun `正常にメモを生成し 201 を返す`() = runBlocking {
         val memoId = UUID.randomUUID()
         val userId = UUID.fromString("11111111-1111-1111-1111-111111111111")
-        coEvery { createMemoUseCase.execute(any()) } returns stubResult(memoId, userId)
+        coEvery { createMemoUseCase.execute(any()) } returns stubOutput(memoId, userId)
 
         val file = MockMultipartFile(
             "file",
@@ -158,27 +157,30 @@ class VoiceControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, ex.statusCode)
     }
 
-    private fun stubResult(memoId: UUID, userId: UUID) = CreateMemoResult(
-        memo = Memo.create(
-            title = "title",
-            content = "content",
-            tags = listOf("t1"),
-            userId = userId,
+    private fun stubOutput(memoId: UUID, userId: UUID): CreateMemoOutput {
+        val voiceMemo = VoiceMemo(
             id = memoId,
-        ),
-        transcription = SpeechTranscription(
-            text = "text",
-            languageCode = "ja-JP",
-        ),
-        processingTime = ProcessingTime(
-            transcription = 10.milliseconds,
-            formatting = 20.milliseconds,
-            persistence = 30.milliseconds,
-            total = Duration.parse("0.06s"),
-        ),
-        fallbackUsage = FallbackUsage(
-            transcription = false,
-            formatting = false,
-        ),
-    )
+            userId = userId,
+            transcription = Transcription.completed(
+                text = "text",
+                languageCode = "ja-JP",
+                fallbackUsed = false,
+            ),
+            formatting = Formatting.completed(
+                title = "title",
+                content = "content",
+                tags = listOf("t1"),
+                fallbackUsed = false,
+            ),
+        )
+        return CreateMemoOutput(
+            voiceMemo = voiceMemo,
+            processingTime = ProcessingTime(
+                transcription = 10.milliseconds,
+                formatting = 20.milliseconds,
+                persistence = 30.milliseconds,
+                total = Duration.parse("0.06s"),
+            ),
+        )
+    }
 }

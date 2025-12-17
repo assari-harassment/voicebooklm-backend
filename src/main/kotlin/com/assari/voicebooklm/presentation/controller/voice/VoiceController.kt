@@ -1,13 +1,12 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
-import com.assari.voicebooklm.usecase.memo.CreateMemoInteractor
-import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
-import com.assari.voicebooklm.usecase.memo.CreateMemoResult
+import com.assari.voicebooklm.usecase.memo.CreateMemoInput
+import com.assari.voicebooklm.usecase.memo.CreateMemoOutput
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
 import io.swagger.v3.oas.annotations.Operation
@@ -43,7 +42,7 @@ class VoiceController(
     // ユースケースは Bean 登録せず、このレイヤーで組み立てる
     voiceMemoRepository: VoiceMemoRepository,
     speechTranscriber: SpeechTranscriber,
-    aiMemoFormatter: AiMemoFormatter,
+    memoFormatter: MemoFormatter,
     executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
     // テストでユースケースの差し替えを可能にするオプション
     createMemoUseCaseOverride: CreateMemoUseCase? = null,
@@ -54,10 +53,10 @@ class VoiceController(
     // Bean 化しないことでユースケースをフレームワーク非依存に保つ。
     private val createMemoUseCase: CreateMemoUseCase =
         createMemoUseCaseOverride
-            ?: CreateMemoInteractor(
+            ?: CreateMemoUseCase(
                 voiceMemoRepository = voiceMemoRepository,
                 speechTranscriber = speechTranscriber,
-                aiMemoFormatter = aiMemoFormatter,
+                memoFormatter = memoFormatter,
                 executionTimer = executionTimer,
             )
 
@@ -104,7 +103,7 @@ class VoiceController(
 
         val result = try {
             createMemoUseCase.execute(
-                CreateMemoCommand(
+                CreateMemoInput(
                     userId = userId,
                     audio = audioBytes,
                     audioMimeType = file.contentType ?: "application/octet-stream",
@@ -191,7 +190,7 @@ data class CreateMemoResponse(
     val fallback: FallbackUsageResponse,
 ) {
     companion object {
-        fun from(result: CreateMemoResult): CreateMemoResponse {
+        fun from(result: CreateMemoOutput): CreateMemoResponse {
             val voiceMemo = result.voiceMemo
             return CreateMemoResponse(
                 memoId = voiceMemo.id,

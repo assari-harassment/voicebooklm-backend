@@ -12,22 +12,6 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * ログインコマンド
- */
-data class LoginCommand(
-    val idToken: String
-)
-
-/**
- * ログイン結果
- */
-data class LoginResult(
-    val accessToken: String,
-    val refreshToken: String,
-    val userId: UUID
-)
-
-/**
  * ID トークン検証失敗例外
  */
 open class InvalidIdTokenException(message: String) : RuntimeException(message)
@@ -45,27 +29,23 @@ class InvalidGoogleTokenException(message: String) : InvalidIdTokenException(mes
  *
  * OAuthClient インターフェースを使用し、プロバイダーに依存しない設計。
  */
-interface LoginUseCase {
-    suspend fun execute(command: LoginCommand): LoginResult
-}
-
-open class LoginInteractor(
+open class LoginUseCase(
     private val oAuthClient: OAuthClient,
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val tokenProvider: TokenProvider,
-) : LoginUseCase {
+) {
     /**
      * ID トークンで認証し、JWT トークンペアを発行する
      *
-     * @param command ログインコマンド（ID トークン）
-     * @return ログイン結果（アクセストークン、リフレッシュトークン、ユーザー ID）
+     * @param input ログインInput（ID トークン）
+     * @return ログインOutput（アクセストークン、リフレッシュトークン、ユーザー ID）
      * @throws InvalidIdTokenException ID トークンの検証に失敗した場合
      */
     @Transactional
-    override suspend fun execute(command: LoginCommand): LoginResult {
+    open suspend fun execute(input: LoginInput): LoginOutput {
         // ID トークンを検証してユーザー情報を取得
-        val oAuthUserInfo = oAuthClient.verifyIdTokenAndGetUserInfo(command.idToken)
+        val oAuthUserInfo = oAuthClient.verifyIdTokenAndGetUserInfo(input.idToken)
             ?: throw InvalidIdTokenException("ID トークンの検証に失敗しました")
 
         // ユーザーを取得または作成
@@ -87,7 +67,7 @@ open class LoginInteractor(
         )
         refreshTokenRepository.save(refreshToken)
 
-        return LoginResult(
+        return LoginOutput(
             accessToken = accessToken,
             refreshToken = refreshTokenValue,
             userId = user.id
@@ -106,3 +86,23 @@ open class LoginInteractor(
         return userRepository.save(user)
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Input / Output
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * ログインInput
+ */
+data class LoginInput(
+    val idToken: String
+)
+
+/**
+ * ログインOutput
+ */
+data class LoginOutput(
+    val accessToken: String,
+    val refreshToken: String,
+    val userId: UUID
+)

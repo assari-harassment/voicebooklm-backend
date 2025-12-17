@@ -10,22 +10,6 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * リフレッシュトークンコマンド
- */
-data class RefreshTokenCommand(
-    val refreshToken: String
-)
-
-/**
- * リフレッシュトークン結果
- */
-data class RefreshTokenResult(
-    val accessToken: String,
-    val refreshToken: String,
-    val userId: UUID
-)
-
-/**
  * リフレッシュトークン無効例外
  */
 class InvalidRefreshTokenException(message: String) : RuntimeException(message)
@@ -36,27 +20,23 @@ class InvalidRefreshTokenException(message: String) : RuntimeException(message)
  * リフレッシュトークンローテーションを実装。
  * 旧トークンを無効化し、新しいトークンペアを発行する。
  */
-interface RefreshTokenUseCase {
-    fun execute(command: RefreshTokenCommand): RefreshTokenResult
-}
-
-open class RefreshTokenInteractor(
+open class RefreshTokenUseCase(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
     private val tokenProvider: TokenProvider,
-) : RefreshTokenUseCase {
+) {
     /**
      * リフレッシュトークンを使用して新しいトークンペアを発行する
      *
-     * @param command リフレッシュトークンコマンド
+     * @param input リフレッシュトークンInput
      * @return 新しいトークンペア
      * @throws InvalidRefreshTokenException リフレッシュトークンが無効または期限切れの場合
      */
     @Transactional
-    override fun execute(command: RefreshTokenCommand): RefreshTokenResult {
+    open fun execute(input: RefreshTokenInput): RefreshTokenOutput {
         // リフレッシュトークンを検証
         val storedToken = refreshTokenRepository.findByTokenAndValid(
-            command.refreshToken,
+            input.refreshToken,
             Instant.now()
         ) ?: throw InvalidRefreshTokenException("リフレッシュトークンが無効または期限切れです")
 
@@ -65,7 +45,7 @@ open class RefreshTokenInteractor(
             ?: throw InvalidRefreshTokenException("ユーザーが見つかりません")
 
         // 旧トークンを無効化してローテーション（盗難対策）
-        refreshTokenRepository.revokeByToken(command.refreshToken)
+        refreshTokenRepository.revokeByToken(input.refreshToken)
 
         // 新しいトークンペアを生成
         val newAccessToken = tokenProvider.generateAccessToken(user.id, user.email)
@@ -82,10 +62,30 @@ open class RefreshTokenInteractor(
         )
         refreshTokenRepository.save(newRefreshToken)
 
-        return RefreshTokenResult(
+        return RefreshTokenOutput(
             accessToken = newAccessToken,
             refreshToken = newRefreshTokenValue,
             userId = user.id
         )
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Input / Output
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * リフレッシュトークンInput
+ */
+data class RefreshTokenInput(
+    val refreshToken: String
+)
+
+/**
+ * リフレッシュトークンOutput
+ */
+data class RefreshTokenOutput(
+    val accessToken: String,
+    val refreshToken: String,
+    val userId: UUID
+)

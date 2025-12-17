@@ -1,19 +1,16 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
-import com.assari.voicebooklm.domain.model.Memo
-import com.assari.voicebooklm.domain.repository.MemoRepository
+import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
+import com.assari.voicebooklm.domain.model.Formatting
+import com.assari.voicebooklm.domain.model.Transcription
+import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.infrastructure.security.JwtTokenProvider
-import com.assari.voicebooklm.presentation.exception.ErrorResponse
-import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
-import com.assari.voicebooklm.usecase.memo.CreateMemoResult
+import com.assari.voicebooklm.usecase.memo.CreateMemoOutput
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
-import com.assari.voicebooklm.usecase.memo.FallbackUsage
 import com.assari.voicebooklm.usecase.memo.ProcessingTime
-import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
-import com.assari.voicebooklm.presentation.exception.ApiExceptionHandler
 import com.assari.voicebooklm.config.SecurityConfig
 import com.ninjasquad.springmockk.MockkBean
 import io.jsonwebtoken.Jwts
@@ -53,7 +50,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
     SecurityConfig::class,
     JwtTokenProvider::class,
     VoiceControllerJwtWebMvcTest.TestCorsConfig::class,
-    ApiExceptionHandler::class,
 )
 @TestPropertySource(properties = ["jwt.secret=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"])
 class VoiceControllerJwtWebMvcTest {
@@ -65,13 +61,13 @@ class VoiceControllerJwtWebMvcTest {
     lateinit var jwtTokenProvider: JwtTokenProvider
 
     @MockkBean(relaxed = true)
-    lateinit var memoRepository: MemoRepository
+    lateinit var voiceMemoRepository: VoiceMemoRepository
 
     @MockkBean(relaxed = true)
     lateinit var speechTranscriber: SpeechTranscriber
 
     @MockkBean(relaxed = true)
-    lateinit var aiMemoFormatter: AiMemoFormatter
+    lateinit var memoFormatter: MemoFormatter
 
     @MockkBean(relaxed = true)
     lateinit var executionTimer: ExecutionTimer
@@ -83,7 +79,7 @@ class VoiceControllerJwtWebMvcTest {
     fun `JWT ありで201`() {
         val memoId = UUID.randomUUID()
         val userId = UUID.randomUUID()
-        coEvery { createMemoUseCase.execute(any()) } returns stubResult(memoId, userId)
+        coEvery { createMemoUseCase.execute(any()) } returns stubOutput(memoId, userId)
 
         val token = generateToken(userId)
         val file = MockMultipartFile("file", "voice.wav", "audio/wav", byteArrayOf(1, 2, 3))
@@ -120,29 +116,32 @@ class VoiceControllerJwtWebMvcTest {
             .compact()
     }
 
-    private fun stubResult(memoId: UUID, userId: UUID) = CreateMemoResult(
-        memo = Memo.create(
-            title = "title",
-            content = "content",
-            tags = listOf("t1"),
-            userId = userId,
+    private fun stubOutput(memoId: UUID, userId: UUID): CreateMemoOutput {
+        val voiceMemo = VoiceMemo(
             id = memoId,
-        ),
-        transcription = SpeechTranscription(
-            text = "text",
-            languageCode = "ja-JP",
-        ),
-        processingTime = ProcessingTime(
-            transcription = 10.milliseconds,
-            formatting = 20.milliseconds,
-            persistence = 30.milliseconds,
-            total = Duration.parse("0.06s"),
-        ),
-        fallbackUsage = FallbackUsage(
-            transcription = false,
-            formatting = false,
-        ),
-    )
+            userId = userId,
+            transcription = Transcription.completed(
+                text = "text",
+                languageCode = "ja-JP",
+                fallbackUsed = false,
+            ),
+            formatting = Formatting.completed(
+                title = "title",
+                content = "content",
+                tags = listOf("t1"),
+                fallbackUsed = false,
+            ),
+        )
+        return CreateMemoOutput(
+            voiceMemo = voiceMemo,
+            processingTime = ProcessingTime(
+                transcription = 10.milliseconds,
+                formatting = 20.milliseconds,
+                persistence = 30.milliseconds,
+                total = Duration.parse("0.06s"),
+            ),
+        )
+    }
 
     @Configuration
     class TestCorsConfig {

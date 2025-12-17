@@ -5,20 +5,15 @@ import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
-import com.assari.voicebooklm.usecase.auth.DeleteAccountCommand
-import com.assari.voicebooklm.usecase.auth.DeleteAccountInteractor
+import com.assari.voicebooklm.usecase.auth.DeleteAccountInput
 import com.assari.voicebooklm.usecase.auth.DeleteAccountUseCase
-import com.assari.voicebooklm.usecase.auth.GetCurrentUserCommand
-import com.assari.voicebooklm.usecase.auth.GetCurrentUserInteractor
+import com.assari.voicebooklm.usecase.auth.GetCurrentUserInput
 import com.assari.voicebooklm.usecase.auth.GetCurrentUserUseCase
-import com.assari.voicebooklm.usecase.auth.LoginCommand
-import com.assari.voicebooklm.usecase.auth.LoginInteractor
+import com.assari.voicebooklm.usecase.auth.LoginInput
 import com.assari.voicebooklm.usecase.auth.LoginUseCase
-import com.assari.voicebooklm.usecase.auth.LogoutCommand
-import com.assari.voicebooklm.usecase.auth.LogoutInteractor
+import com.assari.voicebooklm.usecase.auth.LogoutInput
 import com.assari.voicebooklm.usecase.auth.LogoutUseCase
-import com.assari.voicebooklm.usecase.auth.RefreshTokenCommand
-import com.assari.voicebooklm.usecase.auth.RefreshTokenInteractor
+import com.assari.voicebooklm.usecase.auth.RefreshTokenInput
 import com.assari.voicebooklm.usecase.auth.RefreshTokenUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -52,29 +47,26 @@ class AuthController(
 ) {
     // Auth 系ユースケースをここで明示的に生成し、外部からは Spring に依存しない形で扱う。
     // Bean 化しない代わりに、依存をコンストラクタで受けて手動 new する。
-    private val loginUseCase: LoginUseCase =
-        LoginInteractor(
-            oAuthClient = oAuthClient,
-            userRepository = userRepository,
-            refreshTokenRepository = refreshTokenRepository,
-            tokenProvider = tokenProvider,
-        )
-    private val refreshTokenUseCase: RefreshTokenUseCase =
-        RefreshTokenInteractor(
-            refreshTokenRepository = refreshTokenRepository,
-            userRepository = userRepository,
-            tokenProvider = tokenProvider,
-        )
+    private val loginUseCase = LoginUseCase(
+        oAuthClient = oAuthClient,
+        userRepository = userRepository,
+        refreshTokenRepository = refreshTokenRepository,
+        tokenProvider = tokenProvider,
+    )
+    private val refreshTokenUseCase = RefreshTokenUseCase(
+        refreshTokenRepository = refreshTokenRepository,
+        userRepository = userRepository,
+        tokenProvider = tokenProvider,
+    )
     // リフレッシュトークンの破棄のみを行うシンプルなユースケース
-    private val logoutUseCase: LogoutUseCase = LogoutInteractor(refreshTokenRepository)
-    private val deleteAccountUseCase: DeleteAccountUseCase =
-        DeleteAccountInteractor(
-            userRepository = userRepository,
-            voiceMemoRepository = voiceMemoRepository,
-            refreshTokenRepository = refreshTokenRepository,
-        )
-    private val getCurrentUserUseCase: GetCurrentUserUseCase =
-        GetCurrentUserInteractor(userRepository)
+    private val logoutUseCase = LogoutUseCase(refreshTokenRepository)
+    private val deleteAccountUseCase = DeleteAccountUseCase(
+        userRepository = userRepository,
+        voiceMemoRepository = voiceMemoRepository,
+        refreshTokenRepository = refreshTokenRepository,
+    )
+    private val getCurrentUserUseCase = GetCurrentUserUseCase(userRepository)
+
     /** Google OAuth でログイン */
     @Operation(
             summary = "Google OAuth ログイン",
@@ -92,7 +84,7 @@ class AuthController(
     suspend fun loginWithGoogle(
             @Valid @RequestBody request: GoogleAuthRequest
     ): ResponseEntity<TokenResponse> {
-        val result = loginUseCase.execute(LoginCommand(request.idToken))
+        val result = loginUseCase.execute(LoginInput(request.idToken))
         return ResponseEntity.ok(
                 TokenResponse(accessToken = result.accessToken, refreshToken = result.refreshToken)
         )
@@ -112,7 +104,7 @@ class AuthController(
     fun refreshToken(
             @Valid @RequestBody request: RefreshTokenRequest
     ): ResponseEntity<TokenResponse> {
-        val result = refreshTokenUseCase.execute(RefreshTokenCommand(request.refreshToken))
+        val result = refreshTokenUseCase.execute(RefreshTokenInput(request.refreshToken))
         return ResponseEntity.ok(
                 TokenResponse(accessToken = result.accessToken, refreshToken = result.refreshToken)
         )
@@ -130,7 +122,7 @@ class AuthController(
     )
     @PostMapping("/logout")
     fun logout(@Valid @RequestBody request: LogoutRequest): ResponseEntity<Void> {
-        logoutUseCase.execute(LogoutCommand(request.refreshToken))
+        logoutUseCase.execute(LogoutInput(request.refreshToken))
         return ResponseEntity.noContent().build()
     }
 
@@ -152,7 +144,7 @@ class AuthController(
     @DeleteMapping("/account")
     fun deleteAccount(@AuthenticationPrincipal userId: UUID?): ResponseEntity<Void> {
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        deleteAccountUseCase.execute(DeleteAccountCommand(userId))
+        deleteAccountUseCase.execute(DeleteAccountInput(userId))
         return ResponseEntity.noContent().build()
     }
 
@@ -174,7 +166,7 @@ class AuthController(
     @GetMapping("/me")
     fun getCurrentUser(@AuthenticationPrincipal userId: UUID?): ResponseEntity<UserResponse> {
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val userInfo = getCurrentUserUseCase.execute(GetCurrentUserCommand(userId))
+        val userInfo = getCurrentUserUseCase.execute(GetCurrentUserInput(userId))
         return ResponseEntity.ok(
                 UserResponse(id = userInfo.id, email = userInfo.email, name = userInfo.name)
         )

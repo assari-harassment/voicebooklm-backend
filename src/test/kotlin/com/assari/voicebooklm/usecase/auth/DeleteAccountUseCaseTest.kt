@@ -1,9 +1,9 @@
 package com.assari.voicebooklm.usecase.auth
 
 import com.assari.voicebooklm.domain.model.User
-import com.assari.voicebooklm.domain.repository.MemoRepository
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -15,18 +15,18 @@ class DeleteAccountUseCaseTest {
 
     private lateinit var deleteAccountUseCase: DeleteAccountUseCase
     private lateinit var userRepository: UserRepository
-    private lateinit var memoRepository: MemoRepository
+    private lateinit var voiceMemoRepository: VoiceMemoRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
 
     @BeforeEach
     fun setUp() {
         userRepository = mockk()
-        memoRepository = mockk()
+        voiceMemoRepository = mockk()
         refreshTokenRepository = mockk()
 
-        deleteAccountUseCase = DeleteAccountInteractor(
+        deleteAccountUseCase = DeleteAccountUseCase(
             userRepository = userRepository,
-            memoRepository = memoRepository,
+            voiceMemoRepository = voiceMemoRepository,
             refreshTokenRepository = refreshTokenRepository,
         )
     }
@@ -45,17 +45,17 @@ class DeleteAccountUseCaseTest {
         )
 
         every { userRepository.findById(userId) } returns user
-        every { memoRepository.deleteByUserId(userId) } just Runs
+        every { voiceMemoRepository.deleteByUserId(userId) } just Runs
         every { refreshTokenRepository.deleteByUserId(userId) } just Runs
         every { userRepository.deleteById(userId) } just Runs
 
         // When
-        deleteAccountUseCase.execute(DeleteAccountCommand(userId))
+        deleteAccountUseCase.execute(DeleteAccountInput(userId))
 
         // Then
         verifyOrder {
             userRepository.findById(userId)
-            memoRepository.deleteByUserId(userId)
+            voiceMemoRepository.deleteByUserId(userId)
             refreshTokenRepository.deleteByUserId(userId)
             userRepository.deleteById(userId)
         }
@@ -70,12 +70,12 @@ class DeleteAccountUseCaseTest {
 
         // When & Then
         val exception = assertThrows(UserNotFoundException::class.java) {
-            deleteAccountUseCase.execute(DeleteAccountCommand(userId))
+            deleteAccountUseCase.execute(DeleteAccountInput(userId))
         }
 
         assertEquals("ユーザーが見つかりません", exception.message)
 
-        verify(exactly = 0) { memoRepository.deleteByUserId(any()) }
+        verify(exactly = 0) { voiceMemoRepository.deleteByUserId(any()) }
         verify(exactly = 0) { refreshTokenRepository.deleteByUserId(any()) }
         verify(exactly = 0) { userRepository.deleteById(any()) }
     }
@@ -94,16 +94,16 @@ class DeleteAccountUseCaseTest {
         )
 
         every { userRepository.findById(userId) } returns user
-        every { memoRepository.deleteByUserId(userId) } just Runs
+        every { voiceMemoRepository.deleteByUserId(userId) } just Runs
         every { refreshTokenRepository.deleteByUserId(userId) } just Runs
         every { userRepository.deleteById(userId) } just Runs
 
         // When
-        deleteAccountUseCase.execute(DeleteAccountCommand(userId))
+        deleteAccountUseCase.execute(DeleteAccountInput(userId))
 
         // Then - verify order is important for referential integrity
         verifyOrder {
-            memoRepository.deleteByUserId(userId)
+            voiceMemoRepository.deleteByUserId(userId)
             refreshTokenRepository.deleteByUserId(userId)
             userRepository.deleteById(userId)
         }
