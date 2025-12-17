@@ -1,25 +1,35 @@
 package com.assari.voicebooklm.usecase.memo
 
-import com.assari.voicebooklm.domain.model.Memo
-import com.assari.voicebooklm.domain.repository.MemoRepository
+import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.memo.client.AiMemoDraft
 import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatCommand
 import com.assari.voicebooklm.usecase.memo.client.AiMemoFormatter
-import com.assari.voicebooklm.usecase.memo.client.SpeechTranscription
 import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriptionCommand
 import com.assari.voicebooklm.usecase.memo.client.SpeechTranscriber
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
+import kotlin.time.Duration
 import kotlin.time.TimeSource
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * 音声文字起こしと AI 整形を経てメモを生成するユースケース実装。
- * 各工程のタイムアウト/例外時はフォールバックで進行し、警告ログを出力する。
+ * 文字起こし失敗時の例外
+ */
+class TranscriptionFailedException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+/**
+ * 音声文字起こしと AI 整形を経て VoiceMemo を生成するユースケース実装
+ *
+ * 文字起こしが失敗した場合は例外をスローし、AI整形は実行しない。
+ * AI整形が失敗した場合のみフォールバックで進行する。
  */
 open class CreateMemoInteractor(
-    private val memoRepository: MemoRepository,
+    private val voiceMemoRepository: VoiceMemoRepository,
     private val speechTranscriber: SpeechTranscriber,
     private val aiMemoFormatter: AiMemoFormatter,
     private val executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
@@ -27,14 +37,22 @@ open class CreateMemoInteractor(
 ) : CreateMemoUseCase {
 
     private val logger = LoggerFactory.getLogger(CreateMemoInteractor::class.java)
-    private val defaultTranscriptFallback = "[transcription unavailable]"
 
     @Transactional
     override suspend fun execute(command: CreateMemoCommand): CreateMemoResult {
         require(command.audio.isNotEmpty()) { "Audio data must not be empty" }
 
         val overallMark = timeSource.markNow()
+        val languageCode = command.language ?: "ja-JP"
 
+        // 1. VoiceMemo を作成（処理待ち状態）
+        var voiceMemo = VoiceMemo.create(
+            userId = command.userId,
+            languageCode = languageCode,
+        )
+
+        // 2. 文字起こし処理（失敗したら例外をスロー）
+        voiceMemo = voiceMemo.startTranscription()
         val transcriptionResult = executionTimer.measure {
             runCatching {
                 speechTranscriber.transcribe(
@@ -42,71 +60,77 @@ open class CreateMemoInteractor(
                         userId = command.userId,
                         audio = command.audio,
                         mimeType = command.audioMimeType,
-                        languageCode = command.language,
+                        languageCode = languageCode,
                     ),
                 )
-            }.onFailure { ex ->
-                logger.warn("Speech transcription failed; fallback will be used", ex)
-            }.getOrDefault(
-                SpeechTranscription(
-                    text = defaultTranscriptFallback,
-                    languageCode = command.language,
-                ),
-            )
+            }.getOrElse { ex ->
+                logger.error("Speech transcription failed", ex)
+                // 失敗状態で保存して例外をスロー
+                voiceMemo = voiceMemo.failTranscription()
+                voiceMemoRepository.save(voiceMemo)
+                throw TranscriptionFailedException("文字起こしに失敗しました", ex)
+            }
         }
-        val safeTranscriptionText = transcriptionResult.value.text.ifBlank { defaultTranscriptFallback }
-        val transcriptionFallbackUsed = safeTranscriptionText == defaultTranscriptFallback
-        val transcription = transcriptionResult.value.copy(text = safeTranscriptionText)
 
+        val transcriptionText = transcriptionResult.value.text
+        if (transcriptionText.isBlank()) {
+            logger.warn("Speech transcription returned empty result")
+            voiceMemo = voiceMemo.failTranscription()
+            voiceMemoRepository.save(voiceMemo)
+            throw TranscriptionFailedException("文字起こし結果が空でした。音声が認識できなかった可能性があります。")
+        }
+
+        voiceMemo = voiceMemo.completeTranscription(
+            text = transcriptionText,
+            fallbackUsed = false,
+        )
+
+        // 3. AI整形処理（失敗した場合はフォールバックで続行）
+        voiceMemo = voiceMemo.startFormatting()
         val memoDraftResult = executionTimer.measure {
             runCatching {
                 aiMemoFormatter.format(
                     AiMemoFormatCommand(
                         userId = command.userId,
-                        transcript = transcription.text,
+                        transcript = transcriptionText,
                     ),
                 )
             }.onFailure { ex ->
                 logger.warn("AI memo formatting failed; fallback will be used", ex)
             }.getOrElse {
-                fallbackDraftFromTranscript(transcription.text)
+                fallbackDraftFromTranscript(transcriptionText)
             }
         }
-        val formattingFallbackUsed = memoDraftResult.value.title == "ボイスメモ" && memoDraftResult.value.tags.isEmpty()
         val memoDraft = memoDraftResult.value
-
-        val memoToSave = Memo.create(
+        val formattingFallbackUsed = memoDraft.title == "ボイスメモ" && memoDraft.tags.isEmpty()
+        voiceMemo = voiceMemo.completeFormatting(
             title = memoDraft.title,
             content = memoDraft.content,
             tags = memoDraft.tags,
-            userId = command.userId,
+            fallbackUsed = formattingFallbackUsed,
         )
 
-        val (savedMemo, persistenceDuration) = executionTimer.measure {
-            memoRepository.save(memoToSave)
+        // 4. 永続化
+        val (savedVoiceMemo, persistenceDuration) = executionTimer.measure {
+            voiceMemoRepository.save(voiceMemo)
         }
 
         val totalDuration = overallMark.elapsedNow()
 
         return CreateMemoResult(
-            memo = savedMemo,
-            transcription = transcription,
+            voiceMemo = savedVoiceMemo,
             processingTime = ProcessingTime(
                 transcription = transcriptionResult.duration,
                 formatting = memoDraftResult.duration,
                 persistence = persistenceDuration,
                 total = totalDuration,
             ),
-            fallbackUsage = FallbackUsage(
-                transcription = transcriptionFallbackUsed,
-                formatting = formattingFallbackUsed,
-            ),
         )
     }
 
     private fun fallbackDraftFromTranscript(transcript: String) = AiMemoDraft(
         title = "ボイスメモ",
-        content = transcript.ifBlank { "音声内容を取得できませんでした。" },
+        content = transcript,
         tags = emptyList(),
     )
 }

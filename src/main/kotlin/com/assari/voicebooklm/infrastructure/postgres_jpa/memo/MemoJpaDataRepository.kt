@@ -10,9 +10,20 @@ import org.springframework.stereotype.Repository
 /** MemoJpaEntity 用 Spring Data JPA リポジトリ。 */
 @Repository
 interface MemoJpaDataRepository : JpaRepository<MemoJpaEntity, UUID> {
-    fun findActiveMemoById(id: UUID): MemoJpaEntity?
+    /**
+     * ID で未削除のメモを取得
+     */
+    @Query(
+        """
+        SELECT m FROM MemoJpaEntity m
+        WHERE m.id = :id AND m.deleted = false
+        """,
+    )
+    fun findActiveMemoById(@Param("id") id: UUID): MemoJpaEntity?
 
-    // ユーザーの未削除メモを作成日時の新しい順で取得する
+    /**
+     * ユーザーの未削除メモを作成日時の新しい順で取得
+     */
     @Query(
         """
         SELECT m FROM MemoJpaEntity m
@@ -22,6 +33,9 @@ interface MemoJpaDataRepository : JpaRepository<MemoJpaEntity, UUID> {
     )
     fun findActiveMemosByUser(@Param("userId") userId: UUID): List<MemoJpaEntity>
 
+    /**
+     * ユーザーID に紐づくメモをすべて削除（物理削除）
+     */
     @Modifying
     fun deleteByUserId(userId: UUID)
 }

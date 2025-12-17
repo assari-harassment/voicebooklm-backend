@@ -28,7 +28,7 @@ interface GetCurrentUserUseCase {
     fun execute(command: GetCurrentUserCommand): UserInfo
 }
 
-class GetCurrentUserInteractor(
+open class GetCurrentUserInteractor(
     private val userRepository: UserRepository,
 ) : GetCurrentUserUseCase {
     /**

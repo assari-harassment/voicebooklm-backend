@@ -1,6 +1,6 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
-import com.assari.voicebooklm.domain.repository.MemoRepository
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.presentation.exception.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoInteractor
 import com.assari.voicebooklm.usecase.memo.CreateMemoCommand
@@ -34,14 +34,14 @@ import kotlin.time.Duration
 import kotlin.time.toJavaDuration
 
 /**
- * 音声アップロードを受け取り、メモ作成ユースケースを呼び出す。
+ * 音声アップロードを受け取り、メモ作成ユースケースを呼び出す
  */
 @RestController
 @RequestMapping("/api/voice")
 @Tag(name = "Voice", description = "音声入力によるメモ生成 API")
 class VoiceController(
     // ユースケースは Bean 登録せず、このレイヤーで組み立てる
-    memoRepository: MemoRepository,
+    voiceMemoRepository: VoiceMemoRepository,
     speechTranscriber: SpeechTranscriber,
     aiMemoFormatter: AiMemoFormatter,
     executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
@@ -55,7 +55,7 @@ class VoiceController(
     private val createMemoUseCase: CreateMemoUseCase =
         createMemoUseCaseOverride
             ?: CreateMemoInteractor(
-                memoRepository = memoRepository,
+                voiceMemoRepository = voiceMemoRepository,
                 speechTranscriber = speechTranscriber,
                 aiMemoFormatter = aiMemoFormatter,
                 executionTimer = executionTimer,
@@ -117,13 +117,14 @@ class VoiceController(
             Files.deleteIfExists(tempPath)
         }
 
+        val voiceMemo = result.voiceMemo
         logger.info(
             "voice memo created memoId={} userId={} totalMs={} fallbackT={} fallbackF={}",
-            result.memo.id,
+            voiceMemo.id,
             userId,
             result.processingTime.total.inWholeMilliseconds,
-            result.fallbackUsage.transcription,
-            result.fallbackUsage.formatting,
+            voiceMemo.transcription.fallbackUsed,
+            voiceMemo.formatting.fallbackUsed,
         )
         val response = CreateMemoResponse.from(result)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
@@ -176,23 +177,30 @@ class VoiceController(
 }
 
 /**
- * メモ作成レスポンス。
+ * メモ作成レスポンス
  */
 data class CreateMemoResponse(
     val memoId: UUID,
     val title: String,
     val content: String,
     val tags: List<String>,
+    val transcription: String?,
+    val transcriptionStatus: String,
+    val formattingStatus: String,
     val processingTimeMillis: ProcessingTimeResponse,
     val fallback: FallbackUsageResponse,
 ) {
     companion object {
-        fun from(result: CreateMemoResult): CreateMemoResponse =
-            CreateMemoResponse(
-                memoId = result.memo.id,
-                title = result.memo.title,
-                content = result.memo.content,
-                tags = result.memo.tags,
+        fun from(result: CreateMemoResult): CreateMemoResponse {
+            val voiceMemo = result.voiceMemo
+            return CreateMemoResponse(
+                memoId = voiceMemo.id,
+                title = voiceMemo.title ?: "",
+                content = voiceMemo.content ?: "",
+                tags = voiceMemo.tags,
+                transcription = voiceMemo.transcriptionText,
+                transcriptionStatus = voiceMemo.transcription.status.name,
+                formattingStatus = voiceMemo.formatting.status.name,
                 processingTimeMillis = ProcessingTimeResponse(
                     transcription = result.processingTime.transcription.toMillis(),
                     formatting = result.processingTime.formatting.toMillis(),
@@ -200,10 +208,11 @@ data class CreateMemoResponse(
                     total = result.processingTime.total.toMillis(),
                 ),
                 fallback = FallbackUsageResponse(
-                    transcription = result.fallbackUsage.transcription,
-                    formatting = result.fallbackUsage.formatting,
+                    transcription = voiceMemo.transcription.fallbackUsed,
+                    formatting = voiceMemo.formatting.fallbackUsed,
                 ),
             )
+        }
     }
 }
 

@@ -2,9 +2,9 @@ package com.assari.voicebooklm.presentation.controller.auth
 
 import com.assari.voicebooklm.domain.gateway.OAuthClient
 import com.assari.voicebooklm.domain.gateway.TokenProvider
-import com.assari.voicebooklm.domain.repository.MemoRepository
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.auth.DeleteAccountCommand
 import com.assari.voicebooklm.usecase.auth.DeleteAccountInteractor
 import com.assari.voicebooklm.usecase.auth.DeleteAccountUseCase
@@ -48,7 +48,7 @@ class AuthController(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val tokenProvider: TokenProvider,
-    private val memoRepository: MemoRepository,
+    private val voiceMemoRepository: VoiceMemoRepository,
 ) {
     // Auth 系ユースケースをここで明示的に生成し、外部からは Spring に依存しない形で扱う。
     // Bean 化しない代わりに、依存をコンストラクタで受けて手動 new する。
@@ -70,7 +70,7 @@ class AuthController(
     private val deleteAccountUseCase: DeleteAccountUseCase =
         DeleteAccountInteractor(
             userRepository = userRepository,
-            memoRepository = memoRepository,
+            voiceMemoRepository = voiceMemoRepository,
             refreshTokenRepository = refreshTokenRepository,
         )
     private val getCurrentUserUseCase: GetCurrentUserUseCase =

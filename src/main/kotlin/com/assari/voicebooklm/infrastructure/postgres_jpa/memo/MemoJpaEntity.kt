@@ -1,6 +1,10 @@
 package com.assari.voicebooklm.infrastructure.postgres_jpa.memo
 
-import com.assari.voicebooklm.domain.model.Memo
+import com.assari.voicebooklm.domain.model.Formatting
+import com.assari.voicebooklm.domain.model.FormattingStatus
+import com.assari.voicebooklm.domain.model.Transcription
+import com.assari.voicebooklm.domain.model.TranscriptionStatus
+import com.assari.voicebooklm.domain.model.VoiceMemo
 import jakarta.persistence.CollectionTable
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection
@@ -15,7 +19,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * memos / memo_tags の永続化エンティティ。
+ * memos / memo_tags の永続化エンティティ
  */
 @Entity
 @Table(name = "memos")
@@ -25,11 +29,17 @@ class MemoJpaEntity(
     @Column(name = "user_id", nullable = false)
     var userId: UUID = UUID.randomUUID(),
     @Column(name = "transcription_status", nullable = false)
-    var transcriptionStatus: String = "COMPLETED",
+    var transcriptionStatus: String = "PENDING",
     @Column(name = "formatting_status", nullable = false)
-    var formattingStatus: String = "COMPLETED",
+    var formattingStatus: String = "PENDING",
     @Column(name = "transcription")
     var transcription: String? = null,
+    @Column(name = "language_code")
+    var languageCode: String = "ja-JP",
+    @Column(name = "transcription_fallback_used")
+    var transcriptionFallbackUsed: Boolean = false,
+    @Column(name = "formatting_fallback_used")
+    var formattingFallbackUsed: Boolean = false,
     @Column(name = "title")
     var title: String? = null,
     @Column(name = "content")
@@ -61,28 +71,64 @@ class MemoJpaEntity(
         updatedAt = Instant.now()
     }
 
-    fun toDomain(): Memo =
-        Memo(
+    /**
+     * VoiceMemo ドメインモデルに変換
+     */
+    fun toDomain(): VoiceMemo {
+        val transcriptionDomain = when (TranscriptionStatus.valueOf(transcriptionStatus)) {
+            TranscriptionStatus.PENDING -> Transcription.pending(languageCode)
+            TranscriptionStatus.PROCESSING -> Transcription.processing(languageCode)
+            TranscriptionStatus.COMPLETED -> Transcription.completed(
+                text = transcription ?: "",
+                languageCode = languageCode,
+                fallbackUsed = transcriptionFallbackUsed,
+            )
+            TranscriptionStatus.FAILED -> Transcription.failed(languageCode)
+        }
+
+        val formattingDomain = when (FormattingStatus.valueOf(formattingStatus)) {
+            FormattingStatus.PENDING -> Formatting.pending()
+            FormattingStatus.PROCESSING -> Formatting.processing()
+            FormattingStatus.COMPLETED -> Formatting.completed(
+                title = title ?: "Untitled",
+                content = content ?: "",
+                tags = tags.toList(),
+                fallbackUsed = formattingFallbackUsed,
+            )
+            FormattingStatus.FAILED -> Formatting.failed()
+        }
+
+        return VoiceMemo.restore(
             id = id,
-            title = title ?: error("title must not be null for Memo ${id}"),
-            content = content ?: error("content must not be null for Memo ${id}"),
-            tags = tags.toList(),
             userId = userId,
+            transcription = transcriptionDomain,
+            formatting = formattingDomain,
             deleted = deleted,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
         )
+    }
 
     companion object {
-        fun fromDomain(memo: Memo, transcriptionText: String? = null): MemoJpaEntity =
+        /**
+         * VoiceMemo ドメインモデルからエンティティを作成
+         */
+        fun fromDomain(voiceMemo: VoiceMemo): MemoJpaEntity =
             MemoJpaEntity(
-                id = memo.id,
-                userId = memo.userId,
-                transcriptionStatus = "COMPLETED",
-                formattingStatus = "COMPLETED",
-                transcription = transcriptionText,
-                title = memo.title,
-                content = memo.content,
-                deleted = memo.deleted,
-                tags = memo.tags.toCollection(linkedSetOf()),
+                id = voiceMemo.id,
+                userId = voiceMemo.userId,
+                transcriptionStatus = voiceMemo.transcription.status.name,
+                formattingStatus = voiceMemo.formatting.status.name,
+                transcription = voiceMemo.transcription.text,
+                languageCode = voiceMemo.transcription.languageCode,
+                transcriptionFallbackUsed = voiceMemo.transcription.fallbackUsed,
+                formattingFallbackUsed = voiceMemo.formatting.fallbackUsed,
+                title = voiceMemo.formatting.title,
+                content = voiceMemo.formatting.content,
+                deleted = voiceMemo.deleted,
+                tags = voiceMemo.formatting.tags.toCollection(linkedSetOf()),
+                createdAt = voiceMemo.createdAt,
+                updatedAt = voiceMemo.updatedAt,
             )
     }
 }

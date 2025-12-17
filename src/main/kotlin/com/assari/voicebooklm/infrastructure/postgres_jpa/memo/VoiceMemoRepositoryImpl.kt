@@ -1,29 +1,28 @@
 package com.assari.voicebooklm.infrastructure.postgres_jpa.memo
 
-import com.assari.voicebooklm.domain.model.Memo
-import com.assari.voicebooklm.domain.repository.MemoRepository
-import java.util.UUID
-import org.springframework.data.jpa.repository.JpaRepository
+import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Repository
+import java.util.UUID
 
 /**
- * MemoRepository の JPA 実装。
+ * VoiceMemoRepository の JPA 実装
  */
 @Repository
-class MemoRepositoryImpl(
+class VoiceMemoRepositoryImpl(
     private val memoJpaRepository: MemoJpaDataRepository,
-) : MemoRepository {
+) : VoiceMemoRepository {
 
-    override suspend fun save(memo: Memo): Memo {
-        val entity = MemoJpaEntity.fromDomain(memo)
+    override suspend fun save(voiceMemo: VoiceMemo): VoiceMemo {
+        val entity = MemoJpaEntity.fromDomain(voiceMemo)
         val saved = memoJpaRepository.save(entity)
         return saved.toDomain()
     }
 
-    override suspend fun findById(id: UUID): Memo? =
+    override suspend fun findById(id: UUID): VoiceMemo? =
         memoJpaRepository.findActiveMemoById(id)?.toDomain()
 
-    override suspend fun findByUserId(userId: UUID): List<Memo> =
+    override suspend fun findByUserId(userId: UUID): List<VoiceMemo> =
         memoJpaRepository.findActiveMemosByUser(userId).map { it.toDomain() }
 
     override fun deleteByUserId(userId: UUID) {
