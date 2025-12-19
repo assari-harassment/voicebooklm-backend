@@ -125,5 +125,5 @@ INSERT INTO memo_tags (memo_id, tag) VALUES
     ('bbbbbbbb-0000-0000-0000-000000001001', 'デザイン'),
     ('bbbbbbbb-0000-0000-0000-000000001002', 'アイデア'),
     ('bbbbbbbb-0000-0000-0000-000000001002', '開発'),
-    ('bbbbbbbb-0000-0000-0000-000000001002', 'アプリ');
+    ('bbbbbbbb-0000-0000-0000-000000001002', 'アプリ')
 ON CONFLICT (memo_id, tag) DO NOTHING;
