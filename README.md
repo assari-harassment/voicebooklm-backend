@@ -8,6 +8,12 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 
 **クイックスタート:**
 ```bash
+# リポジトリをクローン（--recursive でドキュメントも取得）
+git clone --recursive https://github.com/assari-harassment/voicebooklm-backend.git
+
+# 既存のcloneでドキュメントが空の場合
+git submodule update --init
+
 # JDK 21 のインストール確認
 java -version
 
@@ -16,6 +22,14 @@ docker compose up -d
 
 # ビルド & 実行
 ./gradlew bootRun
+```
+
+### ドキュメントの更新
+
+`docs/` は voicebooklm-docs リポジトリの submodule です。最新のドキュメントを取得するには：
+
+```bash
+cd docs && git pull origin main && cd ..
 ```
 
 詳細な手順やトラブルシューティングは [GETTING_STARTED.md](GETTING_STARTED.md) をご覧ください。
