@@ -112,7 +112,8 @@ INSERT INTO memos (
         TIMESTAMPTZ '2024-11-24T21:00:00+09:00',
         TIMESTAMPTZ '2024-11-24T21:00:00+09:00',
         FALSE
-    );
+    )
+ON CONFLICT (id) DO NOTHING;
 
 -- タグを付与
 INSERT INTO memo_tags (memo_id, tag) VALUES
@@ -125,3 +126,4 @@ INSERT INTO memo_tags (memo_id, tag) VALUES
     ('bbbbbbbb-0000-0000-0000-000000001002', 'アイデア'),
     ('bbbbbbbb-0000-0000-0000-000000001002', '開発'),
     ('bbbbbbbb-0000-0000-0000-000000001002', 'アプリ');
+ON CONFLICT (memo_id, tag) DO NOTHING;
