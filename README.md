@@ -8,6 +8,12 @@ AI ボイスメモアプリケーションのバックエンド（Kotlin Spring 
 
 **クイックスタート:**
 ```bash
+# リポジトリをクローン（--recursive でドキュメントも取得）
+git clone --recursive https://github.com/assari-harassment/voicebooklm-backend.git
+
+# 既存のcloneでドキュメントが空の場合
+git submodule update --init
+
 # JDK 21 のインストール確認
 java -version
 
@@ -17,6 +23,15 @@ docker compose up -d
 # ビルド & 実行
 ./gradlew bootRun
 ```
+
+### ドキュメントの更新
+
+`docs/` は voicebooklm-docs リポジトリの submodule です。最新のドキュメントを取得するには：
+
+```bash
+git submodule update --remote
+```
+詳しくは`git submodule`で検索
 
 詳細な手順やトラブルシューティングは [GETTING_STARTED.md](GETTING_STARTED.md) をご覧ください。
 
@@ -130,3 +145,27 @@ React Native からのアクセスは自動的に許可されます：
 ## 開発ガイドライン
 
 チーム開発プロジェクトです。コーディング規約とコントリビューションガイドラインに従ってください。
+
+## Claude Code / AI アシスタント
+
+このプロジェクトは Claude Code での開発を想定しています。
+
+### セットアップ
+
+```bash
+# Serena（コード解析）を使うには uvx が必要
+pip install uv
+```
+
+### 利用可能な機能
+
+| 機能 | 説明 |
+|-----|------|
+| **Serena** | コードのシンボル解析・リファクタリング支援 |
+| **Context7** | 最新のライブラリドキュメント取得 |
+| **sequential-thinking** | 複雑な問題の思考整理 |
+| **/commit** | 日本語コミットメッセージ自動生成 |
+
+### ドキュメント参照
+
+`docs/` に仕様書・設計書があります。Claude Code は自動的にこれらを参照します。
