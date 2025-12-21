@@ -4,7 +4,6 @@ import com.assari.voicebooklm.infrastructure.api.ai.GeminiAiMemoFormatter
 import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
 import com.assari.voicebooklm.infrastructure.api.storage.GcsStorageService
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.google.api.gax.core.FixedCredentialsProvider
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.speech.v1.SpeechClient
@@ -84,7 +83,7 @@ class ExternalClientConfig {
         speechClient: SpeechClient,
         gcsStorageService: GcsStorageService,
         cloudProperties: GoogleCloudProperties,
-    ): SpeechTranscriber =
+    ): GoogleSpeechTranscriber =
         GoogleSpeechTranscriber(
             speechClient = speechClient,
             gcsStorageService = gcsStorageService,

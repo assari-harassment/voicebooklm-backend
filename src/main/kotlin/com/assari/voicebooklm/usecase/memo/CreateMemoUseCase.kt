@@ -3,8 +3,8 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
+import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
+import com.assari.voicebooklm.infrastructure.api.speech.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
@@ -31,7 +31,7 @@ class TranscriptionFailedException(
  */
 open class CreateMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
-    private val speechTranscriber: SpeechTranscriber,
+    private val speechTranscriber: GoogleSpeechTranscriber,
     private val memoFormatter: MemoFormatter,
     private val executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
     private val timeSource: TimeSource = TimeSource.Monotonic,

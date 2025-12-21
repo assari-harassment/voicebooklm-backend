@@ -1,8 +1,8 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.model.Formatting
+import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
 import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
@@ -64,7 +64,7 @@ class VoiceControllerJwtWebMvcTest {
     lateinit var voiceMemoRepository: VoiceMemoRepository
 
     @MockkBean(relaxed = true)
-    lateinit var speechTranscriber: SpeechTranscriber
+    lateinit var speechTranscriber: GoogleSpeechTranscriber
 
     @MockkBean(relaxed = true)
     lateinit var memoFormatter: MemoFormatter

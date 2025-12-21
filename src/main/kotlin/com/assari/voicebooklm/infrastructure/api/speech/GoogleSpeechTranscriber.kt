@@ -1,10 +1,8 @@
 package com.assari.voicebooklm.infrastructure.api.speech
 
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
 import com.assari.voicebooklm.infrastructure.api.storage.GcsStorageService
 import com.google.cloud.speech.v1.RecognitionAudio
+import java.util.UUID
 import com.google.cloud.speech.v1.RecognitionConfig
 import com.google.cloud.speech.v1.SpeechClient
 import kotlinx.coroutines.Dispatchers
@@ -28,11 +26,11 @@ class GoogleSpeechTranscriber(
     private val gcsStorageService: GcsStorageService,
     private val defaultLanguageCode: String = "ja-JP",
     private val timeout: Duration = 300.seconds,
-) : SpeechTranscriber {
+) {
 
     private val logger = LoggerFactory.getLogger(GoogleSpeechTranscriber::class.java)
 
-    override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
+    suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
         val languageCode = command.languageCode ?: defaultLanguageCode
 
         logger.info(
@@ -144,3 +142,21 @@ class GoogleSpeechTranscriber(
         return builder.build()
     }
 }
+
+/**
+ * 文字起こし要求
+ */
+data class SpeechTranscriptionCommand(
+    val userId: UUID,
+    val audio: ByteArray,
+    val mimeType: String,
+    val languageCode: String?,
+)
+
+/**
+ * 文字起こし結果
+ */
+data class SpeechTranscriptionResult(
+    val text: String,
+    val languageCode: String?,
+)

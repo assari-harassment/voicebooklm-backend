@@ -1,8 +1,8 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.model.Formatting
+import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
 import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
@@ -36,7 +36,7 @@ class VoiceControllerTest {
 
     private lateinit var createMemoUseCase: CreateMemoUseCase
     private lateinit var voiceMemoRepository: VoiceMemoRepository
-    private lateinit var speechTranscriber: SpeechTranscriber
+    private lateinit var speechTranscriber: GoogleSpeechTranscriber
     private lateinit var memoFormatter: MemoFormatter
     private lateinit var executionTimer: ExecutionTimer
     private lateinit var controller: VoiceController

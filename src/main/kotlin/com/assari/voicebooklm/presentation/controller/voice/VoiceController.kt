@@ -1,8 +1,8 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoInput
 import com.assari.voicebooklm.usecase.memo.CreateMemoOutput
@@ -41,7 +41,7 @@ import kotlin.time.toJavaDuration
 class VoiceController(
     // ユースケースは Bean 登録せず、このレイヤーで組み立てる
     voiceMemoRepository: VoiceMemoRepository,
-    speechTranscriber: SpeechTranscriber,
+    speechTranscriber: GoogleSpeechTranscriber,
     memoFormatter: MemoFormatter,
     executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
     // テストでユースケースの差し替えを可能にするオプション

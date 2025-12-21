@@ -3,9 +3,11 @@ package com.assari.voicebooklm.config
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
+import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
+import com.assari.voicebooklm.infrastructure.api.speech.SpeechTranscriptionCommand
+import com.assari.voicebooklm.infrastructure.api.speech.SpeechTranscriptionResult
+import io.mockk.coEvery
+import io.mockk.mockk
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -19,10 +21,10 @@ import org.springframework.context.annotation.Profile
 class ExternalClientTestConfig {
 
     @Bean
-    fun speechTranscriber(): SpeechTranscriber = object : SpeechTranscriber {
-        override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
-            // テストではアップロード内容に依存せず固定文字列を返す
-            return SpeechTranscriptionResult(
+    fun speechTranscriber(): GoogleSpeechTranscriber = mockk<GoogleSpeechTranscriber>().also { mock ->
+        coEvery { mock.transcribe(any()) } answers {
+            val command = firstArg<SpeechTranscriptionCommand>()
+            SpeechTranscriptionResult(
                 text = "stub transcription",
                 languageCode = command.languageCode,
             )

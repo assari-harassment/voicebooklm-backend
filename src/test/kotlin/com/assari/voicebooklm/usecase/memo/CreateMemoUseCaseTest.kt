@@ -3,13 +3,16 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.assari.voicebooklm.infrastructure.api.speech.GoogleSpeechTranscriber
+import com.assari.voicebooklm.infrastructure.api.speech.SpeechTranscriptionCommand
+import com.assari.voicebooklm.infrastructure.api.speech.SpeechTranscriptionResult
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.TimedResult
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.slot
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -33,7 +36,12 @@ class CreateMemoUseCaseTest {
         val transcribedText = "議事録 メモ"
         val timeSource = TestTimeSource()
 
-        val speechTranscriber = FakeSpeechTranscriber(transcribedText)
+        val commandSlot = slot<SpeechTranscriptionCommand>()
+        val speechTranscriber = mockk<GoogleSpeechTranscriber>()
+        coEvery { speechTranscriber.transcribe(capture(commandSlot)) } returns SpeechTranscriptionResult(
+            text = transcribedText,
+            languageCode = "ja-JP",
+        )
         val memoFormatter = FakeMemoFormatter(
             title = "AI が作ったタイトル",
             content = "整形済みの本文",
@@ -62,9 +70,7 @@ class CreateMemoUseCaseTest {
             ),
         )
 
-        val sentTranscriptionCommand = requireNotNull(speechTranscriber.receivedCommand) {
-            "SpeechTranscriber should receive a command"
-        }
+        val sentTranscriptionCommand = commandSlot.captured
         assertEquals("audio/wav", sentTranscriptionCommand.mimeType)
         assertEquals("ja-JP", sentTranscriptionCommand.languageCode)
         assertEquals(transcribedText, memoFormatter.receivedCommand?.transcript)
@@ -88,9 +94,15 @@ class CreateMemoUseCaseTest {
         val userId = UUID.randomUUID()
         val timeSource = TestTimeSource()
 
+        val speechTranscriber = mockk<GoogleSpeechTranscriber>()
+        coEvery { speechTranscriber.transcribe(any()) } returns SpeechTranscriptionResult(
+            text = "text",
+            languageCode = "ja-JP",
+        )
+
         val useCase = CreateMemoUseCase(
             voiceMemoRepository = FakeVoiceMemoRepository(),
-            speechTranscriber = FakeSpeechTranscriber("text"),
+            speechTranscriber = speechTranscriber,
             memoFormatter = FakeMemoFormatter(
                 title = "title",
                 content = "content",
@@ -120,9 +132,15 @@ class CreateMemoUseCaseTest {
 
     @Test
     fun `音声が空の場合は例外を返す`() = runTest {
+        val speechTranscriber = mockk<GoogleSpeechTranscriber>()
+        coEvery { speechTranscriber.transcribe(any()) } returns SpeechTranscriptionResult(
+            text = "",
+            languageCode = null,
+        )
+
         val useCase = CreateMemoUseCase(
             voiceMemoRepository = FakeVoiceMemoRepository(),
-            speechTranscriber = FakeSpeechTranscriber(""),
+            speechTranscriber = speechTranscriber,
             memoFormatter = FakeMemoFormatter(
                 title = "",
                 content = "",
@@ -142,20 +160,6 @@ class CreateMemoUseCaseTest {
                 ),
             )
         }
-    }
-}
-
-private class FakeSpeechTranscriber(
-    private val transcript: String,
-) : SpeechTranscriber {
-    var receivedCommand: SpeechTranscriptionCommand? = null
-
-    override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
-        receivedCommand = command
-        return SpeechTranscriptionResult(
-            text = transcript,
-            languageCode = command.languageCode,
-        )
     }
 }
 
