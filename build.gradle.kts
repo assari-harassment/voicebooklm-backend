@@ -82,29 +82,14 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
 }
 
-// JDK/ターゲットを21に固定（IDEやプラグインが1.8等に落とさないため）
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
 kotlin {
+    jvmToolchain(21)
     compilerOptions {
         freeCompilerArgs.add("-Xjsr305=strict")
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
-    jvmToolchain(21)
 }
 
-// Kotlinコンパイルもタスク単位で21に固定（IDEデフォルト上書き防止）
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = JavaVersion.VERSION_21.toString()
-}
-
-tasks.withType<Test> {
+tasks.test {
     useJUnitPlatform {
         excludeTags("integration")
     }
