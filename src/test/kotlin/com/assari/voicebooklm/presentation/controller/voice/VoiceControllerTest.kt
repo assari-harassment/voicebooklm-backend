@@ -54,7 +54,7 @@ class VoiceControllerTest {
             byteArrayOf(1, 2, 3),
         )
 
-        val response: ResponseEntity<CreateMemoResponse> = controller.createMemo(
+        val response: ResponseEntity<VoiceMemoCreatedResponse> = controller.createMemo(
             authentication = UsernamePasswordAuthenticationToken(userId.toString(), "pw"),
             file = file,
             language = "ja-JP",

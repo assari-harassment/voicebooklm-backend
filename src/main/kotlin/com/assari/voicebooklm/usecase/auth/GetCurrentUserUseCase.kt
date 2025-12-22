@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.repository.UserRepository
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -18,11 +20,11 @@ open class GetCurrentUserUseCase(
      *
      * @param input 現在のユーザー取得Input（ユーザー ID）
      * @return ユーザー情報
-     * @throws UserNotFoundException ユーザーが見つからない場合
+     * @throws DomainException ユーザーが見つからない場合
      */
     open fun execute(input: GetCurrentUserInput): GetCurrentUserOutput {
         val user = userRepository.findById(input.userId)
-            ?: throw UserNotFoundException("ユーザーが見つかりません")
+            ?: throw DomainException(ErrorCode.USER_NOT_FOUND)
 
         return GetCurrentUserOutput(
             id = user.id,

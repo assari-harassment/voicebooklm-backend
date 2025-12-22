@@ -1,10 +1,7 @@
 package com.assari.voicebooklm.presentation.controller
 
+import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
-import com.assari.voicebooklm.usecase.auth.InvalidIdTokenException
-import com.assari.voicebooklm.usecase.auth.InvalidRefreshTokenException
-import com.assari.voicebooklm.usecase.auth.UserNotFoundException
-import com.assari.voicebooklm.usecase.memo.TranscriptionFailedException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -25,45 +22,16 @@ class GlobalExceptionHandler {
     private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
     /**
-     * ID トークン検証失敗（OAuth プロバイダー共通）
-     * InvalidGoogleTokenException も InvalidIdTokenException のサブクラスとしてキャッチされる
+     * ドメイン例外（すべてのビジネスエラーを統一的に処理）
      */
-    @ExceptionHandler(InvalidIdTokenException::class)
-    fun handleInvalidIdToken(e: InvalidIdTokenException): ResponseEntity<ErrorResponse> {
-        logger.warn("ID token validation failed: ${e.message}")
+    @ExceptionHandler(DomainException::class)
+    fun handleDomainException(e: DomainException): ResponseEntity<ErrorResponse> {
+        logger.warn("Domain error: code={} message={}", e.code, e.message)
         return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
+            .status(e.code.httpStatus)
             .body(ErrorResponse(
-                error = e.message ?: "ID トークンの検証に失敗しました",
-                code = "INVALID_ID_TOKEN"
-            ))
-    }
-
-    /**
-     * リフレッシュトークン無効
-     */
-    @ExceptionHandler(InvalidRefreshTokenException::class)
-    fun handleInvalidRefreshToken(e: InvalidRefreshTokenException): ResponseEntity<ErrorResponse> {
-        logger.warn("Refresh token validation failed: ${e.message}")
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ErrorResponse(
-                error = e.message ?: "リフレッシュトークンが無効または期限切れです",
-                code = "INVALID_REFRESH_TOKEN"
-            ))
-    }
-
-    /**
-     * ユーザーが見つからない
-     */
-    @ExceptionHandler(UserNotFoundException::class)
-    fun handleUserNotFound(e: UserNotFoundException): ResponseEntity<ErrorResponse> {
-        logger.warn("User not found: ${e.message}")
-        return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(ErrorResponse(
-                error = e.message ?: "ユーザーが見つかりません",
-                code = "USER_NOT_FOUND"
+                error = e.message,
+                code = e.code.name
             ))
     }
 
@@ -78,20 +46,6 @@ class GlobalExceptionHandler {
             .body(ErrorResponse(
                 error = "認証情報がありません",
                 code = "UNAUTHORIZED"
-            ))
-    }
-
-    /**
-     * 文字起こし失敗
-     */
-    @ExceptionHandler(TranscriptionFailedException::class)
-    fun handleTranscriptionFailed(e: TranscriptionFailedException): ResponseEntity<ErrorResponse> {
-        logger.warn("Transcription failed: ${e.message}")
-        return ResponseEntity
-            .status(HttpStatus.UNPROCESSABLE_ENTITY)
-            .body(ErrorResponse(
-                error = e.message ?: "音声の文字起こしに失敗しました",
-                code = "TRANSCRIPTION_FAILED"
             ))
     }
 

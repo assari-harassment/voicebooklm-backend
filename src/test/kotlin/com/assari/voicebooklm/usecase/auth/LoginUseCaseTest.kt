@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.OAuthClient
 import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.model.OAuthUserInfo
@@ -124,13 +126,13 @@ class LoginUseCaseTest {
         coEvery { oAuthClient.verifyIdTokenAndGetUserInfo(invalidIdToken) } returns null
 
         // When & Then
-        val exception = assertThrows(InvalidIdTokenException::class.java) {
+        val exception = assertThrows(DomainException::class.java) {
             kotlinx.coroutines.runBlocking {
                 loginUseCase.execute(LoginInput(invalidIdToken))
             }
         }
 
-        assertEquals("ID トークンの検証に失敗しました", exception.message)
+        assertEquals(ErrorCode.INVALID_ID_TOKEN, exception.code)
     }
 
     @Test
@@ -168,15 +170,5 @@ class LoginUseCaseTest {
         assertEquals("refresh-token", savedToken.token)
         assertEquals(existingUser.id, savedToken.userId)
         assertFalse(savedToken.revoked)
-    }
-
-    @Test
-    fun `InvalidGoogleTokenException should be subtype of InvalidIdTokenException for backward compatibility`() {
-        // Given
-        val exception = InvalidGoogleTokenException("test message")
-
-        // Then
-        assertTrue(exception is InvalidIdTokenException)
-        assertEquals("test message", exception.message)
     }
 }

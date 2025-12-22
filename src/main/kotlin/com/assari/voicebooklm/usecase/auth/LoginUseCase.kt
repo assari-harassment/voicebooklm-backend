@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.OAuthClient
 import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.model.RefreshToken
@@ -11,16 +13,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
-
-/**
- * ID トークン検証失敗例外
- */
-open class InvalidIdTokenException(message: String) : RuntimeException(message)
-
-/**
- * Google ID トークン検証失敗例外（後方互換性のため維持）
- */
-class InvalidGoogleTokenException(message: String) : InvalidIdTokenException(message)
 
 /**
  * ログインユースケース
@@ -42,13 +34,13 @@ open class LoginUseCase(
      *
      * @param input ログインInput（ID トークン）
      * @return ログインOutput（アクセストークン、リフレッシュトークン、ユーザー ID）
-     * @throws InvalidIdTokenException ID トークンの検証に失敗した場合
+     * @throws DomainException ID トークンの検証に失敗した場合
      */
     @Transactional
     open suspend fun execute(input: LoginInput): LoginOutput {
         // ID トークンを検証してユーザー情報を取得
         val oAuthUserInfo = oAuthClient.verifyIdTokenAndGetUserInfo(input.idToken)
-            ?: throw InvalidIdTokenException("ID トークンの検証に失敗しました")
+            ?: throw DomainException(ErrorCode.INVALID_ID_TOKEN)
 
         // ユーザーを取得または作成
         val user = userRepository.findByGoogleSub(oAuthUserInfo.providerId)

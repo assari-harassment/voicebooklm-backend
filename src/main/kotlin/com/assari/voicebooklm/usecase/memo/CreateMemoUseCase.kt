@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.memo
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
@@ -15,14 +17,6 @@ import kotlin.time.TimeSource
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-
-/**
- * 文字起こし失敗時の例外
- */
-class TranscriptionFailedException(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
 
 /**
  * 音声文字起こしと AI 整形を経て VoiceMemo を生成するユースケース
@@ -70,7 +64,7 @@ open class CreateMemoUseCase(
                 // 失敗状態で保存して例外をスロー
                 voiceMemo = voiceMemo.failTranscription()
                 voiceMemoRepository.save(voiceMemo)
-                throw TranscriptionFailedException("文字起こしに失敗しました", ex)
+                throw DomainException(ErrorCode.TRANSCRIPTION_FAILED, "文字起こしに失敗しました", ex)
             }
         }
 
@@ -79,7 +73,7 @@ open class CreateMemoUseCase(
             logger.warn("Speech transcription returned empty result")
             voiceMemo = voiceMemo.failTranscription()
             voiceMemoRepository.save(voiceMemo)
-            throw TranscriptionFailedException("文字起こし結果が空でした。音声が認識できなかった可能性があります。")
+            throw DomainException(ErrorCode.TRANSCRIPTION_FAILED, "文字起こし結果が空でした。音声が認識できなかった可能性があります。")
         }
 
         voiceMemo = voiceMemo.completeTranscription(

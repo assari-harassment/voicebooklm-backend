@@ -1,16 +1,13 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
-
-/**
- * ユーザーが見つからない例外
- */
-class UserNotFoundException(message: String) : RuntimeException(message)
 
 /**
  * アカウント削除ユースケース
@@ -28,13 +25,13 @@ open class DeleteAccountUseCase(
      * アカウントを削除する
      *
      * @param input アカウント削除Input（ユーザー ID）
-     * @throws UserNotFoundException ユーザーが見つからない場合
+     * @throws DomainException ユーザーが見つからない場合
      */
     @Transactional
     open fun execute(input: DeleteAccountInput) {
         // ユーザーが存在するか確認
         userRepository.findById(input.userId)
-            ?: throw UserNotFoundException("ユーザーが見つかりません")
+            ?: throw DomainException(ErrorCode.USER_NOT_FOUND)
 
         // 参照整合性を維持するため、順番に削除
         // 1. VoiceMemo を削除
