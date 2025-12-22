@@ -1,8 +1,6 @@
 package com.assari.voicebooklm.presentation.controller
 
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
-import com.assari.voicebooklm.usecase.auth.InvalidIdTokenException
-import com.assari.voicebooklm.usecase.auth.InvalidRefreshTokenException
 import com.assari.voicebooklm.usecase.auth.UserNotFoundException
 import com.assari.voicebooklm.usecase.memo.TranscriptionFailedException
 import org.slf4j.LoggerFactory
@@ -18,40 +16,14 @@ import org.springframework.web.server.ResponseStatusException
  * グローバル例外ハンドラ
  *
  * アプリケーション全体のエラーをキャッチし、統一されたエラーレスポンスを返す。
+ *
+ * 注: Firebase 完全移行により、ID トークン検証とリフレッシュトークン関連の
+ * 例外ハンドラは削除されました。認証エラーは Firebase SDK 側で処理されます。
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
     private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
-
-    /**
-     * ID トークン検証失敗（OAuth プロバイダー共通）
-     * InvalidGoogleTokenException も InvalidIdTokenException のサブクラスとしてキャッチされる
-     */
-    @ExceptionHandler(InvalidIdTokenException::class)
-    fun handleInvalidIdToken(e: InvalidIdTokenException): ResponseEntity<ErrorResponse> {
-        logger.warn("ID token validation failed: ${e.message}")
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ErrorResponse(
-                error = e.message ?: "ID トークンの検証に失敗しました",
-                code = "INVALID_ID_TOKEN"
-            ))
-    }
-
-    /**
-     * リフレッシュトークン無効
-     */
-    @ExceptionHandler(InvalidRefreshTokenException::class)
-    fun handleInvalidRefreshToken(e: InvalidRefreshTokenException): ResponseEntity<ErrorResponse> {
-        logger.warn("Refresh token validation failed: ${e.message}")
-        return ResponseEntity
-            .status(HttpStatus.UNAUTHORIZED)
-            .body(ErrorResponse(
-                error = e.message ?: "リフレッシュトークンが無効または期限切れです",
-                code = "INVALID_REFRESH_TOKEN"
-            ))
-    }
 
     /**
      * ユーザーが見つからない

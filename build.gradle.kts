@@ -50,6 +50,9 @@ dependencies {
     // Google Cloud Storage（音声ファイル一時保存）
     implementation("com.google.cloud:google-cloud-storage:2.45.0")
 
+    // Firebase Admin SDK（Firebase ID Token 検証）
+    implementation("com.google.firebase:firebase-admin:9.4.3")
+
     // UUID v7 生成（タイムオーダー UUID）
     implementation("com.github.f4b6a3:uuid-creator:6.1.1")
 
