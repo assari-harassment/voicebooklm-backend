@@ -4,18 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.util.UUID
 
 /**
- * トークンレスポンス
- */
-@Schema(description = "認証トークンレスポンス")
-data class TokenResponse(
-    @Schema(description = "アクセストークン（1日有効）", example = "eyJhbGciOiJIUzI1NiIsInR")
-    val accessToken: String,
-
-    @Schema(description = "リフレッシュトークン（180日間有効）", example = "eyJhbGciOiJIUzI1NiIsInR")
-    val refreshToken: String
-)
-
-/**
  * ユーザー情報レスポンス
  */
 @Schema(description = "ユーザー情報レスポンス")

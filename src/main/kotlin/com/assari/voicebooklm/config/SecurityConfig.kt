@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.config
 
 import com.assari.voicebooklm.infrastructure.ratelimit.RateLimitFilter
-import com.assari.voicebooklm.infrastructure.security.JwtAuthenticationFilter
+import com.assari.voicebooklm.infrastructure.security.FirebaseAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -15,7 +15,7 @@ import org.springframework.web.cors.CorsConfigurationSource
 
 /**
  * セキュリティ設定
- * - JWTトークン認証
+ * - Firebase ID Token 認証
  * - レート制限
  */
 
@@ -23,7 +23,7 @@ import org.springframework.web.cors.CorsConfigurationSource
 @EnableWebSecurity
 class SecurityConfig(
     private val corsConfigurationSource: CorsConfigurationSource,
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val firebaseAuthenticationFilter: FirebaseAuthenticationFilter,
     private val rateLimitFilter: RateLimitFilter
 ) {
 
@@ -40,7 +40,6 @@ class SecurityConfig(
                     .requestMatchers(
                         "/actuator/health",
                         "/actuator/info",
-                        "/api/auth/**", // 認証エンドポイント（ログイン、リフレッシュ、ログアウト）
                         "/swagger-ui.html", // Swagger UI
                         "/swagger-ui/**", // Swagger UI リソース
                         "/v3/api-docs/**", // OpenAPI 仕様
@@ -52,7 +51,7 @@ class SecurityConfig(
                     .authenticated()
             }
             .sessionManagement { session ->
-                // JWT 使用のためステートレスに設定
+                // ステートレスに設定（Firebase ID Token 使用のため）
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
             // レート制限フィルターを追加（認証フィルターの前）
@@ -60,9 +59,9 @@ class SecurityConfig(
                 rateLimitFilter,
                 UsernamePasswordAuthenticationFilter::class.java,
             )
-            // JWT 認証フィルターを追加
+            // Firebase 認証フィルターを追加
             .addFilterBefore(
-                jwtAuthenticationFilter,
+                firebaseAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter::class.java,
             )
 
