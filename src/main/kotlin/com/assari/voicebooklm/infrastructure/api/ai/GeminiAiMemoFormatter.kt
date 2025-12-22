@@ -80,26 +80,20 @@ data class GeminiRequest(
     val contents: List<Content>,
 ) {
     companion object {
-        fun fromTranscript(transcript: String): GeminiRequest =
-            GeminiRequest(
-                contents = listOf(
-                    Content(
-                        parts = listOf(
-                            Part(
-                                text = """
-                                    次の文字起こしを要約し、Markdown のメモを生成してください。
-                                    - 50 文字以内のタイトル
-                                    - Markdown本文
-                                    - 2-4 個の英単語タグ
+        fun fromTranscript(transcript: String): GeminiRequest {
+            val prompt = """
+                次の文字起こしを要約し、Markdown のメモを生成してください。
+                - 30 文字以内のタイトル
+                - 文字起こしを構造化したMarkdown本文
+                - 2-4 個の日本語単語タグ
 
-                                    Transcript:
-                                    $transcript
-                                """.trimIndent(),
-                            ),
-                        ),
-                    ),
-                ),
-            )
+                Transcript:
+                $transcript
+            """.trimIndent()
+            val part = Part(text = prompt)
+            val content = Content(parts = listOf(part))
+            return GeminiRequest(contents = listOf(content))
+        }
     }
 }
 
