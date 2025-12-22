@@ -1,6 +1,5 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
@@ -26,13 +25,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api")
 @Tag(name = "Memo", description = "メモ一覧 API")
 class MemoController(
-    voiceMemoRepository: VoiceMemoRepository,
-    listMemosUseCaseOverride: ListMemosUseCase? = null,
+    private val listMemosUseCase: ListMemosUseCase,
 ) {
-    // テストでは override を受け取り、通常はここでユースケースを生成する。
-    private val listMemosUseCase: ListMemosUseCase =
-        listMemosUseCaseOverride ?: ListMemosUseCase(voiceMemoRepository)
-
     @GetMapping("/memos")
     @Operation(
         summary = "メモ一覧取得",
@@ -71,7 +65,7 @@ data class ListMemosResponse(
             val memos = result.memos.map { memo ->
                 MemoListItemResponse(
                     memoId = memo.id,
-                    // 整形未完了のメモは null を返し、未整形と空文字を区別する
+                    // タイトルは整形未完了のメモは null を返し、未整形と空文字を区別する
                     title = memo.title,
                     tags = memo.tags,
                     transcriptionStatus = memo.transcription.status.name,

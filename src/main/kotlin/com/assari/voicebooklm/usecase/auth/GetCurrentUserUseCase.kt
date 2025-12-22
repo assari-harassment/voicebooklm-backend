@@ -1,6 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
 import com.assari.voicebooklm.domain.repository.UserRepository
+import org.springframework.stereotype.Service
 import java.util.UUID
 
 /**
@@ -8,6 +9,7 @@ import java.util.UUID
  *
  * JWT トークンから取得したユーザー ID でユーザー情報を取得する。
  */
+@Service
 open class GetCurrentUserUseCase(
     private val userRepository: UserRepository,
 ) {

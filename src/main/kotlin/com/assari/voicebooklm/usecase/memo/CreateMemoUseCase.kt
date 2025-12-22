@@ -13,6 +13,7 @@ import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
@@ -29,6 +30,7 @@ class TranscriptionFailedException(
  * 文字起こしが失敗した場合は例外をスローし、AI整形は実行しない。
  * AI整形が失敗した場合のみフォールバックで進行する。
  */
+@Service
 open class CreateMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
     private val speechTranscriber: SpeechTranscriber,

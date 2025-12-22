@@ -3,6 +3,7 @@ package com.assari.voicebooklm.usecase.auth
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
@@ -17,6 +18,7 @@ class UserNotFoundException(message: String) : RuntimeException(message)
  * ユーザーのすべてのデータを物理削除する。
  * 削除順序: VoiceMemo → リフレッシュトークン → ユーザー（参照整合性を維持）
  */
+@Service
 open class DeleteAccountUseCase(
     private val userRepository: UserRepository,
     private val voiceMemoRepository: VoiceMemoRepository,

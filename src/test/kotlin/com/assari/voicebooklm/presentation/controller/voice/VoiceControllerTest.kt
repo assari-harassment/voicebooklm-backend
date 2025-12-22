@@ -1,16 +1,12 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
-import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.model.Formatting
 import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.memo.CreateMemoInput
 import com.assari.voicebooklm.usecase.memo.CreateMemoOutput
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ProcessingTime
-import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -35,26 +31,13 @@ import org.springframework.web.server.ResponseStatusException
 class VoiceControllerTest {
 
     private lateinit var createMemoUseCase: CreateMemoUseCase
-    private lateinit var voiceMemoRepository: VoiceMemoRepository
-    private lateinit var speechTranscriber: SpeechTranscriber
-    private lateinit var memoFormatter: MemoFormatter
-    private lateinit var executionTimer: ExecutionTimer
     private lateinit var controller: VoiceController
 
     @BeforeEach
     fun setup() {
         createMemoUseCase = mockk()
-        voiceMemoRepository = mockk(relaxed = true)
-        speechTranscriber = mockk(relaxed = true)
-        memoFormatter = mockk(relaxed = true)
-        executionTimer = mockk(relaxed = true)
-        // テストではユースケース生成を差し替えるため、Compose 済みのモックを渡す
         controller = VoiceController(
-            voiceMemoRepository = voiceMemoRepository,
-            speechTranscriber = speechTranscriber,
-            memoFormatter = memoFormatter,
-            executionTimer = executionTimer,
-            createMemoUseCaseOverride = createMemoUseCase,
+            createMemoUseCase = createMemoUseCase,
         )
     }
 

@@ -5,6 +5,7 @@ import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.github.f4b6a3.uuid.UuidCreator
+import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
@@ -20,6 +21,7 @@ class InvalidRefreshTokenException(message: String) : RuntimeException(message)
  * リフレッシュトークンローテーションを実装。
  * 旧トークンを無効化し、新しいトークンペアを発行する。
  */
+@Service
 open class RefreshTokenUseCase(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,

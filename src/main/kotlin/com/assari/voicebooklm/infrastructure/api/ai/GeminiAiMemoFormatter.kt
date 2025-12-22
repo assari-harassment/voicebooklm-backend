@@ -1,12 +1,15 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
+import com.assari.voicebooklm.config.GeminiProperties
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import java.time.Duration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
+import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
@@ -17,12 +20,15 @@ import reactor.netty.http.client.HttpClient
  * Gemini（Flash）を用いてメモを整形するクライアント実装。
  * 失敗時はフォールバックとしてプレーンなメモを生成する。
  */
+@Component
+@Profile("!test")
 class GeminiAiMemoFormatter(
-    private val apiKey: String,
-    private val model: String = "gemini-2.0-flash",
-    private val timeout: Duration = Duration.ofSeconds(60),
-    baseUrl: String = "https://generativelanguage.googleapis.com",
+    geminiProperties: GeminiProperties,
 ) : MemoFormatter {
+    private val apiKey: String = geminiProperties.apiKey
+    private val model: String = geminiProperties.model
+    private val timeout: Duration = Duration.ofSeconds(geminiProperties.timeoutSeconds)
+    private val baseUrl: String = geminiProperties.baseUrl
 
     // WebClient を Bean にせず、必要なタイムアウト付きでここに閉じ込める
     private val client = WebClient.builder()
