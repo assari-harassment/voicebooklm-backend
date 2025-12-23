@@ -26,11 +26,12 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api")
 @Tag(name = "Memo", description = "メモ一覧 API")
 class MemoController(
-    // ユースケースは Bean 登録せず、このレイヤーで組み立てる
     voiceMemoRepository: VoiceMemoRepository,
+    listMemosUseCaseOverride: ListMemosUseCase? = null,
 ) {
-    // Bean 化しないことでユースケースをフレームワーク非依存に保つ
-    private val listMemosUseCase = ListMemosUseCase(voiceMemoRepository)
+    // テストでは override を受け取り、通常はここでユースケースを生成する。
+    private val listMemosUseCase: ListMemosUseCase =
+        listMemosUseCaseOverride ?: ListMemosUseCase(voiceMemoRepository)
 
     @GetMapping("/memos")
     @Operation(
@@ -62,16 +63,16 @@ class MemoController(
  * メモ一覧レスポンス
  */
 data class ListMemosResponse(
-    val memos: List<MemoSummaryResponse>,
+    val memos: List<MemoListItemResponse>,
 ) {
     companion object {
         fun from(result: ListMemosOutput): ListMemosResponse {
             // 検索未対応のため、一覧取得結果をそのまま詰める
             val memos = result.memos.map { memo ->
-                MemoSummaryResponse(
+                MemoListItemResponse(
                     memoId = memo.id,
-                    title = memo.title ?: "",
-                    content = memo.content ?: "",
+                    // 整形未完了のメモは null を返し、未整形と空文字を区別する
+                    title = memo.title,
                     tags = memo.tags,
                     transcriptionStatus = memo.transcription.status.name,
                     formattingStatus = memo.formatting.status.name,
@@ -87,10 +88,9 @@ data class ListMemosResponse(
 /**
  * メモ一覧の要素
  */
-data class MemoSummaryResponse(
+data class MemoListItemResponse(
     val memoId: UUID,
-    val title: String,
-    val content: String,
+    val title: String?,
     val tags: List<String>,
     val transcriptionStatus: String,
     val formattingStatus: String,

@@ -3,11 +3,13 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import java.util.UUID
+import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
  * ユーザーのメモ一覧を取得するユースケース
  */
+@Service
 open class ListMemosUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
 ) {
