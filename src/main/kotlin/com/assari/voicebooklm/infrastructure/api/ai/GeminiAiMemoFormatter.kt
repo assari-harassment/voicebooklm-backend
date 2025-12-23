@@ -1,12 +1,15 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
+import com.assari.voicebooklm.config.GeminiProperties
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import java.time.Duration
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
+import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
@@ -17,12 +20,15 @@ import reactor.netty.http.client.HttpClient
  * Gemini（Flash）を用いてメモを整形するクライアント実装。
  * 失敗時はフォールバックとしてプレーンなメモを生成する。
  */
+@Component
+@Profile("!test")
 class GeminiAiMemoFormatter(
-    private val apiKey: String,
-    private val model: String = "gemini-2.0-flash",
-    private val timeout: Duration = Duration.ofSeconds(60),
-    baseUrl: String = "https://generativelanguage.googleapis.com",
+    geminiProperties: GeminiProperties,
 ) : MemoFormatter {
+    private val apiKey: String = geminiProperties.apiKey
+    private val model: String = geminiProperties.model
+    private val timeout: Duration = Duration.ofSeconds(geminiProperties.timeoutSeconds)
+    private val baseUrl: String = geminiProperties.baseUrl
 
     // WebClient を Bean にせず、必要なタイムアウト付きでここに閉じ込める
     private val client = WebClient.builder()
@@ -74,26 +80,20 @@ data class GeminiRequest(
     val contents: List<Content>,
 ) {
     companion object {
-        fun fromTranscript(transcript: String): GeminiRequest =
-            GeminiRequest(
-                contents = listOf(
-                    Content(
-                        parts = listOf(
-                            Part(
-                                text = """
-                                    次の文字起こしを要約し、Markdown のメモを生成してください。
-                                    - 50 文字以内のタイトル
-                                    - Markdown本文
-                                    - 2-4 個の英単語タグ
+        fun fromTranscript(transcript: String): GeminiRequest {
+            val prompt = """
+                次の文字起こしを要約し、Markdown のメモを生成してください。
+                - 30 文字以内のタイトル
+                - 文字起こしを構造化したMarkdown本文
+                - 2-4 個の日本語単語タグ
 
-                                    Transcript:
-                                    $transcript
-                                """.trimIndent(),
-                            ),
-                        ),
-                    ),
-                ),
-            )
+                Transcript:
+                $transcript
+            """.trimIndent()
+            val part = Part(text = prompt)
+            val content = Content(parts = listOf(part))
+            return GeminiRequest(contents = listOf(content))
+        }
     }
 }
 

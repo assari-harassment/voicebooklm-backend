@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.User
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
@@ -69,11 +71,11 @@ class DeleteAccountUseCaseTest {
         every { userRepository.findById(userId) } returns null
 
         // When & Then
-        val exception = assertThrows(UserNotFoundException::class.java) {
+        val exception = assertThrows(DomainException::class.java) {
             deleteAccountUseCase.execute(DeleteAccountInput(userId))
         }
 
-        assertEquals("ユーザーが見つかりません", exception.message)
+        assertEquals(ErrorCode.USER_NOT_FOUND, exception.code)
 
         verify(exactly = 0) { voiceMemoRepository.deleteByUserId(any()) }
         verify(exactly = 0) { refreshTokenRepository.deleteByUserId(any()) }

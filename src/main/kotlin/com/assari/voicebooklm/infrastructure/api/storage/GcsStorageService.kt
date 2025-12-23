@@ -1,11 +1,14 @@
 package com.assari.voicebooklm.infrastructure.api.storage
 
+import com.assari.voicebooklm.config.GoogleCloudProperties
 import com.google.cloud.storage.BlobId
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
+import org.springframework.stereotype.Component
 import java.util.UUID
 
 /**
@@ -14,10 +17,13 @@ import java.util.UUID
  * 音声ファイルを GCS にアップロードし、Speech-to-Text API で利用可能な
  * gs:// URI を返す。処理完了後は削除することを想定。
  */
+@Component
+@Profile("!test")
 class GcsStorageService(
     private val storage: Storage,
-    private val bucketName: String,
+    cloudProperties: GoogleCloudProperties,
 ) {
+    private val bucketName: String = cloudProperties.storage.bucketName
     private val logger = LoggerFactory.getLogger(GcsStorageService::class.java)
 
     companion object {

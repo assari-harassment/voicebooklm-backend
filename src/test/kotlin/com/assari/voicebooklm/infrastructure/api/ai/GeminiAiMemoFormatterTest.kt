@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.infrastructure.api.ai
 
+import com.assari.voicebooklm.config.GeminiProperties
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
-import java.time.Duration
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.MockResponse
@@ -21,6 +21,18 @@ class GeminiAiMemoFormatterTest {
     fun tearDown() {
         server.shutdown()
     }
+
+    private fun createGeminiProperties(
+        apiKey: String = "dummy",
+        model: String = "gemini-2.0-flash",
+        timeoutSeconds: Long = 5,
+        baseUrl: String,
+    ): GeminiProperties = GeminiProperties(
+        apiKey = apiKey,
+        model = model,
+        timeoutSeconds = timeoutSeconds,
+        baseUrl = baseUrl,
+    )
 
     @Test
     fun `200 応答で生成結果を返す`() {
@@ -46,10 +58,9 @@ class GeminiAiMemoFormatterTest {
         server.start()
 
         val formatter = GeminiAiMemoFormatter(
-            apiKey = "dummy",
-            model = "gemini-2.0-flash",
-            timeout = Duration.ofSeconds(5),
-            baseUrl = server.url("/").toString().removeSuffix("/"),
+            geminiProperties = createGeminiProperties(
+                baseUrl = server.url("/").toString().removeSuffix("/"),
+            ),
         )
 
         val draft = runBlocking {
@@ -77,9 +88,10 @@ class GeminiAiMemoFormatterTest {
         server.start()
 
         val formatter = GeminiAiMemoFormatter(
-            apiKey = "dummy",
-            timeout = Duration.ofSeconds(1),
-            baseUrl = server.url("/").toString().removeSuffix("/"),
+            geminiProperties = createGeminiProperties(
+                timeoutSeconds = 1,
+                baseUrl = server.url("/").toString().removeSuffix("/"),
+            ),
         )
 
         val transcript = "議事録 テスト"
@@ -108,10 +120,12 @@ class GeminiAiMemoFormatterTest {
         )
         server.start()
 
+        // timeoutSeconds は Long（秒単位）なので、200ms は 1 秒未満として設定
         val formatter = GeminiAiMemoFormatter(
-            apiKey = "dummy",
-            timeout = Duration.ofMillis(200),
-            baseUrl = server.url("/").toString().removeSuffix("/"),
+            geminiProperties = createGeminiProperties(
+                timeoutSeconds = 1, // 最小1秒（元は200msだったがtimeoutSecondsはLongなので）
+                baseUrl = server.url("/").toString().removeSuffix("/"),
+            ),
         )
 
         val draft = runBlocking {

@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.infrastructure.api.speech
 
+import com.assari.voicebooklm.config.GoogleCloudProperties
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
@@ -12,6 +13,8 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
+import org.springframework.stereotype.Component
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
@@ -23,12 +26,15 @@ import kotlin.time.Duration.Companion.seconds
  * 音声ファイルを GCS にアップロードし、非同期の LongRunningRecognize API で
  * 文字起こしを行う。最大480分（8時間）の音声に対応。
  */
+@Component
+@Profile("!test")
 class GoogleSpeechTranscriber(
     private val speechClient: SpeechClient,
     private val gcsStorageService: GcsStorageService,
-    private val defaultLanguageCode: String = "ja-JP",
-    private val timeout: Duration = 300.seconds,
+    cloudProperties: GoogleCloudProperties,
 ) : SpeechTranscriber {
+    private val defaultLanguageCode: String = cloudProperties.speech.defaultLanguage
+    private val timeout: Duration = cloudProperties.speech.timeoutSeconds.seconds
 
     private val logger = LoggerFactory.getLogger(GoogleSpeechTranscriber::class.java)
 

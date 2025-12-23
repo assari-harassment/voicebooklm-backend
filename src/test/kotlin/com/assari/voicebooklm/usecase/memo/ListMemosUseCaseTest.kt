@@ -20,7 +20,7 @@ class ListMemosUseCaseTest {
         val memo2 = VoiceMemo.create(userId = userId)
         val otherMemo = VoiceMemo.create(userId = otherUserId)
 
-        val voiceMemoRepository = FakeVoiceMemoRepository(
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, otherMemo),
         )
         val useCase = ListMemosUseCase(voiceMemoRepository)
@@ -32,7 +32,7 @@ class ListMemosUseCaseTest {
 
     @Test
     fun `メモが0件の場合は空の一覧を返す`() = runTest {
-        val useCase = ListMemosUseCase(FakeVoiceMemoRepository())
+        val useCase = ListMemosUseCase(InMemoryVoiceMemoRepository())
 
         val result = useCase.execute(ListMemosInput(userId = UUID.randomUUID()))
 
@@ -41,7 +41,7 @@ class ListMemosUseCaseTest {
 }
 
 // インメモリで動作する VoiceMemoRepository のテストダブル。
-private class FakeVoiceMemoRepository(
+private class InMemoryVoiceMemoRepository(
     initialMemos: List<VoiceMemo> = emptyList(),
 ) : VoiceMemoRepository {
     private val memos = initialMemos.toMutableList()

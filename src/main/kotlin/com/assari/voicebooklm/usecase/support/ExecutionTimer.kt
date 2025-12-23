@@ -2,6 +2,7 @@ package com.assari.voicebooklm.usecase.support
 
 import kotlin.time.Duration
 import kotlin.time.TimeSource
+import org.springframework.stereotype.Component
 
 /**
  * 処理の経過時間を計測するポート。
@@ -21,6 +22,7 @@ data class TimedResult<T>(
 /**
  * モノトニック時計を利用した標準計測器。
  */
+@Component
 class MonotonicExecutionTimer(
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) : ExecutionTimer {

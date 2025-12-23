@@ -1,7 +1,6 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
@@ -22,16 +21,13 @@ import org.springframework.http.HttpStatus
 class MemoControllerTest {
 
     private lateinit var listMemosUseCase: ListMemosUseCase
-    private lateinit var voiceMemoRepository: VoiceMemoRepository
     private lateinit var controller: MemoController
 
     @BeforeEach
     fun setup() {
         listMemosUseCase = mockk()
-        voiceMemoRepository = mockk(relaxed = true)
         controller = MemoController(
-            voiceMemoRepository = voiceMemoRepository,
-            listMemosUseCaseOverride = listMemosUseCase,
+            listMemosUseCase = listMemosUseCase,
         )
     }
 

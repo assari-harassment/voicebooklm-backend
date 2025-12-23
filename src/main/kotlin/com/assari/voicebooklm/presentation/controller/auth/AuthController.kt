@@ -1,10 +1,5 @@
 package com.assari.voicebooklm.presentation.controller.auth
 
-import com.assari.voicebooklm.domain.gateway.OAuthClient
-import com.assari.voicebooklm.domain.gateway.TokenProvider
-import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
-import com.assari.voicebooklm.domain.repository.UserRepository
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.auth.DeleteAccountInput
 import com.assari.voicebooklm.usecase.auth.DeleteAccountUseCase
 import com.assari.voicebooklm.usecase.auth.GetCurrentUserInput
@@ -37,36 +32,12 @@ import java.util.UUID
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "認証関連 API")
 class AuthController(
-    // ユースケースを Bean 登録せず、このコントローラで組み立てて依存を閉じる
-    // （オニオンアーキテクチャのコンポジションルートをここに置く）
-    private val oAuthClient: OAuthClient,
-    private val userRepository: UserRepository,
-    private val refreshTokenRepository: RefreshTokenRepository,
-    private val tokenProvider: TokenProvider,
-    private val voiceMemoRepository: VoiceMemoRepository,
+    private val loginUseCase: LoginUseCase,
+    private val refreshTokenUseCase: RefreshTokenUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
 ) {
-    // Auth 系ユースケースをここで明示的に生成し、外部からは Spring に依存しない形で扱う。
-    // Bean 化しない代わりに、依存をコンストラクタで受けて手動 new する。
-    private val loginUseCase = LoginUseCase(
-        oAuthClient = oAuthClient,
-        userRepository = userRepository,
-        refreshTokenRepository = refreshTokenRepository,
-        tokenProvider = tokenProvider,
-    )
-    private val refreshTokenUseCase = RefreshTokenUseCase(
-        refreshTokenRepository = refreshTokenRepository,
-        userRepository = userRepository,
-        tokenProvider = tokenProvider,
-    )
-    // リフレッシュトークンの破棄のみを行うシンプルなユースケース
-    private val logoutUseCase = LogoutUseCase(refreshTokenRepository)
-    private val deleteAccountUseCase = DeleteAccountUseCase(
-        userRepository = userRepository,
-        voiceMemoRepository = voiceMemoRepository,
-        refreshTokenRepository = refreshTokenRepository,
-    )
-    private val getCurrentUserUseCase = GetCurrentUserUseCase(userRepository)
-
     /** Google OAuth でログイン */
     @Operation(
             summary = "Google OAuth ログイン",
