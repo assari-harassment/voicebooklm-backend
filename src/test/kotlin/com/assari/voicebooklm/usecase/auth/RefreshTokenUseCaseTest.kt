@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.auth
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.TokenProvider
 import com.assari.voicebooklm.domain.model.RefreshToken
 import com.assari.voicebooklm.domain.model.User
@@ -91,11 +93,11 @@ class RefreshTokenUseCaseTest {
         every { refreshTokenRepository.findByTokenAndValid(invalidToken, any()) } returns null
 
         // When & Then
-        val exception = assertThrows(InvalidRefreshTokenException::class.java) {
+        val exception = assertThrows(DomainException::class.java) {
             refreshTokenUseCase.execute(RefreshTokenInput(invalidToken))
         }
 
-        assertEquals("リフレッシュトークンが無効または期限切れです", exception.message)
+        assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.code)
     }
 
     @Test
@@ -116,10 +118,11 @@ class RefreshTokenUseCaseTest {
         every { userRepository.findById(userId) } returns null
 
         // When & Then
-        val exception = assertThrows(InvalidRefreshTokenException::class.java) {
+        val exception = assertThrows(DomainException::class.java) {
             refreshTokenUseCase.execute(RefreshTokenInput(refreshToken))
         }
 
+        assertEquals(ErrorCode.INVALID_REFRESH_TOKEN, exception.code)
         assertEquals("ユーザーが見つかりません", exception.message)
     }
 

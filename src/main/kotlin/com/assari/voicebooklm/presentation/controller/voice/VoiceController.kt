@@ -1,14 +1,8 @@
 package com.assari.voicebooklm.presentation.controller.voice
 
-import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.CreateMemoInput
-import com.assari.voicebooklm.usecase.memo.CreateMemoOutput
 import com.assari.voicebooklm.usecase.memo.CreateMemoUseCase
-import com.assari.voicebooklm.usecase.support.ExecutionTimer
-import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -29,8 +23,6 @@ import org.springframework.web.server.ResponseStatusException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
-import kotlin.time.Duration
-import kotlin.time.toJavaDuration
 
 /**
  * 音声アップロードを受け取り、メモ作成ユースケースを呼び出す
@@ -39,26 +31,9 @@ import kotlin.time.toJavaDuration
 @RequestMapping("/api/voice")
 @Tag(name = "Voice", description = "音声入力によるメモ生成 API")
 class VoiceController(
-    // ユースケースは Bean 登録せず、このレイヤーで組み立てる
-    voiceMemoRepository: VoiceMemoRepository,
-    speechTranscriber: SpeechTranscriber,
-    memoFormatter: MemoFormatter,
-    executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
-    // テストでユースケースの差し替えを可能にするオプション
-    createMemoUseCaseOverride: CreateMemoUseCase? = null,
+    private val createMemoUseCase: CreateMemoUseCase,
 ) {
-
     private val logger = LoggerFactory.getLogger(VoiceController::class.java)
-    // createMemoUseCaseOverride が指定されればそれを使用し、通常はここで手動 new。
-    // Bean 化しないことでユースケースをフレームワーク非依存に保つ。
-    private val createMemoUseCase: CreateMemoUseCase =
-        createMemoUseCaseOverride
-            ?: CreateMemoUseCase(
-                voiceMemoRepository = voiceMemoRepository,
-                speechTranscriber = speechTranscriber,
-                memoFormatter = memoFormatter,
-                executionTimer = executionTimer,
-            )
 
     @PostMapping(
         "/memos",
@@ -72,7 +47,7 @@ class VoiceController(
             ApiResponse(
                 responseCode = "201",
                 description = "メモ生成成功",
-                content = [Content(schema = Schema(implementation = CreateMemoResponse::class))],
+                content = [Content(schema = Schema(implementation = VoiceMemoCreatedResponse::class))],
             ),
             ApiResponse(
                 responseCode = "400",
@@ -95,7 +70,7 @@ class VoiceController(
         authentication: Authentication?,
         @RequestPart("file") file: MultipartFile,
         @RequestParam("language", required = false) language: String?,
-    ): ResponseEntity<CreateMemoResponse> {
+    ): ResponseEntity<VoiceMemoCreatedResponse> {
         val userId = extractUserId(authentication)
         validateFile(file)
         val tempPath = writeTempFile(file)
@@ -125,7 +100,7 @@ class VoiceController(
             voiceMemo.transcription.fallbackUsed,
             voiceMemo.formatting.fallbackUsed,
         )
-        val response = CreateMemoResponse.from(result)
+        val response = VoiceMemoCreatedResponse.from(result)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
@@ -180,57 +155,3 @@ class VoiceController(
         }
     }
 }
-
-/**
- * メモ作成レスポンス
- */
-data class CreateMemoResponse(
-    val memoId: UUID,
-    val title: String,
-    val content: String,
-    val tags: List<String>,
-    val transcription: String?,
-    val transcriptionStatus: String,
-    val formattingStatus: String,
-    val processingTimeMillis: ProcessingTimeResponse,
-    val fallback: FallbackUsageResponse,
-) {
-    companion object {
-        fun from(result: CreateMemoOutput): CreateMemoResponse {
-            val voiceMemo = result.voiceMemo
-            return CreateMemoResponse(
-                memoId = voiceMemo.id,
-                title = voiceMemo.title ?: "",
-                content = voiceMemo.content ?: "",
-                tags = voiceMemo.tags,
-                transcription = voiceMemo.transcriptionText,
-                transcriptionStatus = voiceMemo.transcription.status.name,
-                formattingStatus = voiceMemo.formatting.status.name,
-                processingTimeMillis = ProcessingTimeResponse(
-                    transcription = result.processingTime.transcription.toMillis(),
-                    formatting = result.processingTime.formatting.toMillis(),
-                    persistence = result.processingTime.persistence.toMillis(),
-                    total = result.processingTime.total.toMillis(),
-                ),
-                fallback = FallbackUsageResponse(
-                    transcription = voiceMemo.transcription.fallbackUsed,
-                    formatting = voiceMemo.formatting.fallbackUsed,
-                ),
-            )
-        }
-    }
-}
-
-data class ProcessingTimeResponse(
-    val transcription: Long,
-    val formatting: Long,
-    val persistence: Long,
-    val total: Long,
-)
-
-data class FallbackUsageResponse(
-    val transcription: Boolean,
-    val formatting: Boolean,
-)
-
-private fun Duration.toMillis(): Long = this.toJavaDuration().toMillis()

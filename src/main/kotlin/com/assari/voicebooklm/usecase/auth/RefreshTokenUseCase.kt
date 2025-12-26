@@ -1,18 +1,16 @@
 package com.assari.voicebooklm.usecase.auth
 
-import com.assari.voicebooklm.domain.model.RefreshToken
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.TokenProvider
+import com.assari.voicebooklm.domain.model.RefreshToken
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.github.f4b6a3.uuid.UuidCreator
+import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
-
-/**
- * リフレッシュトークン無効例外
- */
-class InvalidRefreshTokenException(message: String) : RuntimeException(message)
 
 /**
  * リフレッシュトークンユースケース
@@ -20,6 +18,7 @@ class InvalidRefreshTokenException(message: String) : RuntimeException(message)
  * リフレッシュトークンローテーションを実装。
  * 旧トークンを無効化し、新しいトークンペアを発行する。
  */
+@Service
 open class RefreshTokenUseCase(
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
@@ -30,7 +29,7 @@ open class RefreshTokenUseCase(
      *
      * @param input リフレッシュトークンInput
      * @return 新しいトークンペア
-     * @throws InvalidRefreshTokenException リフレッシュトークンが無効または期限切れの場合
+     * @throws DomainException リフレッシュトークンが無効または期限切れの場合
      */
     @Transactional
     open fun execute(input: RefreshTokenInput): RefreshTokenOutput {
@@ -38,11 +37,11 @@ open class RefreshTokenUseCase(
         val storedToken = refreshTokenRepository.findByTokenAndValid(
             input.refreshToken,
             Instant.now()
-        ) ?: throw InvalidRefreshTokenException("リフレッシュトークンが無効または期限切れです")
+        ) ?: throw DomainException(ErrorCode.INVALID_REFRESH_TOKEN)
 
         // ユーザーを取得
         val user = userRepository.findById(storedToken.userId)
-            ?: throw InvalidRefreshTokenException("ユーザーが見つかりません")
+            ?: throw DomainException(ErrorCode.INVALID_REFRESH_TOKEN, "ユーザーが見つかりません")
 
         // 旧トークンを無効化してローテーション（盗難対策）
         refreshTokenRepository.revokeByToken(input.refreshToken)
@@ -69,10 +68,6 @@ open class RefreshTokenUseCase(
         )
     }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Input / Output
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * リフレッシュトークンInput
