@@ -237,4 +237,12 @@ data class VoiceMemo(
             updatedAt = updatedAt,
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is VoiceMemo) return false
+        return id == other.id
+    }
+
+    override fun hashCode(): Int = id.hashCode()
 }
