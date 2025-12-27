@@ -15,6 +15,17 @@ data class Transcription(
     /** フォールバックが使用されたかどうか */
     val fallbackUsed: Boolean = false,
 ) {
+    init {
+        validate()
+    }
+
+    private fun validate() {
+        require(languageCode.isNotBlank()) { "languageCode must not be blank" }
+        if (status == TranscriptionStatus.COMPLETED) {
+            require(!text.isNullOrBlank()) { "text must not be blank when status is COMPLETED" }
+        }
+    }
+
     /**
      * 文字起こしが完了しているかどうか
      */

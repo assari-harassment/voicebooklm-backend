@@ -17,6 +17,17 @@ data class Formatting(
     /** フォールバックが使用されたかどうか */
     val fallbackUsed: Boolean = false,
 ) {
+    init {
+        validate()
+    }
+
+    private fun validate() {
+        if (status == FormattingStatus.COMPLETED) {
+            require(!title.isNullOrBlank()) { "title must not be blank when status is COMPLETED" }
+            require(!content.isNullOrBlank()) { "content must not be blank when status is COMPLETED" }
+        }
+    }
+
     /**
      * AI整形が完了しているかどうか
      */
