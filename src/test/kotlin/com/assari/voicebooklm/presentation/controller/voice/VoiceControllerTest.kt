@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.mock.web.MockMultipartFile
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.web.server.ResponseStatusException
 
 /**
@@ -55,7 +54,7 @@ class VoiceControllerTest {
         )
 
         val response: ResponseEntity<VoiceMemoCreatedResponse> = controller.createMemo(
-            authentication = UsernamePasswordAuthenticationToken(userId.toString(), "pw"),
+            userId = userId,
             file = file,
             language = "ja-JP",
         )
@@ -87,16 +86,14 @@ class VoiceControllerTest {
             byteArrayOf(1, 2, 3),
         )
 
-        val ex = assertThrows(ResponseStatusException::class.java) {
-            runBlocking {
-                controller.createMemo(
-                    authentication = null,
-                    file = file,
-                    language = null,
-                )
-            }
+        val response = runBlocking {
+            controller.createMemo(
+                userId = null,
+                file = file,
+                language = null,
+            )
         }
-        assertEquals(HttpStatus.UNAUTHORIZED, ex.statusCode)
+        assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
     }
 
     @Test
@@ -111,7 +108,7 @@ class VoiceControllerTest {
         val ex = assertThrows(ResponseStatusException::class.java) {
             runBlocking {
                 controller.createMemo(
-                    authentication = UsernamePasswordAuthenticationToken("11111111-1111-1111-1111-111111111111", "pw"),
+                    userId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
                     file = file,
                     language = null,
                 )
@@ -133,7 +130,7 @@ class VoiceControllerTest {
         val ex = assertThrows(ResponseStatusException::class.java) {
             runBlocking {
                 controller.createMemo(
-                    authentication = UsernamePasswordAuthenticationToken("11111111-1111-1111-1111-111111111111", "pw"),
+                    userId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
                     file = file,
                     language = null,
                 )
@@ -155,7 +152,7 @@ class VoiceControllerTest {
         val ex = assertThrows(ResponseStatusException::class.java) {
             runBlocking {
                 controller.createMemo(
-                    authentication = UsernamePasswordAuthenticationToken("11111111-1111-1111-1111-111111111111", "pw"),
+                    userId = UUID.fromString("11111111-1111-1111-1111-111111111111"),
                     file = file,
                     language = null,
                 )

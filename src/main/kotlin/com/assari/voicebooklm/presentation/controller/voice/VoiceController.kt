@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.Authentication
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -67,11 +67,11 @@ class VoiceController(
         ],
     )
     suspend fun createMemo(
-        authentication: Authentication?,
+        @AuthenticationPrincipal userId: UUID?,
         @RequestPart("file") file: MultipartFile,
         @RequestParam("language", required = false) language: String?,
     ): ResponseEntity<VoiceMemoCreatedResponse> {
-        val userId = extractUserId(authentication)
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         validateFile(file)
         val tempPath = writeTempFile(file)
         val audioBytes = readAudio(tempPath)
@@ -102,16 +102,6 @@ class VoiceController(
         )
         val response = VoiceMemoCreatedResponse.from(result)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
-    }
-
-    private fun extractUserId(authentication: Authentication?): UUID {
-        val name = authentication?.name
-            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
-        return runCatching { UUID.fromString(name) }
-            .getOrElse {
-                logger.warn("Authentication name is not a valid UUID: {}", name)
-                throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized")
-            }
     }
 
     private fun validateFile(file: MultipartFile) {
