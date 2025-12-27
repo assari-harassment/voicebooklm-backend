@@ -16,9 +16,9 @@ class ListMemosUseCaseTest {
     fun `ユーザーのメモ一覧を取得できる`() = runTest {
         val userId = UUID.randomUUID()
         val otherUserId = UUID.randomUUID()
-        val memo1 = VoiceMemo.create(userId = userId)
-        val memo2 = VoiceMemo.create(userId = userId)
-        val otherMemo = VoiceMemo.create(userId = otherUserId)
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val otherMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = otherUserId)
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, otherMemo),

@@ -5,11 +5,6 @@ import java.util.UUID
 
 /**
  * リフレッシュトークンドメインモデル
- *
- * JWT リフレッシュトークンの情報を表現する純粋な Kotlin クラス。
- * トークンローテーション（使用後に無効化して新しいトークンを発行）をサポート。
- * フレームワーク依存なし（Domain Layer）。
- * イミュータブルな設計で、変更時は新しいインスタンスを返す。
  */
 data class RefreshToken(
     val id: UUID,

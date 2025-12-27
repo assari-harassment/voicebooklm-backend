@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
+import com.github.f4b6a3.uuid.UuidCreator
 import java.util.UUID
 
 /**
@@ -44,7 +45,7 @@ class GcsStorageService(
         mimeType: String,
     ): GcsUploadResult = withContext(Dispatchers.IO) {
         val extension = mimeTypeToExtension(mimeType)
-        val objectName = "$AUDIO_PREFIX$userId/${UUID.randomUUID()}$extension"
+        val objectName = "$AUDIO_PREFIX$userId/${UuidCreator.getTimeOrderedEpoch()}$extension"
 
         val blobId = BlobId.of(bucketName, objectName)
         val blobInfo = BlobInfo.newBuilder(blobId)

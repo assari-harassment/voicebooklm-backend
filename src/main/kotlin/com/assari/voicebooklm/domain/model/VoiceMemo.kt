@@ -203,9 +203,9 @@ data class VoiceMemo(
          * 新しい VoiceMemo を作成する（処理待ち状態）
          */
         fun create(
+            id: UUID,
             userId: UUID,
             languageCode: String = "ja-JP",
-            id: UUID = UUID.randomUUID(),
         ): VoiceMemo = VoiceMemo(
             id = id,
             userId = userId,
