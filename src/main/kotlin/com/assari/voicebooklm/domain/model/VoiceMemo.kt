@@ -203,9 +203,9 @@ data class VoiceMemo(
          * 新しい VoiceMemo を作成する（処理待ち状態）
          */
         fun create(
+            id: UUID,
             userId: UUID,
             languageCode: String = "ja-JP",
-            id: UUID = UUID.randomUUID(),
         ): VoiceMemo = VoiceMemo(
             id = id,
             userId = userId,
@@ -237,4 +237,12 @@ data class VoiceMemo(
             updatedAt = updatedAt,
         )
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is VoiceMemo) return false
+        return id == other.id
+    }
+
+    override fun hashCode(): Int = id.hashCode()
 }

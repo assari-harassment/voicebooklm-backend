@@ -11,6 +11,7 @@ import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
+import com.github.f4b6a3.uuid.UuidCreator
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.TimeSource
@@ -43,6 +44,7 @@ open class CreateMemoUseCase(
 
         // 1. VoiceMemo を作成（処理待ち状態）
         var voiceMemo = VoiceMemo.create(
+            id = UuidCreator.getTimeOrderedEpoch(),
             userId = input.userId,
             languageCode = languageCode,
         )

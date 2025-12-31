@@ -113,10 +113,32 @@ class RefreshTokenTest {
             revoked = false
         )
 
-        refreshToken.revoke()
+        val revokedToken = refreshToken.revoke()
 
-        assertTrue(refreshToken.revoked)
-        assertFalse(refreshToken.isValid())
+        // 元のトークンは変更されない（イミュータブル）
+        assertFalse(refreshToken.revoked)
+        assertTrue(refreshToken.isValid())
+
+        // 新しいトークンは無効化されている
+        assertTrue(revokedToken.revoked)
+        assertFalse(revokedToken.isValid())
+    }
+
+    @Test
+    fun `should return same instance when already revoked`() {
+        val refreshToken = RefreshToken(
+            id = UUID.randomUUID(),
+            token = "refresh-token",
+            userId = UUID.randomUUID(),
+            expiresAt = Instant.now().plusSeconds(3600),
+            createdAt = Instant.now(),
+            revoked = true
+        )
+
+        val revokedToken = refreshToken.revoke()
+
+        // 既に無効化済みの場合は同じインスタンスを返す
+        assertSame(refreshToken, revokedToken)
     }
 
     @Test
