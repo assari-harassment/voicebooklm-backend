@@ -18,7 +18,7 @@ class UserRepositoryImpl(
 ) : UserRepository {
 
     override fun save(user: User): User {
-        val entity = UserJdbcEntity.fromDomain(user)
+        val entity = UserEntity.fromDomain(user)
         val savedEntity = userJdbcRepository.save(entity)
         return savedEntity.toDomain()
     }

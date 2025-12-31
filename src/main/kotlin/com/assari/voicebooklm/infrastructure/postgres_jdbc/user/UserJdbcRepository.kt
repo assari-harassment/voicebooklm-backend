@@ -12,11 +12,11 @@ import java.util.UUID
  * 内部使用専用。外部からは UserRepository インターフェースを使用する。
  */
 @Repository
-interface UserJdbcRepository : CrudRepository<UserJdbcEntity, UUID> {
+interface UserJdbcRepository : CrudRepository<UserEntity, UUID> {
 
     @Query("SELECT * FROM users WHERE email = :email")
-    fun findByEmail(@Param("email") email: String): UserJdbcEntity?
+    fun findByEmail(@Param("email") email: String): UserEntity?
 
     @Query("SELECT * FROM users WHERE google_sub = :googleSub")
-    fun findByGoogleSub(@Param("googleSub") googleSub: String): UserJdbcEntity?
+    fun findByGoogleSub(@Param("googleSub") googleSub: String): UserEntity?
 }

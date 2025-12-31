@@ -19,7 +19,7 @@ class RefreshTokenRepositoryImpl(
 ) : RefreshTokenRepository {
 
     override fun save(token: RefreshToken): RefreshToken {
-        val entity = RefreshTokenJdbcEntity.fromDomain(token)
+        val entity = RefreshTokenEntity.fromDomain(token)
         val savedEntity = refreshTokenJdbcRepository.save(entity)
         return savedEntity.toDomain()
     }

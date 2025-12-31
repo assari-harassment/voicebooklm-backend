@@ -14,7 +14,7 @@ import java.util.UUID
  * 内部使用専用。外部からは RefreshTokenRepository インターフェースを使用する。
  */
 @Repository
-interface RefreshTokenJdbcRepository : CrudRepository<RefreshTokenJdbcEntity, UUID> {
+interface RefreshTokenJdbcRepository : CrudRepository<RefreshTokenEntity, UUID> {
 
     /**
      * 有効なトークンを取得する（未失効かつ有効期限内）
@@ -28,7 +28,7 @@ interface RefreshTokenJdbcRepository : CrudRepository<RefreshTokenJdbcEntity, UU
     fun findByTokenAndValid(
         @Param("token") token: String,
         @Param("now") now: Instant
-    ): RefreshTokenJdbcEntity?
+    ): RefreshTokenEntity?
 
     /**
      * トークン文字列でトークンを無効化する

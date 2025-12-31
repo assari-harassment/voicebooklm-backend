@@ -14,7 +14,7 @@ import java.util.UUID
  * Domain モデルへの変換は toDomain() / fromDomain() で行う（Entity-embedded mapper パターン）。
  */
 @Table("refresh_tokens")
-data class RefreshTokenJdbcEntity(
+data class RefreshTokenEntity(
     @Id
     val id: UUID,
 
@@ -47,7 +47,7 @@ data class RefreshTokenJdbcEntity(
         /**
          * Domain -> Entity 変換
          */
-        fun fromDomain(refreshToken: RefreshToken): RefreshTokenJdbcEntity = RefreshTokenJdbcEntity(
+        fun fromDomain(refreshToken: RefreshToken): RefreshTokenEntity = RefreshTokenEntity(
             id = refreshToken.id,
             token = refreshToken.token,
             userId = refreshToken.userId,

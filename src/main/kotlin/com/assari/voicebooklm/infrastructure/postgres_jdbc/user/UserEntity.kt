@@ -14,7 +14,7 @@ import java.util.UUID
  * Domain モデルへの変換は toDomain() / fromDomain() で行う（Entity-embedded mapper パターン）。
  */
 @Table("users")
-data class UserJdbcEntity(
+data class UserEntity(
     @Id
     val id: UUID,
 
@@ -47,7 +47,7 @@ data class UserJdbcEntity(
         /**
          * Domain -> Entity 変換
          */
-        fun fromDomain(user: User): UserJdbcEntity = UserJdbcEntity(
+        fun fromDomain(user: User): UserEntity = UserEntity(
             id = user.id,
             googleSub = user.googleSub,
             email = user.email,
