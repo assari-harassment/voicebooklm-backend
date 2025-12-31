@@ -73,6 +73,7 @@ class JwtTokenProvider(
         val expiry = Date(now.time + refreshTokenExpiration)
 
         return Jwts.builder()
+            .id(UUID.randomUUID().toString()) // トークンの一意性を保証
             .subject(userId.toString())
             .claim(CLAIM_USER_ID, userId.toString())
             .claim(TOKEN_TYPE, TOKEN_TYPE_REFRESH)
