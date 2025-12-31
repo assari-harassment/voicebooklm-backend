@@ -2,6 +2,7 @@ package com.assari.voicebooklm.infrastructure.postgres_jdbc.user
 
 import com.assari.voicebooklm.domain.model.User
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
@@ -12,6 +13,10 @@ import java.util.UUID
  *
  * データベースマッピング用のエンティティ。
  * Domain モデルへの変換は toDomain() / fromDomain() で行う（Entity-embedded mapper パターン）。
+ *
+ * @Version フィールドにより、Spring Data JDBC は以下を自動判定:
+ * - version が null → 新規エンティティ (INSERT)
+ * - version が非null → 既存エンティティ (UPDATE)
  */
 @Table("users")
 data class UserEntity(
@@ -29,7 +34,10 @@ data class UserEntity(
     val createdAt: Instant,
 
     @Column("updated_at")
-    val updatedAt: Instant
+    val updatedAt: Instant,
+
+    @Version
+    val version: Long? = null
 ) {
     /**
      * Entity -> Domain 変換

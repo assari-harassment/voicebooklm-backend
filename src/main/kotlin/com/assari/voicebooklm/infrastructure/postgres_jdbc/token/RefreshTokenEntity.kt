@@ -2,6 +2,7 @@ package com.assari.voicebooklm.infrastructure.postgres_jdbc.token
 
 import com.assari.voicebooklm.domain.model.RefreshToken
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
@@ -12,6 +13,10 @@ import java.util.UUID
  *
  * データベースマッピング用のエンティティ。
  * Domain モデルへの変換は toDomain() / fromDomain() で行う（Entity-embedded mapper パターン）。
+ *
+ * @Version フィールドにより、Spring Data JDBC は以下を自動判定:
+ * - version が null → 新規エンティティ (INSERT)
+ * - version が非null → 既存エンティティ (UPDATE)
  */
 @Table("refresh_tokens")
 data class RefreshTokenEntity(
@@ -29,7 +34,10 @@ data class RefreshTokenEntity(
     @Column("created_at")
     val createdAt: Instant,
 
-    val revoked: Boolean
+    val revoked: Boolean,
+
+    @Version
+    val version: Long? = null
 ) {
     /**
      * Entity -> Domain 変換
