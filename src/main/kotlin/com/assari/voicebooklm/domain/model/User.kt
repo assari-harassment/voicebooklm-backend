@@ -26,8 +26,6 @@ data class User(
         updatedAt = Instant.now()
     )
 
-    // data class のデフォルト equals/hashCode はすべてのプロパティを比較するが、
-    // エンティティとしての等価性は id のみで判断する
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is User) return false

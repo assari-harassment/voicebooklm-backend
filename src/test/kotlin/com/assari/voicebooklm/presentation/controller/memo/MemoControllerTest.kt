@@ -35,14 +35,14 @@ class MemoControllerTest {
     fun `認証済みユーザーのメモ一覧を返す`() = runBlocking {
         val userId = UUID.randomUUID()
         // 整形済みメモと未整形メモを混在させてレスポンス形式を確認する。
-        val completedMemo = VoiceMemo.create(userId = userId)
+        val completedMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text")
             .completeFormatting(
                 title = "title",
                 content = "content",
                 tags = listOf("t1"),
             )
-        val pendingMemo = VoiceMemo.create(userId = userId)
+        val pendingMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
         coEvery { listMemosUseCase.execute(ListMemosInput(userId)) } returns ListMemosOutput(
             memos = listOf(completedMemo, pendingMemo),
         )

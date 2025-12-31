@@ -6,6 +6,7 @@ import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.TranscriptionStatus
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import jakarta.persistence.CollectionTable
+import org.slf4j.LoggerFactory
 import jakarta.persistence.Column
 import jakarta.persistence.ElementCollection
 import jakarta.persistence.Entity
@@ -78,23 +79,43 @@ class MemoJpaEntity(
         val transcriptionDomain = when (TranscriptionStatus.valueOf(transcriptionStatus)) {
             TranscriptionStatus.PENDING -> Transcription.pending(languageCode)
             TranscriptionStatus.PROCESSING -> Transcription.processing(languageCode)
-            TranscriptionStatus.COMPLETED -> Transcription.completed(
-                text = transcription ?: "",
-                languageCode = languageCode,
-                fallbackUsed = transcriptionFallbackUsed,
-            )
+            TranscriptionStatus.COMPLETED -> {
+                if (transcription.isNullOrBlank()) {
+                    logger.warn(
+                        "Memo id={} has COMPLETED transcription status but transcription text is null/blank. Treating as FAILED.",
+                        id
+                    )
+                    Transcription.failed(languageCode)
+                } else {
+                    Transcription.completed(
+                        text = transcription!!,
+                        languageCode = languageCode,
+                        fallbackUsed = transcriptionFallbackUsed,
+                    )
+                }
+            }
             TranscriptionStatus.FAILED -> Transcription.failed(languageCode)
         }
 
         val formattingDomain = when (FormattingStatus.valueOf(formattingStatus)) {
             FormattingStatus.PENDING -> Formatting.pending()
             FormattingStatus.PROCESSING -> Formatting.processing()
-            FormattingStatus.COMPLETED -> Formatting.completed(
-                title = title ?: "Untitled",
-                content = content ?: "",
-                tags = tags.toList(),
-                fallbackUsed = formattingFallbackUsed,
-            )
+            FormattingStatus.COMPLETED -> {
+                if (content.isNullOrBlank()) {
+                    logger.warn(
+                        "Memo id={} has COMPLETED formatting status but content is null/blank. Treating as FAILED.",
+                        id
+                    )
+                    Formatting.failed()
+                } else {
+                    Formatting.completed(
+                        title = title ?: "Untitled",
+                        content = content!!,
+                        tags = tags.toList(),
+                        fallbackUsed = formattingFallbackUsed,
+                    )
+                }
+            }
             FormattingStatus.FAILED -> Formatting.failed()
         }
 
@@ -110,6 +131,7 @@ class MemoJpaEntity(
     }
 
     companion object {
+        private val logger = LoggerFactory.getLogger(MemoJpaEntity::class.java)
         /**
          * VoiceMemo ドメインモデルからエンティティを作成
          */
