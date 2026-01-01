@@ -1,37 +1,43 @@
-package com.assari.voicebooklm.infrastructure.postgres_jpa.user
+package com.assari.voicebooklm.infrastructure.postgres_jdbc.user
 
 import com.assari.voicebooklm.domain.model.User
-import jakarta.persistence.*
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 import java.util.UUID
 
 /**
- * ユーザー JPA エンティティ
+ * ユーザー JDBC エンティティ
  *
  * データベースマッピング用のエンティティ。
  * Domain モデルへの変換は toDomain() / fromDomain() で行う（Entity-embedded mapper パターン）。
+ *
+ * @Version フィールドにより、Spring Data JDBC は以下を自動判定:
+ * - version が null → 新規エンティティ (INSERT)
+ * - version が非null → 既存エンティティ (UPDATE)
  */
-@Entity
-@Table(name = "users")
-class UserEntity(
+@Table("users")
+data class UserEntity(
     @Id
-    @Column(columnDefinition = "uuid")
     val id: UUID,
 
-    @Column(name = "google_sub", nullable = false, unique = true, length = 255)
+    @Column("google_sub")
     val googleSub: String,
 
-    @Column(nullable = false, unique = true, length = 255)
     val email: String,
 
-    @Column(nullable = false, length = 255)
-    var name: String,
+    val name: String,
 
-    @Column(name = "created_at", nullable = false)
-    val createdAt: Instant = Instant.now(),
+    @Column("created_at")
+    val createdAt: Instant,
 
-    @Column(name = "updated_at", nullable = false)
-    var updatedAt: Instant = Instant.now()
+    @Column("updated_at")
+    val updatedAt: Instant,
+
+    @Version
+    val version: Long? = null
 ) {
     /**
      * Entity -> Domain 変換

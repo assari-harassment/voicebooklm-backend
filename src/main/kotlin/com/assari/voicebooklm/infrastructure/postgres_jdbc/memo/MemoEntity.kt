@@ -1,77 +1,64 @@
-package com.assari.voicebooklm.infrastructure.postgres_jpa.memo
+package com.assari.voicebooklm.infrastructure.postgres_jdbc.memo
 
 import com.assari.voicebooklm.domain.model.Formatting
 import com.assari.voicebooklm.domain.model.FormattingStatus
 import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.TranscriptionStatus
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import jakarta.persistence.CollectionTable
 import org.slf4j.LoggerFactory
-import jakarta.persistence.Column
-import jakarta.persistence.ElementCollection
-import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.PrePersist
-import jakarta.persistence.PreUpdate
-import jakarta.persistence.Table
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.MappedCollection
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 import java.util.UUID
 
 /**
- * memos / memo_tags の永続化エンティティ
+ * メモ JDBC エンティティ
+ *
+ * memos テーブルにマッピングされる。
+ * memo_tags との関連は @MappedCollection で管理される（Aggregate Root パターン）。
  */
-@Entity
-@Table(name = "memos")
-class MemoJpaEntity(
+@Table("memos")
+data class MemoEntity(
     @Id
-    var id: UUID = UUID.randomUUID(),
-    @Column(name = "user_id", nullable = false)
-    var userId: UUID = UUID.randomUUID(),
-    @Column(name = "transcription_status", nullable = false)
-    var transcriptionStatus: String = "PENDING",
-    @Column(name = "formatting_status", nullable = false)
-    var formattingStatus: String = "PENDING",
-    @Column(name = "transcription")
-    var transcription: String? = null,
-    @Column(name = "language_code")
-    var languageCode: String = "ja-JP",
-    @Column(name = "transcription_fallback_used")
-    var transcriptionFallbackUsed: Boolean = false,
-    @Column(name = "formatting_fallback_used")
-    var formattingFallbackUsed: Boolean = false,
-    @Column(name = "title")
-    var title: String? = null,
-    @Column(name = "content")
-    var content: String? = null,
-    @Column(name = "created_at", nullable = false)
-    var createdAt: Instant = Instant.now(),
-    @Column(name = "updated_at", nullable = false)
-    var updatedAt: Instant = Instant.now(),
-    @Column(name = "deleted", nullable = false)
-    var deleted: Boolean = false,
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-        name = "memo_tags",
-        joinColumns = [JoinColumn(name = "memo_id")],
-    )
-    @Column(name = "tag", nullable = false)
-    var tags: MutableSet<String> = linkedSetOf(),
+    val id: UUID,
+
+    @Column("user_id")
+    val userId: UUID,
+
+    @Column("transcription_status")
+    val transcriptionStatus: String,
+
+    @Column("formatting_status")
+    val formattingStatus: String,
+
+    val transcription: String?,
+
+    @Column("language_code")
+    val languageCode: String,
+
+    @Column("transcription_fallback_used")
+    val transcriptionFallbackUsed: Boolean,
+
+    @Column("formatting_fallback_used")
+    val formattingFallbackUsed: Boolean,
+
+    val title: String?,
+
+    val content: String?,
+
+    @Column("created_at")
+    val createdAt: Instant,
+
+    @Column("updated_at")
+    val updatedAt: Instant,
+
+    val deleted: Boolean,
+
+    @MappedCollection(idColumn = "memo_id")
+    val tags: Set<MemoTag> = emptySet()
 ) {
-
-    @PrePersist
-    fun onCreate() {
-        val now = Instant.now()
-        createdAt = now
-        updatedAt = now
-    }
-
-    @PreUpdate
-    fun onUpdate() {
-        updatedAt = Instant.now()
-    }
-
     /**
      * VoiceMemo ドメインモデルに変換
      */
@@ -88,7 +75,7 @@ class MemoJpaEntity(
                     Transcription.failed(languageCode)
                 } else {
                     Transcription.completed(
-                        text = transcription!!,
+                        text = transcription,
                         languageCode = languageCode,
                         fallbackUsed = transcriptionFallbackUsed,
                     )
@@ -110,8 +97,8 @@ class MemoJpaEntity(
                 } else {
                     Formatting.completed(
                         title = title ?: "Untitled",
-                        content = content!!,
-                        tags = tags.toList(),
+                        content = content,
+                        tags = tags.map { it.tag },
                         fallbackUsed = formattingFallbackUsed,
                     )
                 }
@@ -131,12 +118,13 @@ class MemoJpaEntity(
     }
 
     companion object {
-        private val logger = LoggerFactory.getLogger(MemoJpaEntity::class.java)
+        private val logger = LoggerFactory.getLogger(MemoEntity::class.java)
+
         /**
          * VoiceMemo ドメインモデルからエンティティを作成
          */
-        fun fromDomain(voiceMemo: VoiceMemo): MemoJpaEntity =
-            MemoJpaEntity(
+        fun fromDomain(voiceMemo: VoiceMemo): MemoEntity =
+            MemoEntity(
                 id = voiceMemo.id,
                 userId = voiceMemo.userId,
                 transcriptionStatus = voiceMemo.transcription.status.name,
@@ -148,7 +136,7 @@ class MemoJpaEntity(
                 title = voiceMemo.formatting.title,
                 content = voiceMemo.formatting.content,
                 deleted = voiceMemo.deleted,
-                tags = voiceMemo.formatting.tags.toCollection(linkedSetOf()),
+                tags = voiceMemo.formatting.tags.map { MemoTag.create(it) }.toSet(),
                 createdAt = voiceMemo.createdAt,
                 updatedAt = voiceMemo.updatedAt,
             )

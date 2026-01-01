@@ -1,37 +1,43 @@
-package com.assari.voicebooklm.infrastructure.postgres_jpa.token
+package com.assari.voicebooklm.infrastructure.postgres_jdbc.token
 
 import com.assari.voicebooklm.domain.model.RefreshToken
-import jakarta.persistence.*
+import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 import java.util.UUID
 
 /**
- * リフレッシュトークン JPA エンティティ
+ * リフレッシュトークン JDBC エンティティ
  *
  * データベースマッピング用のエンティティ。
  * Domain モデルへの変換は toDomain() / fromDomain() で行う（Entity-embedded mapper パターン）。
+ *
+ * @Version フィールドにより、Spring Data JDBC は以下を自動判定:
+ * - version が null → 新規エンティティ (INSERT)
+ * - version が非null → 既存エンティティ (UPDATE)
  */
-@Entity
-@Table(name = "refresh_tokens")
-class RefreshTokenEntity(
+@Table("refresh_tokens")
+data class RefreshTokenEntity(
     @Id
-    @Column(columnDefinition = "uuid")
     val id: UUID,
 
-    @Column(nullable = false, unique = true, length = 500)
     val token: String,
 
-    @Column(name = "user_id", nullable = false, columnDefinition = "uuid")
+    @Column("user_id")
     val userId: UUID,
 
-    @Column(name = "expires_at", nullable = false)
+    @Column("expires_at")
     val expiresAt: Instant,
 
-    @Column(name = "created_at", nullable = false)
-    val createdAt: Instant = Instant.now(),
+    @Column("created_at")
+    val createdAt: Instant,
 
-    @Column(nullable = false)
-    var revoked: Boolean = false
+    val revoked: Boolean,
+
+    @Version
+    val version: Long? = null
 ) {
     /**
      * Entity -> Domain 変換
