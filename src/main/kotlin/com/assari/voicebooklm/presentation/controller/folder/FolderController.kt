@@ -5,6 +5,8 @@ import com.assari.voicebooklm.usecase.folder.CreateFolderInput
 import com.assari.voicebooklm.usecase.folder.CreateFolderUseCase
 import com.assari.voicebooklm.usecase.folder.ListFoldersInput
 import com.assari.voicebooklm.usecase.folder.ListFoldersUseCase
+import com.assari.voicebooklm.usecase.folder.UpdateFolderInput
+import com.assari.voicebooklm.usecase.folder.UpdateFolderUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -16,6 +18,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController
 class FolderController(
     private val listFoldersUseCase: ListFoldersUseCase,
     private val createFolderUseCase: CreateFolderUseCase,
+    private val updateFolderUseCase: UpdateFolderUseCase,
 ) {
     @GetMapping("/folders")
     @Operation(
@@ -98,6 +103,53 @@ class FolderController(
         val folder = result.folder
         val path = buildPath(userId, folder.id)
         return ResponseEntity.status(HttpStatus.CREATED).body(FolderResponse.from(folder, path))
+    }
+
+    @PatchMapping("/folders/{id}")
+    @Operation(
+        summary = "フォルダー更新",
+        description = "フォルダーのリネームまたは移動を行う。両方同時に指定可能。",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "更新成功",
+                content = [Content(schema = Schema(implementation = FolderResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証エラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "フォルダーが見つからない",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "同名フォルダーが既に存在する / 循環参照が発生する",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun updateFolder(
+        @AuthenticationPrincipal userId: UUID?,
+        @PathVariable id: UUID,
+        @Valid @RequestBody request: UpdateFolderRequest,
+    ): ResponseEntity<FolderResponse> {
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        val result = updateFolderUseCase.execute(
+            UpdateFolderInput(
+                userId = userId,
+                folderId = id,
+                newName = request.name,
+                newParentId = request.parentId,
+                moveToRoot = request.moveToRoot,
+            )
+        )
+        val folder = result.folder
+        val path = buildPath(userId, folder.id)
+        return ResponseEntity.ok(FolderResponse.from(folder, path))
     }
 
     private suspend fun buildPath(userId: UUID, folderId: UUID): String {
