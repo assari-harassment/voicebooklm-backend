@@ -55,8 +55,18 @@ class InMemoryFolderRepository(
         folders.removeIf { it.id == id }
     }
 
-    override suspend fun existsByUserIdAndParentIdAndName(userId: UUID, parentId: UUID?, name: String): Boolean =
-        folders.any { it.userId == userId && it.parentId == parentId && it.name == name }
+    override suspend fun existsByUserIdAndParentIdAndName(
+        userId: UUID,
+        parentId: UUID?,
+        name: String,
+        excludeId: UUID?,
+    ): Boolean =
+        folders.any {
+            it.userId == userId &&
+                it.parentId == parentId &&
+                it.name == name &&
+                (excludeId == null || it.id != excludeId)
+        }
 
     override fun deleteByUserId(userId: UUID) {
         folders.removeIf { it.userId == userId }

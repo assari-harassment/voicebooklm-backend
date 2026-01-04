@@ -52,6 +52,21 @@ interface FolderJdbcRepository : CrudRepository<FolderEntity, UUID> {
         @Param("name") name: String
     ): Boolean
 
+    @Query("SELECT COUNT(*) > 0 FROM folders WHERE user_id = :userId AND parent_id = :parentId AND name = :name AND id != :excludeId")
+    fun existsByUserIdAndParentIdAndNameExcludingId(
+        @Param("userId") userId: UUID,
+        @Param("parentId") parentId: UUID,
+        @Param("name") name: String,
+        @Param("excludeId") excludeId: UUID
+    ): Boolean
+
+    @Query("SELECT COUNT(*) > 0 FROM folders WHERE user_id = :userId AND parent_id IS NULL AND name = :name AND id != :excludeId")
+    fun existsByUserIdAndParentIdIsNullAndNameExcludingId(
+        @Param("userId") userId: UUID,
+        @Param("name") name: String,
+        @Param("excludeId") excludeId: UUID
+    ): Boolean
+
     @Query("DELETE FROM folders WHERE user_id = :userId")
     fun deleteByUserId(@Param("userId") userId: UUID)
 }

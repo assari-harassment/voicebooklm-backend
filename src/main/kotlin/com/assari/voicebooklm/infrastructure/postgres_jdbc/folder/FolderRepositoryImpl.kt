@@ -80,12 +80,18 @@ class FolderRepositoryImpl(
     override suspend fun existsByUserIdAndParentIdAndName(
         userId: UUID,
         parentId: UUID?,
-        name: String
+        name: String,
+        excludeId: UUID?,
     ): Boolean {
-        return if (parentId == null) {
-            folderJdbcRepository.existsByUserIdAndParentIdIsNullAndName(userId, name)
-        } else {
-            folderJdbcRepository.existsByUserIdAndParentIdAndName(userId, parentId, name)
+        return when {
+            parentId == null && excludeId == null ->
+                folderJdbcRepository.existsByUserIdAndParentIdIsNullAndName(userId, name)
+            parentId == null && excludeId != null ->
+                folderJdbcRepository.existsByUserIdAndParentIdIsNullAndNameExcludingId(userId, name, excludeId)
+            parentId != null && excludeId == null ->
+                folderJdbcRepository.existsByUserIdAndParentIdAndName(userId, parentId, name)
+            else ->
+                folderJdbcRepository.existsByUserIdAndParentIdAndNameExcludingId(userId, parentId!!, name, excludeId!!)
         }
     }
 

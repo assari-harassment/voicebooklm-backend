@@ -56,8 +56,14 @@ interface FolderRepository {
      * @param userId ユーザーID
      * @param parentId 親フォルダーID（null の場合はルート直下）
      * @param name フォルダー名
+     * @param excludeId 除外するフォルダーID（自分自身を除外する場合に使用）
      */
-    suspend fun existsByUserIdAndParentIdAndName(userId: UUID, parentId: UUID?, name: String): Boolean
+    suspend fun existsByUserIdAndParentIdAndName(
+        userId: UUID,
+        parentId: UUID?,
+        name: String,
+        excludeId: UUID? = null,
+    ): Boolean
 
     /**
      * ユーザーIDに紐づくすべてのフォルダーを削除する（アカウント削除用）

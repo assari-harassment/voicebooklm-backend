@@ -84,24 +84,17 @@ open class UpdateFolderUseCase(
 
         // 4. 同名フォルダーの重複チェック（移動先またはリネーム後）
         if (targetName != folder.name || targetParentId != folder.parentId) {
-            val exists = folderRepository.existsByUserIdAndParentIdAndName(
+            val duplicateExists = folderRepository.existsByUserIdAndParentIdAndName(
                 userId = input.userId,
                 parentId = updatedFolder.parentId,
                 name = updatedFolder.name,
+                excludeId = folder.id,
             )
-            // 自分自身は除外（リネームなしで移動のみの場合）
-            if (exists && (updatedFolder.name != folder.name || updatedFolder.parentId != folder.parentId)) {
-                // 既存の同名フォルダーが自分自身でないかチェック
-                val existingFolder = folderRepository.findByUserIdAndPath(
-                    userId = input.userId,
-                    path = buildPathForCheck(input.userId, updatedFolder.parentId, updatedFolder.name),
+            if (duplicateExists) {
+                throw DomainException(
+                    ErrorCode.FOLDER_ALREADY_EXISTS,
+                    "同じ名前のフォルダーが既に存在します: ${updatedFolder.name}"
                 )
-                if (existingFolder != null && existingFolder.id != folder.id) {
-                    throw DomainException(
-                        ErrorCode.FOLDER_ALREADY_EXISTS,
-                        "同じ名前のフォルダーが既に存在します: ${updatedFolder.name}"
-                    )
-                }
             }
         }
 
@@ -113,23 +106,6 @@ open class UpdateFolderUseCase(
         val path = savedFolder.buildPath(folderMapForPath)
 
         return UpdateFolderOutput(folder = savedFolder, path = path)
-    }
-
-    private suspend fun buildPathForCheck(userId: UUID, parentId: UUID?, name: String): String {
-        if (parentId == null) {
-            return name
-        }
-        val allFolders = folderRepository.findByUserId(userId)
-        val folderMap = allFolders.associateBy { it.id }
-
-        val pathSegments = mutableListOf(name)
-        var currentParentId: UUID? = parentId
-        while (currentParentId != null) {
-            val parent = folderMap[currentParentId] ?: break
-            pathSegments.add(0, parent.name)
-            currentParentId = parent.parentId
-        }
-        return pathSegments.joinToString("/")
     }
 }
 
