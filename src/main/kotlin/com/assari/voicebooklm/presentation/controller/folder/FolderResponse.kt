@@ -1,7 +1,10 @@
 package com.assari.voicebooklm.presentation.controller.folder
 
+import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.usecase.folder.FolderWithPath
 import com.assari.voicebooklm.usecase.folder.ListFoldersOutput
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Size
 import java.util.UUID
 
 /**
@@ -36,5 +39,24 @@ data class FolderResponse(
                 path = folderWithPath.path,
             )
         }
+
+        fun from(folder: Folder, path: String): FolderResponse {
+            return FolderResponse(
+                id = folder.id,
+                name = folder.name,
+                parentId = folder.parentId,
+                path = path,
+            )
+        }
     }
 }
+
+/**
+ * フォルダー作成リクエスト
+ */
+data class CreateFolderRequest(
+    @field:NotBlank(message = "フォルダー名は必須です")
+    @field:Size(max = 50, message = "フォルダー名は50文字以内で入力してください")
+    val name: String,
+    val parentId: UUID? = null,
+)
