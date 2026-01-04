@@ -56,6 +56,9 @@ data class MemoEntity(
 
     val deleted: Boolean,
 
+    @Column("folder_id")
+    val folderId: UUID? = null,
+
     @MappedCollection(idColumn = "memo_id")
     val tags: Set<MemoTag> = emptySet()
 ) {
@@ -100,6 +103,7 @@ data class MemoEntity(
                         content = content,
                         tags = tags.map { it.tag },
                         fallbackUsed = formattingFallbackUsed,
+                        folderId = folderId,
                     )
                 }
             }
@@ -136,6 +140,7 @@ data class MemoEntity(
                 title = voiceMemo.formatting.title,
                 content = voiceMemo.formatting.content,
                 deleted = voiceMemo.deleted,
+                folderId = voiceMemo.formatting.folderId,
                 tags = voiceMemo.formatting.tags.map { MemoTag.create(it) }.toSet(),
                 createdAt = voiceMemo.createdAt,
                 updatedAt = voiceMemo.updatedAt,
