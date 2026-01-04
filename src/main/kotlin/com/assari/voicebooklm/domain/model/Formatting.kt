@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.domain.model
 
+import java.util.UUID
+
 /**
  * AI整形結果を表す値オブジェクト
  *
@@ -16,6 +18,8 @@ data class Formatting(
     val tags: List<String>,
     /** フォールバックが使用されたかどうか */
     val fallbackUsed: Boolean = false,
+    /** フォルダーID（未分類の場合は null） */
+    val folderId: UUID? = null,
 ) {
     init {
         validate()
@@ -71,6 +75,7 @@ data class Formatting(
             content: String,
             tags: List<String> = emptyList(),
             fallbackUsed: Boolean = false,
+            folderId: UUID? = null,
         ): Formatting {
             val normalizedTitle = title.trim()
             require(normalizedTitle.isNotBlank()) { "Formatting title must not be blank when completed" }
@@ -82,6 +87,7 @@ data class Formatting(
                 content = content,
                 tags = sanitizedTags,
                 fallbackUsed = fallbackUsed,
+                folderId = folderId,
             )
         }
 
