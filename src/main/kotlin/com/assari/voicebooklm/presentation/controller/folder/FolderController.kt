@@ -1,6 +1,8 @@
 package com.assari.voicebooklm.presentation.controller.folder
 
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
+import com.assari.voicebooklm.usecase.folder.CreateFolderInput
+import com.assari.voicebooklm.usecase.folder.CreateFolderUseCase
 import com.assari.voicebooklm.usecase.folder.ListFoldersInput
 import com.assari.voicebooklm.usecase.folder.ListFoldersUseCase
 import io.swagger.v3.oas.annotations.Operation
@@ -8,11 +10,14 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import java.util.UUID
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Folder", description = "フォルダー API")
 class FolderController(
     private val listFoldersUseCase: ListFoldersUseCase,
+    private val createFolderUseCase: CreateFolderUseCase,
 ) {
     @GetMapping("/folders")
     @Operation(
@@ -48,5 +54,54 @@ class FolderController(
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val result = listFoldersUseCase.execute(ListFoldersInput(userId))
         return ResponseEntity.ok(ListFoldersResponse.from(result))
+    }
+
+    @PostMapping("/folders")
+    @Operation(
+        summary = "フォルダー作成",
+        description = "新しいフォルダーを作成する。親フォルダーを指定して階層構造を作成可能。",
+        responses = [
+            ApiResponse(
+                responseCode = "201",
+                description = "作成成功",
+                content = [Content(schema = Schema(implementation = FolderResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証エラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "親フォルダーが見つからない",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "同名フォルダーが既に存在する",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun createFolder(
+        @AuthenticationPrincipal userId: UUID?,
+        @Valid @RequestBody request: CreateFolderRequest,
+    ): ResponseEntity<FolderResponse> {
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        val result = createFolderUseCase.execute(
+            CreateFolderInput(
+                userId = userId,
+                name = request.name,
+                parentId = request.parentId,
+            )
+        )
+        val folder = result.folder
+        val path = buildPath(userId, folder.id)
+        return ResponseEntity.status(HttpStatus.CREATED).body(FolderResponse.from(folder, path))
+    }
+
+    private suspend fun buildPath(userId: UUID, folderId: UUID): String {
+        val allFolders = listFoldersUseCase.execute(ListFoldersInput(userId))
+        return allFolders.folders.find { it.folder.id == folderId }?.path ?: ""
     }
 }
