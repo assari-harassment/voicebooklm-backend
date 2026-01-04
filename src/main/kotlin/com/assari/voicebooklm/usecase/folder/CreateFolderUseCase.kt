@@ -3,6 +3,7 @@ package com.assari.voicebooklm.usecase.folder
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.Folder
+import com.assari.voicebooklm.domain.model.buildPath
 import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.github.f4b6a3.uuid.UuidCreator
 import org.springframework.stereotype.Service
@@ -58,7 +59,13 @@ open class CreateFolderUseCase(
         )
 
         val savedFolder = folderRepository.save(folder)
-        return CreateFolderOutput(folder = savedFolder)
+
+        // 4. パスを構築
+        val allFolders = folderRepository.findByUserId(input.userId)
+        val folderMap = allFolders.associateBy { it.id }
+        val path = savedFolder.buildPath(folderMap)
+
+        return CreateFolderOutput(folder = savedFolder, path = path)
     }
 }
 
@@ -70,4 +77,5 @@ data class CreateFolderInput(
 
 data class CreateFolderOutput(
     val folder: Folder,
+    val path: String,
 )

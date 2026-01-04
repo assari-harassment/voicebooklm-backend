@@ -100,9 +100,7 @@ class FolderController(
                 parentId = request.parentId,
             )
         )
-        val folder = result.folder
-        val path = buildPath(userId, folder.id)
-        return ResponseEntity.status(HttpStatus.CREATED).body(FolderResponse.from(folder, path))
+        return ResponseEntity.status(HttpStatus.CREATED).body(FolderResponse.from(result.folder, result.path))
     }
 
     @PatchMapping("/folders/{id}")
@@ -147,13 +145,6 @@ class FolderController(
                 moveToRoot = request.moveToRoot,
             )
         )
-        val folder = result.folder
-        val path = buildPath(userId, folder.id)
-        return ResponseEntity.ok(FolderResponse.from(folder, path))
-    }
-
-    private suspend fun buildPath(userId: UUID, folderId: UUID): String {
-        val allFolders = listFoldersUseCase.execute(ListFoldersInput(userId))
-        return allFolders.folders.find { it.folder.id == folderId }?.path ?: ""
+        return ResponseEntity.ok(FolderResponse.from(result.folder, result.path))
     }
 }

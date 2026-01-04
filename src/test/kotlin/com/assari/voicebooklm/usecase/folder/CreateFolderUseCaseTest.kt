@@ -33,6 +33,7 @@ class CreateFolderUseCaseTest {
         assertEquals("仕事", result.folder.name)
         assertEquals(userId, result.folder.userId)
         assertEquals(null, result.folder.parentId)
+        assertEquals("仕事", result.path)
     }
 
     @Test
@@ -59,6 +60,7 @@ class CreateFolderUseCaseTest {
         assertEquals("プロジェクトA", result.folder.name)
         assertEquals(userId, result.folder.userId)
         assertEquals(parentFolder.id, result.folder.parentId)
+        assertEquals("仕事/プロジェクトA", result.path)
     }
 
     @Test

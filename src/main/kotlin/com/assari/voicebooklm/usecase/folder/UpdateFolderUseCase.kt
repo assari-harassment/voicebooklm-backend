@@ -3,6 +3,7 @@ package com.assari.voicebooklm.usecase.folder
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.Folder
+import com.assari.voicebooklm.domain.model.buildPath
 import com.assari.voicebooklm.domain.repository.FolderRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,9 +29,12 @@ open class UpdateFolderUseCase(
             throw DomainException(ErrorCode.FOLDER_NOT_FOUND, "フォルダーが見つかりません: ${input.folderId}")
         }
 
-        // 何も変更がない場合はそのまま返す
+        // 何も変更がない場合はパスを計算してそのまま返す
         if (input.newName == null && input.newParentId == null && !input.moveToRoot) {
-            return UpdateFolderOutput(folder = folder)
+            val allFolders = folderRepository.findByUserId(input.userId)
+            val folderMap = allFolders.associateBy { it.id }
+            val path = folder.buildPath(folderMap)
+            return UpdateFolderOutput(folder = folder, path = path)
         }
 
         var updatedFolder = folder
@@ -102,7 +106,13 @@ open class UpdateFolderUseCase(
         }
 
         val savedFolder = folderRepository.save(updatedFolder)
-        return UpdateFolderOutput(folder = savedFolder)
+
+        // 5. パスを構築
+        val allFoldersForPath = folderRepository.findByUserId(input.userId)
+        val folderMapForPath = allFoldersForPath.associateBy { it.id }
+        val path = savedFolder.buildPath(folderMapForPath)
+
+        return UpdateFolderOutput(folder = savedFolder, path = path)
     }
 
     private suspend fun buildPathForCheck(userId: UUID, parentId: UUID?, name: String): String {
@@ -133,4 +143,5 @@ data class UpdateFolderInput(
 
 data class UpdateFolderOutput(
     val folder: Folder,
+    val path: String,
 )
