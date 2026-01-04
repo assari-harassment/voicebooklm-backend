@@ -6,8 +6,11 @@ import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
+import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.assari.voicebooklm.infrastructure.service.FolderPathResolver
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.TimedResult
 import java.util.UUID
@@ -40,6 +43,8 @@ class CreateMemoUseCaseTest {
             tags = listOf(" voice ", " memo"),
         )
         val voiceMemoRepository = FakeVoiceMemoRepository()
+        val folderRepository = FakeFolderRepository()
+        val folderPathResolver = FolderPathResolver(folderRepository)
         val executionTimer = FakeExecutionTimer(
             timeSource = timeSource,
             durations = listOf(100.milliseconds, 200.milliseconds, 50.milliseconds),
@@ -49,6 +54,8 @@ class CreateMemoUseCaseTest {
             voiceMemoRepository = voiceMemoRepository,
             speechTranscriber = speechTranscriber,
             memoFormatter = memoFormatter,
+            folderRepository = folderRepository,
+            folderPathResolver = folderPathResolver,
             executionTimer = executionTimer,
             timeSource = timeSource,
         )
@@ -87,6 +94,7 @@ class CreateMemoUseCaseTest {
     fun `処理全体が30秒未満で完了する`() = runTest {
         val userId = UUID.randomUUID()
         val timeSource = TestTimeSource()
+        val folderRepository = FakeFolderRepository()
 
         val useCase = CreateMemoUseCase(
             voiceMemoRepository = FakeVoiceMemoRepository(),
@@ -96,6 +104,8 @@ class CreateMemoUseCaseTest {
                 content = "content",
                 tags = emptyList(),
             ),
+            folderRepository = folderRepository,
+            folderPathResolver = FolderPathResolver(folderRepository),
             executionTimer = FakeExecutionTimer(
                 timeSource = timeSource,
                 durations = listOf(5.seconds, 10.seconds, 5.seconds),
@@ -120,6 +130,7 @@ class CreateMemoUseCaseTest {
 
     @Test
     fun `音声が空の場合は例外を返す`() = runTest {
+        val folderRepository = FakeFolderRepository()
         val useCase = CreateMemoUseCase(
             voiceMemoRepository = FakeVoiceMemoRepository(),
             speechTranscriber = FakeSpeechTranscriber(""),
@@ -128,6 +139,8 @@ class CreateMemoUseCaseTest {
                 content = "",
                 tags = emptyList(),
             ),
+            folderRepository = folderRepository,
+            folderPathResolver = FolderPathResolver(folderRepository),
             executionTimer = FakeExecutionTimer(TestTimeSource(), emptyList()),
             timeSource = TestTimeSource(),
         )
@@ -163,6 +176,7 @@ private class FakeMemoFormatter(
     private val title: String,
     private val content: String,
     private val tags: List<String>,
+    private val folderPath: String? = null,
 ) : MemoFormatter {
     var receivedCommand: MemoFormatCommand? = null
 
@@ -172,6 +186,7 @@ private class FakeMemoFormatter(
             title = title,
             content = content,
             tags = tags,
+            folderPath = folderPath,
         )
     }
 }
@@ -190,6 +205,38 @@ private class FakeVoiceMemoRepository : VoiceMemoRepository {
 
     override fun deleteByUserId(userId: UUID) {
         savedMemos.removeIf { it.userId == userId }
+    }
+}
+
+private class FakeFolderRepository : FolderRepository {
+    val savedFolders = mutableListOf<Folder>()
+
+    override suspend fun save(folder: Folder): Folder {
+        savedFolders.removeIf { it.id == folder.id }
+        savedFolders += folder
+        return folder
+    }
+
+    override suspend fun findById(id: UUID): Folder? = savedFolders.find { it.id == id }
+
+    override suspend fun findByUserId(userId: UUID): List<Folder> = savedFolders.filter { it.userId == userId }
+
+    override suspend fun findByUserIdAndParentId(userId: UUID, parentId: UUID?): List<Folder> =
+        savedFolders.filter { it.userId == userId && it.parentId == parentId }
+
+    override suspend fun findByUserIdAndPath(userId: UUID, path: String): Folder? = null
+
+    override suspend fun findDescendantIds(folderId: UUID): List<UUID> = emptyList()
+
+    override suspend fun delete(id: UUID) {
+        savedFolders.removeIf { it.id == id }
+    }
+
+    override suspend fun existsByUserIdAndParentIdAndName(userId: UUID, parentId: UUID?, name: String): Boolean =
+        savedFolders.any { it.userId == userId && it.parentId == parentId && it.name == name }
+
+    override fun deleteByUserId(userId: UUID) {
+        savedFolders.removeIf { it.userId == userId }
     }
 }
 

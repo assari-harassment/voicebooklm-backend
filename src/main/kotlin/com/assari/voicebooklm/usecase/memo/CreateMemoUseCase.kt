@@ -7,8 +7,11 @@ import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
+import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.assari.voicebooklm.infrastructure.service.FolderPathResolver
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.MonotonicExecutionTimer
 import com.github.f4b6a3.uuid.UuidCreator
@@ -30,6 +33,8 @@ open class CreateMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
     private val speechTranscriber: SpeechTranscriber,
     private val memoFormatter: MemoFormatter,
+    private val folderRepository: FolderRepository,
+    private val folderPathResolver: FolderPathResolver,
     private val executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
@@ -83,7 +88,10 @@ open class CreateMemoUseCase(
             fallbackUsed = false,
         )
 
-        // 3. AI整形処理（失敗した場合はフォールバックで続行）
+        // 3. 既存フォルダーパスを取得（AI整形用）
+        val existingFolderPaths = getExistingFolderPaths(input.userId)
+
+        // 4. AI整形処理（失敗した場合はフォールバックで続行）
         voiceMemo = voiceMemo.startFormatting()
         val formatResult = executionTimer.measure {
             runCatching {
@@ -91,6 +99,7 @@ open class CreateMemoUseCase(
                     MemoFormatCommand(
                         userId = input.userId,
                         transcript = transcriptionText,
+                        existingFolderPaths = existingFolderPaths,
                     ),
                 )
             }.onFailure { ex ->
@@ -100,15 +109,20 @@ open class CreateMemoUseCase(
             }
         }
         val memoFormat = formatResult.value
+
+        // 5. フォルダーパスをIDに解決（必要に応じて作成）
+        val folderId = resolveFolderId(input.userId, memoFormat.folderPath)
+
         val formattingFallbackUsed = memoFormat.title == "ボイスメモ" && memoFormat.tags.isEmpty()
         voiceMemo = voiceMemo.completeFormatting(
             title = memoFormat.title,
             content = memoFormat.content,
             tags = memoFormat.tags,
             fallbackUsed = formattingFallbackUsed,
+            folderId = folderId,
         )
 
-        // 4. 永続化
+        // 6. 永続化
         val (savedVoiceMemo, persistenceDuration) = executionTimer.measure {
             voiceMemoRepository.save(voiceMemo)
         }
@@ -130,7 +144,48 @@ open class CreateMemoUseCase(
         title = "ボイスメモ",
         content = transcript,
         tags = emptyList(),
+        folderPath = null,
     )
+
+    /**
+     * ユーザーの既存フォルダーパス一覧を取得する
+     */
+    private suspend fun getExistingFolderPaths(userId: UUID): List<String> {
+        val folders = folderRepository.findByUserId(userId)
+        if (folders.isEmpty()) return emptyList()
+
+        val folderMap = folders.associateBy { it.id }
+        return folders.map { folder -> buildPath(folder, folderMap) }.sorted()
+    }
+
+    /**
+     * フォルダーのフルパスを構築する
+     */
+    private fun buildPath(folder: Folder, folderMap: Map<UUID, Folder>): String {
+        val pathSegments = mutableListOf(folder.name)
+        var currentParentId = folder.parentId
+
+        while (currentParentId != null) {
+            val parent = folderMap[currentParentId] ?: break
+            pathSegments.add(0, parent.name)
+            currentParentId = parent.parentId
+        }
+
+        return pathSegments.joinToString("/")
+    }
+
+    /**
+     * フォルダーパスをIDに解決する（必要に応じて作成）
+     */
+    private suspend fun resolveFolderId(userId: UUID, folderPath: String?): UUID? {
+        if (folderPath.isNullOrBlank()) return null
+
+        return runCatching {
+            folderPathResolver.resolveOrCreate(userId, folderPath)
+        }.onFailure { ex ->
+            logger.warn("Failed to resolve folder path: $folderPath", ex)
+        }.getOrNull()
+    }
 }
 
 /**

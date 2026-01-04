@@ -15,6 +15,8 @@ interface MemoFormatter {
 data class MemoFormatCommand(
     val userId: UUID,
     val transcript: String,
+    /** 既存フォルダーのパス一覧（AIが参考にする） */
+    val existingFolderPaths: List<String> = emptyList(),
 )
 
 /**
@@ -24,4 +26,6 @@ data class MemoFormatResult(
     val title: String,
     val content: String,
     val tags: List<String>,
+    /** AIが提案したフォルダーパス（分類できなかった場合は null） */
+    val folderPath: String? = null,
 )
