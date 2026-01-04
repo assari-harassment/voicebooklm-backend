@@ -94,3 +94,23 @@ data class Folder(
         )
     }
 }
+
+
+/**
+ * フォルダーのフルパスを構築する
+ *
+ * @param folderMap フォルダーIDをキーとするフォルダーマップ
+ * @return "/" 区切りのフルパス（例: "仕事/プロジェクトA/設計"）
+ */
+fun Folder.buildPath(folderMap: Map<UUID, Folder>): String {
+    val pathSegments = mutableListOf(name)
+    var currentParentId = parentId
+
+    while (currentParentId != null) {
+        val parent = folderMap[currentParentId] ?: break
+        pathSegments.add(0, parent.name)
+        currentParentId = parent.parentId
+    }
+
+    return pathSegments.joinToString("/")
+}

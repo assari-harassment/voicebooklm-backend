@@ -9,6 +9,7 @@ import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.model.buildPath
 import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.infrastructure.service.FolderPathResolver
@@ -155,23 +156,7 @@ open class CreateMemoUseCase(
         if (folders.isEmpty()) return emptyList()
 
         val folderMap = folders.associateBy { it.id }
-        return folders.map { folder -> buildPath(folder, folderMap) }.sorted()
-    }
-
-    /**
-     * フォルダーのフルパスを構築する
-     */
-    private fun buildPath(folder: Folder, folderMap: Map<UUID, Folder>): String {
-        val pathSegments = mutableListOf(folder.name)
-        var currentParentId = folder.parentId
-
-        while (currentParentId != null) {
-            val parent = folderMap[currentParentId] ?: break
-            pathSegments.add(0, parent.name)
-            currentParentId = parent.parentId
-        }
-
-        return pathSegments.joinToString("/")
+        return folders.map { folder -> folder.buildPath(folderMap) }.sorted()
     }
 
     /**

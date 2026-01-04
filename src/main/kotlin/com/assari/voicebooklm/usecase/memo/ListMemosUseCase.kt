@@ -2,6 +2,7 @@ package com.assari.voicebooklm.usecase.memo
 
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.model.buildPath
 import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import java.util.UUID
@@ -42,7 +43,7 @@ open class ListMemosUseCase(
         // 3. フォルダー情報を取得
         val folders = folderRepository.findByUserId(input.userId)
         val folderMap = folders.associateBy { it.id }
-        val folderPathMap = folders.associate { it.id to buildPath(it, folderMap) }
+        val folderPathMap = folders.associate { it.id to it.buildPath(folderMap) }
 
         // 4. メモにフォルダー情報を付与
         val memosWithFolder = memos.map { memo ->
@@ -52,22 +53,6 @@ open class ListMemosUseCase(
         }
 
         return ListMemosOutput(memosWithFolder)
-    }
-
-    /**
-     * フォルダーのフルパスを構築する
-     */
-    private fun buildPath(folder: Folder, folderMap: Map<UUID, Folder>): String {
-        val pathSegments = mutableListOf(folder.name)
-        var currentParentId = folder.parentId
-
-        while (currentParentId != null) {
-            val parent = folderMap[currentParentId] ?: break
-            pathSegments.add(0, parent.name)
-            currentParentId = parent.parentId
-        }
-
-        return pathSegments.joinToString("/")
     }
 }
 
