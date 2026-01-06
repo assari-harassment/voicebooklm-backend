@@ -6,15 +6,21 @@ import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.github.f4b6a3.uuid.UuidCreator
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
+import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Service
+import java.time.Instant
 import java.util.UUID
 
 /**
  * 開発用シードデータ作成ユースケース
  *
- * 認証済みユーザー用にテスト用のフォルダーとメモを作成する。
+ * seed-data.yml から定義を読み込み、認証済みユーザー用にテストデータを作成する。
  * 冪等性を持ち、既にデータが存在する場合はスキップする。
  */
 @Service
@@ -23,6 +29,10 @@ class DevSeedUseCase(
     private val folderRepository: FolderRepository,
     private val voiceMemoRepository: VoiceMemoRepository,
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    private val yamlMapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
+
     data class Output(
         val foldersCreated: Int,
         val memosCreated: Int,
@@ -42,196 +52,115 @@ class DevSeedUseCase(
             )
         }
 
+        // YAMLファイルからシードデータを読み込み
+        val seedData = loadSeedData()
+
         // フォルダー作成
-        val folders = createFolders(userId)
+        val folderMap = createFolders(userId, seedData.folders)
 
         // メモ作成
-        val memos = createMemos(userId, folders)
+        val memoCount = createMemos(userId, seedData.memos, folderMap)
 
         return Output(
-            foldersCreated = folders.size,
-            memosCreated = memos.size,
+            foldersCreated = folderMap.size,
+            memosCreated = memoCount,
             skipped = false,
-            message = "テストデータを作成しました",
+            message = "テストデータを作成しました（フォルダー: ${folderMap.size}件、メモ: ${memoCount}件）",
         )
     }
 
-    private suspend fun createFolders(userId: UUID): Map<String, Folder> {
-        val folders = mutableMapOf<String, Folder>()
-
-        // ルートフォルダー作成
-        val workFolder = folderRepository.save(
-            Folder.create(
-                id = UuidCreator.getTimeOrderedEpoch(),
-                userId = userId,
-                name = "仕事",
-                parentId = null,
-            )
-        )
-        folders["仕事"] = workFolder
-
-        val studyFolder = folderRepository.save(
-            Folder.create(
-                id = UuidCreator.getTimeOrderedEpoch(),
-                userId = userId,
-                name = "学習",
-                parentId = null,
-            )
-        )
-        folders["学習"] = studyFolder
-
-        val projectFolder = folderRepository.save(
-            Folder.create(
-                id = UuidCreator.getTimeOrderedEpoch(),
-                userId = userId,
-                name = "プロジェクト",
-                parentId = null,
-            )
-        )
-        folders["プロジェクト"] = projectFolder
-
-        // サブフォルダー作成
-        val meetingFolder = folderRepository.save(
-            Folder.create(
-                id = UuidCreator.getTimeOrderedEpoch(),
-                userId = userId,
-                name = "会議",
-                parentId = workFolder.id,
-            )
-        )
-        folders["仕事/会議"] = meetingFolder
-
-        val readingFolder = folderRepository.save(
-            Folder.create(
-                id = UuidCreator.getTimeOrderedEpoch(),
-                userId = userId,
-                name = "読書",
-                parentId = studyFolder.id,
-            )
-        )
-        folders["学習/読書"] = readingFolder
-
-        val appDevFolder = folderRepository.save(
-            Folder.create(
-                id = UuidCreator.getTimeOrderedEpoch(),
-                userId = userId,
-                name = "アプリ開発",
-                parentId = projectFolder.id,
-            )
-        )
-        folders["プロジェクト/アプリ開発"] = appDevFolder
-
-        return folders
+    private fun loadSeedData(): SeedData {
+        return try {
+            val resource = ClassPathResource("dev/seed-data.yml")
+            resource.inputStream.use { inputStream ->
+                yamlMapper.readValue(inputStream, SeedData::class.java)
+            }
+        } catch (e: Exception) {
+            logger.error("seed-data.yml の読み込みに失敗しました", e)
+            throw IllegalStateException("シードデータの読み込みに失敗しました: ${e.message}", e)
+        }
     }
 
-    private suspend fun createMemos(userId: UUID, folders: Map<String, Folder>): List<VoiceMemo> {
-        val memos = mutableListOf<VoiceMemo>()
+    /**
+     * フォルダーを再帰的に作成し、パス → Folder のマップを返す
+     */
+    private suspend fun createFolders(
+        userId: UUID,
+        seedFolders: List<SeedFolder>,
+        parentId: UUID? = null,
+        parentPath: String = "",
+    ): Map<String, Folder> {
+        val folderMap = mutableMapOf<String, Folder>()
 
-        // メモ1: プロジェクト会議の議事録 → 仕事/会議
-        val memo1 = VoiceMemo.restore(
-            id = UuidCreator.getTimeOrderedEpoch(),
-            userId = userId,
-            transcription = Transcription.completed(
-                text = "今日はプロジェクト会議。新機能のリリーススケジュールを確認。β版は12月15日。フィードバック期間は2週間。UI/UXチームからナビゲーション改善・ボタン配置・レスポンシブ強化の指摘。次回会議は12月20日予定。",
-                languageCode = "ja-JP",
-            ),
-            formatting = Formatting.completed(
-                title = "プロジェクト会議の議事録",
-                content = """## 会議概要
-本日のプロジェクト会議では、新機能のリリーススケジュールについて議論しました。
+        for (seedFolder in seedFolders) {
+            val folder = folderRepository.save(
+                Folder.create(
+                    id = UuidCreator.getTimeOrderedEpoch(),
+                    userId = userId,
+                    name = seedFolder.name,
+                    parentId = parentId,
+                )
+            )
 
-### 主な決定事項
-- **β版リリース日**: 2024年12月15日
-- **フィードバック収集期間**: 2週間
+            val path = if (parentPath.isEmpty()) seedFolder.name else "$parentPath/${seedFolder.name}"
+            folderMap[path] = folder
 
-### UI/UXチームからの報告
-ユーザビリティテストの結果が共有され、以下の改善が必要との指摘がありました：
-1. ナビゲーションの改善
-2. ボタン配置の最適化
-3. レスポンシブデザインの強化
+            // 子フォルダーを再帰的に作成
+            if (seedFolder.children.isNotEmpty()) {
+                val childFolders = createFolders(userId, seedFolder.children, folder.id, path)
+                folderMap.putAll(childFolders)
+            }
+        }
 
-> 次回会議は12月20日を予定しています。""",
-                tags = listOf("仕事", "ミーティング", "重要"),
-                folderId = folders["仕事/会議"]?.id,
-            ),
-            deleted = false,
-            createdAt = java.time.Instant.now().minusSeconds(86400 * 3),
-            updatedAt = java.time.Instant.now().minusSeconds(86400 * 3),
-        )
-        memos.add(voiceMemoRepository.save(memo1))
+        return folderMap
+    }
 
-        // メモ2: 読書メモ：デザイン思考 → 学習/読書
-        val memo2 = VoiceMemo.restore(
-            id = UuidCreator.getTimeOrderedEpoch(),
-            userId = userId,
-            transcription = Transcription.completed(
-                text = "デザイン思考について読書メモ。5ステップは共感、問題定義、アイデア創出、プロトタイプ、テスト。共感フェーズでユーザーの潜在ニーズを理解するのが重要。観察してインタビューして分析する流れ。",
-                languageCode = "ja-JP",
-            ),
-            formatting = Formatting.completed(
-                title = "読書メモ：デザイン思考",
-                content = """# デザイン思考の5つのステップ
+    /**
+     * メモを作成し、作成件数を返す
+     */
+    private suspend fun createMemos(
+        userId: UUID,
+        seedMemos: List<SeedMemo>,
+        folderMap: Map<String, Folder>,
+    ): Int {
+        var count = 0
+        val baseTime = Instant.now()
 
-デザイン思考のプロセスを通じて、**ユーザー中心の解決策**を見つけることができます。
+        for ((index, seedMemo) in seedMemos.withIndex()) {
+            // フォルダーパスからフォルダーIDを解決
+            val folderId = seedMemo.folder?.let { path ->
+                folderMap[path]?.id.also {
+                    if (it == null) {
+                        logger.warn("フォルダーが見つかりません: $path（メモ: ${seedMemo.title}）")
+                    }
+                }
+            }
 
-## プロセス
-1. **共感** - ユーザーの潜在的なニーズを理解する
-2. **問題定義** - 本質的な課題を明確にする
-3. **アイデア創出** - 多様な解決策を考える
-4. **プロトタイプ** - 具体的な形にする
-5. **テスト** - フィードバックを得る
+            // 作成日時をずらして順序を付ける
+            val createdAt = baseTime.minusSeconds((seedMemos.size - index) * 3600L)
 
-### ポイント
-特に*共感のフェーズ*では、ユーザーの潜在的なニーズを理解することが重要です。
+            val memo = VoiceMemo.restore(
+                id = UuidCreator.getTimeOrderedEpoch(),
+                userId = userId,
+                transcription = Transcription.completed(
+                    text = seedMemo.transcription.trim(),
+                    languageCode = "ja-JP",
+                ),
+                formatting = Formatting.completed(
+                    title = seedMemo.title,
+                    content = seedMemo.content.trim(),
+                    tags = seedMemo.tags,
+                    folderId = folderId,
+                ),
+                deleted = false,
+                createdAt = createdAt,
+                updatedAt = createdAt,
+            )
 
-```
-観察 → インタビュー → 分析
-```""",
-                tags = listOf("学習", "読書", "デザイン"),
-                folderId = folders["学習/読書"]?.id,
-            ),
-            deleted = false,
-            createdAt = java.time.Instant.now().minusSeconds(86400 * 2),
-            updatedAt = java.time.Instant.now().minusSeconds(86400 * 2),
-        )
-        memos.add(voiceMemoRepository.save(memo2))
+            voiceMemoRepository.save(memo)
+            count++
+        }
 
-        // メモ3: アプリアイデア：習慣トラッカー → プロジェクト/アプリ開発
-        val memo3 = VoiceMemo.restore(
-            id = UuidCreator.getTimeOrderedEpoch(),
-            userId = userId,
-            transcription = Transcription.completed(
-                text = "習慣トラッカーのアプリアイデア。毎日の習慣をチェックリスト管理、連続記録を可視化、モチベ維持の仕組み。NotionっぽいシンプルUIを想定。必要なUIはカレンダー、ストリーク表示、統計グラフ。",
-                languageCode = "ja-JP",
-            ),
-            formatting = Formatting.completed(
-                title = "アプリアイデア：習慣トラッカー",
-                content = """## コンセプト
-習慣を継続するためのシンプルなアプリ
-
-### 主な機能
-- 毎日の習慣をチェックリストで管理
-- 連続記録をビジュアル化
-- モチベーション維持のための仕組み
-
-### デザイン方針
-**Notion**のようなシンプルなインターフェース
-
-#### UI要素
-- カレンダービュー
-- ストリーク表示
-- 統計グラフ
-
-> シンプルで継続しやすいデザインを目指す""",
-                tags = listOf("アイデア", "開発", "アプリ"),
-                folderId = folders["プロジェクト/アプリ開発"]?.id,
-            ),
-            deleted = false,
-            createdAt = java.time.Instant.now().minusSeconds(86400),
-            updatedAt = java.time.Instant.now().minusSeconds(86400),
-        )
-        memos.add(voiceMemoRepository.save(memo3))
-
-        return memos
+        return count
     }
 }
