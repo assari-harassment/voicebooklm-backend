@@ -12,8 +12,12 @@ enum class ErrorCode(val httpStatus: HttpStatus, val defaultMessage: String) {
     INVALID_ID_TOKEN(HttpStatus.UNAUTHORIZED, "IDトークンの検証に失敗しました"),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "リフレッシュトークンが無効または期限切れです"),
 
+    // 認可失敗 (403)
+    UNAUTHORIZED_ACCESS(HttpStatus.FORBIDDEN, "このメモへのアクセス権限がありません"),
+
     // リソース未発見 (404)
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ユーザーが見つかりません"),
+    MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "メモが見つかりません"),
 
     // 処理失敗 (422)
     TRANSCRIPTION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "音声の文字起こしに失敗しました"),

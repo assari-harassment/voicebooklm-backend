@@ -1,6 +1,8 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
+import com.assari.voicebooklm.usecase.memo.DeleteMemoInput
+import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import io.swagger.v3.oas.annotations.Operation
@@ -12,18 +14,21 @@ import java.util.UUID
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * メモ一覧取得 API
+ * メモ API
  */
 @RestController
 @RequestMapping("/api")
-@Tag(name = "Memo", description = "メモ一覧 API")
+@Tag(name = "Memo", description = "メモ API")
 class MemoController(
     private val listMemosUseCase: ListMemosUseCase,
+    private val deleteMemoUseCase: DeleteMemoUseCase,
 ) {
     @GetMapping("/memos")
     @Operation(
@@ -48,5 +53,45 @@ class MemoController(
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         val result = listMemosUseCase.execute(ListMemosInput(userId))
         return ResponseEntity.ok(ListMemosResponse.from(result))
+    }
+
+    @DeleteMapping("/memos/{id}")
+    @Operation(
+        summary = "メモ削除",
+        description = "指定されたメモを削除します。",
+        responses = [
+            ApiResponse(
+                responseCode = "204",
+                description = "削除成功",
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証失敗",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "403",
+                description = "アクセス権限なし",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "メモが見つからない",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun deleteMemo(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userId: UUID?,
+    ): ResponseEntity<Void> {
+        // 認証チェック
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+
+        // ユースケース実行
+        deleteMemoUseCase.execute(DeleteMemoInput(id, userId))
+
+        // 204 No Content を返却
+        return ResponseEntity.noContent().build()
     }
 }
