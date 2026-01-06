@@ -124,9 +124,8 @@ class DevSeedUseCase(
         folderMap: Map<String, Folder>,
     ): Int {
         var count = 0
-        val baseTime = Instant.now()
 
-        for ((index, seedMemo) in seedMemos.withIndex()) {
+        for (seedMemo in seedMemos) {
             // フォルダーパスからフォルダーIDを解決
             val folderId = seedMemo.folder?.let { path ->
                 folderMap[path]?.id.also {
@@ -136,25 +135,18 @@ class DevSeedUseCase(
                 }
             }
 
-            // 作成日時をずらして順序を付ける
-            val createdAt = baseTime.minusSeconds((seedMemos.size - index) * 3600L)
-
-            val memo = VoiceMemo.restore(
+            // 新規作成 → 文字起こし完了 → 整形完了 の流れで作成
+            val memo = VoiceMemo.create(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 userId = userId,
-                transcription = Transcription.completed(
-                    text = seedMemo.transcription.trim(),
-                    languageCode = "ja-JP",
-                ),
-                formatting = Formatting.completed(
-                    title = seedMemo.title,
-                    content = seedMemo.content.trim(),
-                    tags = seedMemo.tags,
-                    folderId = folderId,
-                ),
-                deleted = false,
-                createdAt = createdAt,
-                updatedAt = createdAt,
+                languageCode = "ja-JP",
+            ).completeTranscription(
+                text = seedMemo.transcription.trim(),
+            ).completeFormatting(
+                title = seedMemo.title,
+                content = seedMemo.content.trim(),
+                tags = seedMemo.tags,
+                folderId = folderId,
             )
 
             voiceMemoRepository.save(memo)
