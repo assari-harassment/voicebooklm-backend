@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
+import com.assari.voicebooklm.usecase.memo.GetMemoOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.MemoWithFolder
 import java.time.Instant
@@ -66,3 +67,35 @@ data class FolderInfo(
     val name: String,
     val path: String,
 )
+
+/**
+ * メモ詳細レスポンス
+ */
+data class MemoDetailResponse(
+    val memoId: UUID,
+    val title: String?,
+    val content: String?,
+    val tags: List<String>,
+    val transcriptionText: String?,
+    val transcriptionStatus: String,
+    val formattingStatus: String,
+    val createdAt: Instant,
+    val updatedAt: Instant,
+) {
+    companion object {
+        fun from(result: GetMemoOutput): MemoDetailResponse {
+            val memo = result.memo
+            return MemoDetailResponse(
+                memoId = memo.id,
+                title = memo.title,
+                content = memo.content,
+                tags = memo.tags,
+                transcriptionText = memo.transcriptionText,
+                transcriptionStatus = memo.transcription.status.name,
+                formattingStatus = memo.formatting.status.name,
+                createdAt = memo.createdAt,
+                updatedAt = memo.updatedAt,
+            )
+        }
+    }
+}
