@@ -8,6 +8,7 @@ import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
+import com.assari.voicebooklm.usecase.memo.MemoWithFolder
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.mockk
@@ -52,11 +53,20 @@ class MemoControllerTest {
                 tags = listOf("t1"),
             )
         val pendingMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
-        coEvery { listMemosUseCase.execute(ListMemosInput(userId)) } returns ListMemosOutput(
-            memos = listOf(completedMemo, pendingMemo),
+        val input = ListMemosInput(
+            userId = userId,
+            folderId = null,
+            includeDescendants = false,
+            uncategorizedOnly = false,
+        )
+        coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
+            memos = listOf(
+                MemoWithFolder(memo = completedMemo, folder = null, folderPath = null),
+                MemoWithFolder(memo = pendingMemo, folder = null, folderPath = null),
+            ),
         )
 
-        val response = controller.listMemos(userId)
+        val response = controller.listMemos(userId, null, false, false)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -72,11 +82,17 @@ class MemoControllerTest {
     fun `メモが存在しない場合は空リストを返す`() = runBlocking {
         val userId = UUID.randomUUID()
         // ユースケースの戻り値が空配列のときのレスポンスを検証する。
-        coEvery { listMemosUseCase.execute(ListMemosInput(userId)) } returns ListMemosOutput(
+        val input = ListMemosInput(
+            userId = userId,
+            folderId = null,
+            includeDescendants = false,
+            uncategorizedOnly = false,
+        )
+        coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
             memos = emptyList(),
         )
 
-        val response = controller.listMemos(userId)
+        val response = controller.listMemos(userId, null, false, false)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -86,7 +102,7 @@ class MemoControllerTest {
     @Test
     fun `未認証は401`() = runBlocking {
         // 認証情報がない場合は Unauthorized を返す。
-        val response = controller.listMemos(null)
+        val response = controller.listMemos(null, null, false, false)
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
         assertNull(response.body)

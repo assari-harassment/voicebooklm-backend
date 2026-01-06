@@ -42,7 +42,7 @@ class GeminiAiMemoFormatter(
         .build()
 
     override suspend fun format(command: MemoFormatCommand): MemoFormatResult {
-        val request = GeminiRequest.fromTranscript(command.transcript)
+        val request = GeminiRequest.fromTranscript(command.transcript, command.existingFolderPaths)
 
         return runCatching {
             client.post()
@@ -72,6 +72,7 @@ class GeminiAiMemoFormatter(
             title = title,
             content = content,
             tags = emptyList(),
+            folderPath = null,
         )
     }
 }
@@ -80,12 +81,32 @@ data class GeminiRequest(
     val contents: List<Content>,
 ) {
     companion object {
-        fun fromTranscript(transcript: String): GeminiRequest {
+        fun fromTranscript(transcript: String, existingFolderPaths: List<String> = emptyList()): GeminiRequest {
+            val folderSection = if (existingFolderPaths.isNotEmpty()) {
+                val folderList = existingFolderPaths.joinToString("\n") { "  - $it" }
+                """
+                - 適切なフォルダー（以下から選択または新規作成、最大3階層）
+
+                【既存フォルダー】
+                $folderList
+                """.trimIndent()
+            } else {
+                "- 適切なフォルダー名を1〜3階層で作成（例: \"仕事/会議\"）※分類困難な場合は「未分類」"
+            }
+
             val prompt = """
                 次の文字起こしを要約し、Markdown のメモを生成してください。
                 - 30 文字以内のタイトル
                 - 文字起こしを構造化したMarkdown本文
                 - 2-4 個の日本語単語タグ
+                $folderSection
+
+                【出力形式】
+                タイトル: ...
+                フォルダー: ...
+                タグ: ...
+                ---
+                本文...
 
                 Transcript:
                 $transcript
@@ -120,16 +141,31 @@ data class GeminiResponse(
             title = "ボイスメモ",
             content = fallbackTranscript.ifBlank { "音声内容を取得できませんでした。" },
             tags = emptyList(),
+            folderPath = null,
         )
 
-        val title = text.lineSequence().firstOrNull().orEmpty().take(50).ifBlank { "ボイスメモ" }
+        val title = parseTitle(text)
         val tags = parseTags(text)
+        val folderPath = parseFolderPath(text)
 
         return MemoFormatResult(
             title = title,
             content = text,
             tags = tags,
+            folderPath = folderPath,
         )
+    }
+
+    private fun parseTitle(text: String): String {
+        val lines = text.lines()
+        val titleLine = lines.firstOrNull { it.contains("タイトル", ignoreCase = true) || it.startsWith("title", ignoreCase = true) }
+        val extracted = titleLine
+            ?.substringAfter(":")
+            ?.trim()
+            ?.take(50)
+            ?.ifBlank { null }
+
+        return extracted ?: text.lineSequence().firstOrNull().orEmpty().take(50).ifBlank { "ボイスメモ" }
     }
 
     private fun parseTags(text: String): List<String> {
@@ -145,6 +181,24 @@ data class GeminiResponse(
             .filter { it.isNotBlank() }
             .filterNot { it.equals("tags", ignoreCase = true) }
             .take(4)
+    }
+
+    private fun parseFolderPath(text: String): String? {
+        val lines = text.lines()
+        val folderLine = lines.firstOrNull {
+            it.contains("フォルダー", ignoreCase = true) || it.contains("folder", ignoreCase = true)
+        }
+        val folderPath = folderLine
+            ?.substringAfter(":")
+            ?.trim()
+            ?.ifBlank { null }
+
+        // 「未分類」または空の場合は null を返す
+        return if (folderPath.isNullOrBlank() || folderPath == "未分類" || folderPath == "null") {
+            null
+        } else {
+            folderPath
+        }
     }
 }
 

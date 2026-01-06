@@ -6,6 +6,7 @@ import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
@@ -33,7 +35,7 @@ class MemoController(
     @GetMapping("/memos")
     @Operation(
         summary = "メモ一覧取得",
-        description = "検索は未対応。認証ユーザーのメモを新しい順で取得する。",
+        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリングが可能。",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -49,9 +51,22 @@ class MemoController(
     )
     suspend fun listMemos(
         @AuthenticationPrincipal userId: UUID?,
+        @Parameter(description = "フォルダーIDでフィルタリング")
+        @RequestParam(required = false) folderId: UUID?,
+        @Parameter(description = "true の場合、子孫フォルダーのメモも含める")
+        @RequestParam(required = false, defaultValue = "false") includeDescendants: Boolean,
+        @Parameter(description = "true の場合、未分類メモのみ取得")
+        @RequestParam(required = false, defaultValue = "false") uncategorizedOnly: Boolean,
     ): ResponseEntity<ListMemosResponse> {
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val result = listMemosUseCase.execute(ListMemosInput(userId))
+        val result = listMemosUseCase.execute(
+            ListMemosInput(
+                userId = userId,
+                folderId = folderId,
+                includeDescendants = includeDescendants,
+                uncategorizedOnly = uncategorizedOnly,
+            )
+        )
         return ResponseEntity.ok(ListMemosResponse.from(result))
     }
 

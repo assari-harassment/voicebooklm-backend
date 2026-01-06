@@ -91,12 +91,14 @@ data class VoiceMemo(
         content: String,
         tags: List<String> = emptyList(),
         fallbackUsed: Boolean = false,
+        folderId: UUID? = null,
     ): VoiceMemo = copy(
         formatting = Formatting.completed(
             title = title,
             content = content,
             tags = tags,
             fallbackUsed = fallbackUsed,
+            folderId = folderId,
         ),
         updatedAt = Instant.now(),
     )
