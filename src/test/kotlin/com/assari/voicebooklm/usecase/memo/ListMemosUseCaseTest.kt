@@ -39,23 +39,3 @@ class ListMemosUseCaseTest {
         assertEquals(emptyList<VoiceMemo>(), result.memos)
     }
 }
-
-// インメモリで動作する VoiceMemoRepository のテストダブル。
-private class InMemoryVoiceMemoRepository(
-    initialMemos: List<VoiceMemo> = emptyList(),
-) : VoiceMemoRepository {
-    private val memos = initialMemos.toMutableList()
-
-    override suspend fun save(voiceMemo: VoiceMemo): VoiceMemo {
-        memos += voiceMemo
-        return voiceMemo
-    }
-
-    override suspend fun findById(id: UUID): VoiceMemo? = memos.find { it.id == id }
-
-    override suspend fun findByUserId(userId: UUID): List<VoiceMemo> = memos.filter { it.userId == userId }
-
-    override fun deleteByUserId(userId: UUID) {
-        memos.removeIf { it.userId == userId }
-    }
-}
