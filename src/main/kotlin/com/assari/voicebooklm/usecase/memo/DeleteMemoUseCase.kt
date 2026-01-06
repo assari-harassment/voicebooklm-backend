@@ -25,7 +25,7 @@ open class DeleteMemoUseCase(
      */
     @Transactional
     open suspend fun execute(input: DeleteMemoInput) {
-        // 1. メモを取得（deleted=false のもののみ）
+        // 1. メモを取得
         val memo = voiceMemoRepository.findById(input.memoId)
             ?: throw DomainException(ErrorCode.MEMO_NOT_FOUND)
 
