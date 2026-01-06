@@ -58,18 +58,21 @@ class FolderRepositoryImpl(
     }
 
     override suspend fun findDescendantIds(folderId: UUID): List<UUID> {
-        val descendants = mutableListOf<UUID>()
         val folder = folderJdbcRepository.findByIdOrNull(folderId)?.toDomain() ?: return emptyList()
 
-        fun collectDescendants(parentId: UUID) {
-            val children = folderJdbcRepository.findByUserIdAndParentId(folder.userId, parentId)
-            for (child in children) {
+        // 全フォルダーを一度取得してメモリ上で子孫を収集（N+1問題を回避）
+        val allFolders = folderJdbcRepository.findByUserId(folder.userId)
+        val foldersByParent = allFolders.groupBy { it.parentId }
+
+        val descendants = mutableListOf<UUID>()
+        fun collect(parentId: UUID) {
+            foldersByParent[parentId]?.forEach { child ->
                 descendants.add(child.id)
-                collectDescendants(child.id)
+                collect(child.id)
             }
         }
 
-        collectDescendants(folderId)
+        collect(folderId)
         return descendants
     }
 

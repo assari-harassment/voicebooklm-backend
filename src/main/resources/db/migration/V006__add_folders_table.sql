@@ -1,7 +1,6 @@
 -- V006: folders テーブル追加と memos.folder_id カラム追加
 --
 -- メモにフォルダー属性を追加し、AI整形時に自動的にフォルダー分類を行う機能の基盤
--- #44: memosにfolder属性追加
 
 -- ==============================================
 -- 1. folders テーブル作成
@@ -14,7 +13,7 @@ CREATE TABLE folders (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_folders_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_folders_parent_id FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_folders_parent_id FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE RESTRICT,
     CONSTRAINT folders_unique_name UNIQUE (user_id, parent_id, name)
 );
 
