@@ -41,6 +41,7 @@ class SecurityConfig(
                         "/actuator/health",
                         "/actuator/info",
                         "/api/auth/**", // 認証エンドポイント（ログイン、リフレッシュ、ログアウト）
+                        "/api/dev/token", // 開発用トークン取得（dev環境のみ有効）
                         "/swagger-ui.html", // Swagger UI
                         "/swagger-ui/**", // Swagger UI リソース
                         "/v3/api-docs/**", // OpenAPI 仕様

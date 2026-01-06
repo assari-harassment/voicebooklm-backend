@@ -1,7 +1,10 @@
 package com.assari.voicebooklm.presentation.controller.dev
 
+import com.assari.voicebooklm.domain.gateway.TokenProvider
+import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.usecase.dev.DevSeedUseCase
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -12,14 +15,14 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 /**
- * 開発用シードデータ API
+ * 開発用 API
  *
  * dev profile でのみ有効。
- * 認証済みユーザー用にテストデータを作成する。
  */
 @RestController
 @RequestMapping("/api/dev")
@@ -27,7 +30,49 @@ import java.util.UUID
 @Tag(name = "Dev", description = "開発用 API（dev 環境のみ有効）")
 class DevSeedController(
     private val devSeedUseCase: DevSeedUseCase,
+    private val userRepository: UserRepository,
+    private val tokenProvider: TokenProvider,
 ) {
+    @PostMapping("/token")
+    @Operation(
+        summary = "開発用トークン取得",
+        description = """
+            指定したメールアドレスのユーザーのアクセストークンを取得する。
+            OAuth不要で、Swagger UIからすぐにAPIテストができる。
+
+            **注意**: dev 環境でのみ有効。本番環境では使用不可。
+        """,
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "トークン取得成功",
+                content = [Content(schema = Schema(implementation = DevTokenResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "ユーザーが見つからない",
+            ),
+        ],
+    )
+    fun getToken(
+        @Parameter(description = "ユーザーのメールアドレス", required = true)
+        @RequestParam email: String,
+    ): ResponseEntity<DevTokenResponse> {
+        val user = userRepository.findByEmail(email)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+
+        val accessToken = tokenProvider.generateAccessToken(user.id, user.email)
+
+        return ResponseEntity.ok(
+            DevTokenResponse(
+                accessToken = accessToken,
+                userId = user.id.toString(),
+                email = user.email,
+                message = "Swagger UI の Authorize で「Bearer $accessToken」を設定してください",
+            )
+        )
+    }
+
     @PostMapping("/seed")
     @Operation(
         summary = "テストデータ作成",
@@ -66,6 +111,21 @@ class DevSeedController(
         )
     }
 }
+
+@Schema(description = "開発用トークン取得レスポンス")
+data class DevTokenResponse(
+    @Schema(description = "アクセストークン（JWT）")
+    val accessToken: String,
+
+    @Schema(description = "ユーザーID")
+    val userId: String,
+
+    @Schema(description = "メールアドレス")
+    val email: String,
+
+    @Schema(description = "使い方の説明")
+    val message: String,
+)
 
 @Schema(description = "開発用シードデータ作成レスポンス")
 data class DevSeedResponse(
