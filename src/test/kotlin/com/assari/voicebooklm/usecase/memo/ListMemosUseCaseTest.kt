@@ -3,7 +3,6 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -44,26 +43,6 @@ class ListMemosUseCaseTest {
         val result = useCase.execute(ListMemosInput(userId = UUID.randomUUID()))
 
         assertTrue(result.memos.isEmpty())
-    }
-}
-
-// インメモリで動作する VoiceMemoRepository のテストダブル。
-private class InMemoryVoiceMemoRepository(
-    initialMemos: List<VoiceMemo> = emptyList(),
-) : VoiceMemoRepository {
-    private val memos = initialMemos.toMutableList()
-
-    override suspend fun save(voiceMemo: VoiceMemo): VoiceMemo {
-        memos += voiceMemo
-        return voiceMemo
-    }
-
-    override suspend fun findById(id: UUID): VoiceMemo? = memos.find { it.id == id }
-
-    override suspend fun findByUserId(userId: UUID): List<VoiceMemo> = memos.filter { it.userId == userId }
-
-    override fun deleteByUserId(userId: UUID) {
-        memos.removeIf { it.userId == userId }
     }
 }
 
