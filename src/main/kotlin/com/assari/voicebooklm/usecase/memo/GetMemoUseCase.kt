@@ -28,22 +28,17 @@ open class GetMemoUseCase(
      */
     @Transactional(readOnly = true)
     open suspend fun execute(input: GetMemoInput): GetMemoOutput {
-        // 1. メモを取得
+        // 1. メモを取得（リポジトリで削除済みメモは除外される）
         val memo = voiceMemoRepository.findById(input.memoId)
             ?: throw DomainException(ErrorCode.MEMO_NOT_FOUND)
 
-        // 2. 削除済みチェック
-        if (memo.deleted) {
-            throw DomainException(ErrorCode.MEMO_NOT_FOUND)
-        }
-
-        // 3. 権限チェック（自分のメモかどうか）
+        // 2. 権限チェック（自分のメモかどうか）
         // メモの存在を推測されないよう、403ではなく404を返す
         if (memo.userId != input.userId) {
             throw DomainException(ErrorCode.MEMO_NOT_FOUND)
         }
 
-        // 4. 結果を返却
+        // 3. 結果を返却
         return GetMemoOutput(memo)
     }
 }

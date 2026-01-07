@@ -107,12 +107,12 @@ class MemoControllerTest {
     }
 
     @Test
-    fun `未認証は401`() = runBlocking {
-        // 認証情報がない場合は Unauthorized を返す。
-        val response = controller.listMemos(null, null, false, false)
+    fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(null, null, false, false)
+        }
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
-        assertNull(response.body)
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
     }
 
     // ===== getMemo エンドポイントのテスト =====
@@ -238,13 +238,14 @@ class MemoControllerTest {
     }
 
     @Test
-    fun `deleteMemo 未認証の場合は401が返る`() = runBlocking {
+    fun `deleteMemo 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val memoId = UUID.randomUUID()
 
-        val response = controller.deleteMemo(memoId, null)
+        val exception = assertThrows<ResponseStatusException> {
+            controller.deleteMemo(memoId, null)
+        }
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
-        assertNull(response.body)
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
     }
 
     @Test

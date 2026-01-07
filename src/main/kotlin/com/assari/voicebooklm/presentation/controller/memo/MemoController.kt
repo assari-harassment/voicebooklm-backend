@@ -62,7 +62,11 @@ class MemoController(
         @Parameter(description = "true の場合、未分類メモのみ取得")
         @RequestParam(required = false, defaultValue = "false") uncategorizedOnly: Boolean,
     ): ResponseEntity<ListMemosResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
         val result = listMemosUseCase.execute(
             ListMemosInput(
                 userId = userId,
@@ -77,7 +81,7 @@ class MemoController(
     @GetMapping("/memos/{id}")
     @Operation(
         summary = "メモ詳細取得",
-        description = "指定されたIDのメモの詳細情報を取得します。",
+        description = "指定されたIDのメモの詳細情報を取得します。セキュリティ上、権限のないメモも404として返します。",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -90,13 +94,8 @@ class MemoController(
                 content = [Content(schema = Schema(implementation = ErrorResponse::class))],
             ),
             ApiResponse(
-                responseCode = "403",
-                description = "アクセス権限なし",
-                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-            ),
-            ApiResponse(
                 responseCode = "404",
-                description = "メモが見つからない",
+                description = "メモが見つからない（存在しない、削除済み、または権限なし）",
                 content = [Content(schema = Schema(implementation = ErrorResponse::class))],
             ),
         ],
@@ -148,7 +147,9 @@ class MemoController(
         @AuthenticationPrincipal userId: UUID?,
     ): ResponseEntity<Void> {
         // 認証チェック
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
 
         // ユースケース実行
         deleteMemoUseCase.execute(DeleteMemoInput(id, userId))
