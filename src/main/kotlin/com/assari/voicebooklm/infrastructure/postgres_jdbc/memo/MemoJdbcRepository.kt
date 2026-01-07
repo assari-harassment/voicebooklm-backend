@@ -35,6 +35,21 @@ interface MemoJdbcRepository : CrudRepository<MemoEntity, UUID> {
     fun findActiveMemosByUser(@Param("userId") userId: UUID): List<MemoEntity>
 
     /**
+     * ユーザーの未削除メモをキーワード検索して作成日時の新しい順で取得
+     * タイトルまたはコンテントにキーワードが含まれるメモを返す（大文字小文字を区別しない）
+     */
+    @Query("""
+        SELECT * FROM memos
+        WHERE user_id = :userId AND deleted = false
+        AND (title ILIKE '%' || :keyword || '%' OR content ILIKE '%' || :keyword || '%')
+        ORDER BY created_at DESC
+    """)
+    fun findActiveMemosByUserWithKeyword(
+        @Param("userId") userId: UUID,
+        @Param("keyword") keyword: String
+    ): List<MemoEntity>
+
+    /**
      * ユーザーID に紐づくメモをすべて削除（物理削除）
      */
     @Modifying

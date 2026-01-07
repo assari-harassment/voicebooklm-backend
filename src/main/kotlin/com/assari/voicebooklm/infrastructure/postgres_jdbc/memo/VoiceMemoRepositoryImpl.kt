@@ -30,6 +30,9 @@ class VoiceMemoRepositoryImpl(
     override suspend fun findByUserId(userId: UUID): List<VoiceMemo> =
         memoJdbcRepository.findActiveMemosByUser(userId).map { it.toDomain() }
 
+    override suspend fun findByUserIdWithKeyword(userId: UUID, keyword: String): List<VoiceMemo> =
+        memoJdbcRepository.findActiveMemosByUserWithKeyword(userId, keyword).map { it.toDomain() }
+
     @Transactional
     override fun deleteByUserId(userId: UUID) {
         memoJdbcRepository.deleteByUserId(userId)

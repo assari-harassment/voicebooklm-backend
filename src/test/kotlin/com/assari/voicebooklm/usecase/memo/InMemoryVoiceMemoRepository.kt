@@ -29,6 +29,13 @@ internal class InMemoryVoiceMemoRepository(
     override suspend fun findByUserId(userId: UUID): List<VoiceMemo> =
         memos.filter { it.userId == userId && !it.deleted }
 
+    override suspend fun findByUserIdWithKeyword(userId: UUID, keyword: String): List<VoiceMemo> =
+        memos.filter { memo ->
+            memo.userId == userId && !memo.deleted &&
+                (memo.formatting.title?.contains(keyword, ignoreCase = true) == true ||
+                    memo.formatting.content?.contains(keyword, ignoreCase = true) == true)
+        }
+
     override fun deleteByUserId(userId: UUID) {
         memos.removeIf { it.userId == userId }
     }

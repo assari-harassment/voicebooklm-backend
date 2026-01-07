@@ -203,6 +203,13 @@ private class FakeVoiceMemoRepository : VoiceMemoRepository {
 
     override suspend fun findByUserId(userId: UUID): List<VoiceMemo> = savedMemos.filter { it.userId == userId }
 
+    override suspend fun findByUserIdWithKeyword(userId: UUID, keyword: String): List<VoiceMemo> =
+        savedMemos.filter { memo ->
+            memo.userId == userId &&
+                (memo.formatting.title?.contains(keyword, ignoreCase = true) == true ||
+                    memo.formatting.content?.contains(keyword, ignoreCase = true) == true)
+        }
+
     override fun deleteByUserId(userId: UUID) {
         savedMemos.removeIf { it.userId == userId }
     }

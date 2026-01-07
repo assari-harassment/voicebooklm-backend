@@ -45,7 +45,7 @@ class MemoController(
     @GetMapping("/memos")
     @Operation(
         summary = "メモ一覧取得",
-        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリングが可能。",
+        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリングやキーワード検索が可能。",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -67,6 +67,8 @@ class MemoController(
         @RequestParam(required = false, defaultValue = "false") includeDescendants: Boolean,
         @Parameter(description = "true の場合、未分類メモのみ取得")
         @RequestParam(required = false, defaultValue = "false") uncategorizedOnly: Boolean,
+        @Parameter(description = "キーワード検索（タイトルまたはコンテントに含まれるメモを検索）")
+        @RequestParam(required = false) keyword: String?,
     ): ResponseEntity<ListMemosResponse> {
         // 認証チェック
         if (userId == null) {
@@ -79,6 +81,7 @@ class MemoController(
                 folderId = folderId,
                 includeDescendants = includeDescendants,
                 uncategorizedOnly = uncategorizedOnly,
+                keyword = keyword,
             )
         )
         return ResponseEntity.ok(ListMemosResponse.from(result))

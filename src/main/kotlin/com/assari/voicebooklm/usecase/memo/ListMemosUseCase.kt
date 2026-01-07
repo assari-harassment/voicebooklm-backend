@@ -20,8 +20,12 @@ open class ListMemosUseCase(
     // 読み取り専用の一覧取得処理
     @Transactional(readOnly = true)
     open suspend fun execute(input: ListMemosInput): ListMemosOutput {
-        // 1. メモ一覧を取得
-        var memos = voiceMemoRepository.findByUserId(input.userId)
+        // 1. メモ一覧を取得（キーワード検索が指定されている場合はキーワードで絞り込む）
+        var memos = if (!input.keyword.isNullOrBlank()) {
+            voiceMemoRepository.findByUserIdWithKeyword(input.userId, input.keyword)
+        } else {
+            voiceMemoRepository.findByUserId(input.userId)
+        }
 
         // 2. フォルダーフィルタリング
         memos = when {
@@ -67,6 +71,8 @@ data class ListMemosInput(
     val includeDescendants: Boolean = false,
     /** true の場合、未分類メモのみ取得 */
     val uncategorizedOnly: Boolean = false,
+    /** キーワード検索（null または空の場合は全件） */
+    val keyword: String? = null,
 )
 
 /**
