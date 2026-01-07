@@ -71,6 +71,7 @@ class MemoControllerTest {
             folderId = null,
             includeDescendants = false,
             uncategorizedOnly = false,
+            keyword = null,
         )
         coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
             memos = listOf(
@@ -79,7 +80,7 @@ class MemoControllerTest {
             ),
         )
 
-        val response = controller.listMemos(userId, null, false, false)
+        val response = controller.listMemos(userId, null, false, false, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -100,12 +101,13 @@ class MemoControllerTest {
             folderId = null,
             includeDescendants = false,
             uncategorizedOnly = false,
+            keyword = null,
         )
         coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
             memos = emptyList(),
         )
 
-        val response = controller.listMemos(userId, null, false, false)
+        val response = controller.listMemos(userId, null, false, false, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -115,7 +117,7 @@ class MemoControllerTest {
     @Test
     fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(null, null, false, false)
+            controller.listMemos(null, null, false, false, null)
         }
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
@@ -306,8 +308,6 @@ class MemoControllerTest {
             title = "更新後タイトル",
             content = null,
             tags = null,
-            folderId = null,
-            removeFolder = false,
         )
 
         coEvery {
@@ -318,8 +318,6 @@ class MemoControllerTest {
                     title = "更新後タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } returns UpdateMemoOutput(updatedMemo)
@@ -360,8 +358,6 @@ class MemoControllerTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
@@ -387,8 +383,6 @@ class MemoControllerTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_COMPLETED)
@@ -414,8 +408,6 @@ class MemoControllerTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
