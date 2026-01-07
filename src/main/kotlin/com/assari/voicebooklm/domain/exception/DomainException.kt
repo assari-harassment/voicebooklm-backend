@@ -23,6 +23,7 @@ enum class ErrorCode(val httpStatus: HttpStatus, val defaultMessage: String) {
     // 競合 (409)
     FOLDER_ALREADY_EXISTS(HttpStatus.CONFLICT, "同じ名前のフォルダーが既に存在します"),
     FOLDER_HAS_CHILDREN(HttpStatus.CONFLICT, "子フォルダーが存在するため削除できません"),
+    FOLDER_HAS_MEMOS(HttpStatus.CONFLICT, "フォルダー内にメモが存在するため削除できません"),
     FOLDER_CIRCULAR_REFERENCE(HttpStatus.CONFLICT, "循環参照が発生するため移動できません"),
 
     // 処理失敗 (422)

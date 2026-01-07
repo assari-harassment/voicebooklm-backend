@@ -40,4 +40,22 @@ interface MemoJdbcRepository : CrudRepository<MemoEntity, UUID> {
     @Modifying
     @Query("DELETE FROM memos WHERE user_id = :userId")
     fun deleteByUserId(@Param("userId") userId: UUID)
+
+    /**
+     * 指定フォルダー内にメモが存在するかチェック
+     *
+     * @param userId ユーザーID
+     * @param folderId フォルダーID
+     * @return メモが存在する場合true
+     */
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM memos
+            WHERE user_id = :userId AND folder_id = :folderId AND deleted = false
+        )
+    """)
+    fun existsByUserIdAndFolderId(
+        @Param("userId") userId: UUID,
+        @Param("folderId") folderId: UUID,
+    ): Boolean
 }

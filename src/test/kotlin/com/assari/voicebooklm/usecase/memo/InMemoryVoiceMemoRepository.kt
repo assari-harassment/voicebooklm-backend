@@ -33,6 +33,9 @@ internal class InMemoryVoiceMemoRepository(
         memos.removeIf { it.userId == userId }
     }
 
+    override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
+        memos.any { it.userId == userId && it.formatting.folderId == folderId && !it.deleted }
+
     /**
      * テスト用：削除済みメモも含めて取得するメソッド
      */
