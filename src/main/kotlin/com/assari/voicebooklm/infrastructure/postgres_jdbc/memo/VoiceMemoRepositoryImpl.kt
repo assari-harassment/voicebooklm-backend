@@ -18,7 +18,8 @@ class VoiceMemoRepositoryImpl(
 ) : VoiceMemoRepository {
 
     override suspend fun save(voiceMemo: VoiceMemo): VoiceMemo {
-        val entity = MemoEntity.fromDomain(voiceMemo)
+        val existing = memoJdbcRepository.findActiveMemoById(voiceMemo.id)
+        val entity = MemoEntity.fromDomain(voiceMemo, version = existing?.version)
         val saved = memoJdbcRepository.save(entity)
         return saved.toDomain()
     }

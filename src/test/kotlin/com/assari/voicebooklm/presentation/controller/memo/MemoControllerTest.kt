@@ -12,6 +12,9 @@ import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import com.assari.voicebooklm.usecase.memo.MemoWithFolder
+import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
+import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
+import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.mockk
@@ -33,6 +36,7 @@ class MemoControllerTest {
 
     private lateinit var listMemosUseCase: ListMemosUseCase
     private lateinit var getMemoUseCase: GetMemoUseCase
+    private lateinit var updateMemoUseCase: UpdateMemoUseCase
     private lateinit var deleteMemoUseCase: DeleteMemoUseCase
     private lateinit var controller: MemoController
 
@@ -40,10 +44,12 @@ class MemoControllerTest {
     fun setup() {
         listMemosUseCase = mockk()
         getMemoUseCase = mockk()
+        updateMemoUseCase = mockk()
         deleteMemoUseCase = mockk()
         controller = MemoController(
             listMemosUseCase = listMemosUseCase,
             getMemoUseCase = getMemoUseCase,
+            updateMemoUseCase = updateMemoUseCase,
             deleteMemoUseCase = deleteMemoUseCase,
         )
     }
@@ -275,6 +281,147 @@ class MemoControllerTest {
 
         val exception = assertThrows<DomainException> {
             controller.deleteMemo(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    // ===== updateMemo エンドポイントのテスト =====
+
+    @Test
+    fun `認証済みユーザーが自分のメモを更新すると更新されたメモが返る`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val updatedMemo = VoiceMemo.create(id = memoId, userId = userId)
+            .startTranscription()
+            .completeTranscription("transcription text")
+            .startFormatting()
+            .completeFormatting(
+                title = "更新後タイトル",
+                content = "更新後本文",
+                tags = listOf("new1", "new2"),
+            )
+
+        val request = UpdateMemoRequest(
+            title = "更新後タイトル",
+            content = null,
+            tags = null,
+            folderId = null,
+            removeFolder = false,
+        )
+
+        coEvery {
+            updateMemoUseCase.execute(
+                UpdateMemoInput(
+                    memoId = memoId,
+                    userId = userId,
+                    title = "更新後タイトル",
+                    content = null,
+                    tags = null,
+                    folderId = null,
+                    removeFolder = false,
+                )
+            )
+        } returns UpdateMemoOutput(updatedMemo)
+
+        val response = controller.updateMemo(memoId, userId, request)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        val body = requireNotNull(response.body) { "response body should not be null" }
+        assertEquals(memoId, body.memoId)
+        assertEquals("更新後タイトル", body.title)
+        assertEquals("更新後本文", body.content)
+        assertEquals(listOf("new1", "new2"), body.tags)
+    }
+
+    @Test
+    fun `updateMemo 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
+        val memoId = UUID.randomUUID()
+        val request = UpdateMemoRequest(title = "新タイトル")
+
+        val exception = assertThrows<ResponseStatusException> {
+            controller.updateMemo(memoId, null, request)
+        }
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
+    }
+
+    @Test
+    fun `updateMemo 他人のメモを更新しようとするとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val request = UpdateMemoRequest(title = "新タイトル")
+
+        coEvery {
+            updateMemoUseCase.execute(
+                UpdateMemoInput(
+                    memoId = memoId,
+                    userId = userId,
+                    title = "新タイトル",
+                    content = null,
+                    tags = null,
+                    folderId = null,
+                    removeFolder = false,
+                )
+            )
+        } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.updateMemo(memoId, userId, request)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    @Test
+    fun `updateMemo 整形未完了のメモを更新しようとするとMEMO_NOT_COMPLETED例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val request = UpdateMemoRequest(title = "新タイトル")
+
+        coEvery {
+            updateMemoUseCase.execute(
+                UpdateMemoInput(
+                    memoId = memoId,
+                    userId = userId,
+                    title = "新タイトル",
+                    content = null,
+                    tags = null,
+                    folderId = null,
+                    removeFolder = false,
+                )
+            )
+        } throws DomainException(ErrorCode.MEMO_NOT_COMPLETED)
+
+        val exception = assertThrows<DomainException> {
+            controller.updateMemo(memoId, userId, request)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_COMPLETED, exception.code)
+    }
+
+    @Test
+    fun `updateMemo 存在しないメモIDを指定するとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val request = UpdateMemoRequest(title = "新タイトル")
+
+        coEvery {
+            updateMemoUseCase.execute(
+                UpdateMemoInput(
+                    memoId = memoId,
+                    userId = userId,
+                    title = "新タイトル",
+                    content = null,
+                    tags = null,
+                    folderId = null,
+                    removeFolder = false,
+                )
+            )
+        } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.updateMemo(memoId, userId, request)
         }
 
         assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
