@@ -45,35 +45,6 @@ git submodule update --remote
 - Docker Compose（開発環境用）
 - Testcontainers（テスト用 PostgreSQL）
 
-### 主要な依存関係
-
-**Spring Boot**
-- Web（REST API）
-- WebFlux（AI API との非同期通信）
-- Data JPA（データベース）
-- Security（認証・認可）
-- Actuator（モニタリング）
-- DevTools（開発環境でのホットリロード）
-
-**React Native 連携**
-- Swagger/OpenAPI（API ドキュメント自動生成）
-- CORS 設定（iOS/Android からのアクセス許可）
-- TypeScript 型定義の生成が可能
-
-**認証**
-- JWT (io.jsonwebtoken:jjwt)
-
-**Kotlin**
-- Coroutines（非同期処理）
-- Jackson（JSON シリアライゼーション）
-
-**テスト**
-- Spring Boot Test
-- Spring Security Test
-- MockK
-- Coroutines Test
-- Testcontainers（PostgreSQL を使った統合テスト）
-
 ## チーム開発について
 
 ### 言語設定
@@ -85,12 +56,6 @@ git submodule update --remote
 ## テストについて
 
 このプロジェクトでは **Testcontainers** を使用して、テストも PostgreSQL で実行します。
-
-### Testcontainers の利点
-
-- **環境の一貫性**: 開発・テスト・本番すべて PostgreSQL
-- **本番と同じ挙動**: SQL、型、制約が完全に一致
-- **早期バグ発見**: 環境差異によるバグを防止
 
 ### テストの実行
 
@@ -104,24 +69,6 @@ git submodule update --remote
 # テストレポートの確認
 open build/reports/tests/test/index.html
 ```
-
-### テストの書き方
-
-`AbstractIntegrationTest` を継承することで、Testcontainers が自動的に設定されます：
-
-```kotlin
-class UserRepositoryTest : AbstractIntegrationTest() {
-    @Autowired
-    lateinit var userRepository: UserRepository
-
-    @Test
-    fun testSaveUser() {
-        // PostgreSQL コンテナが自動的に起動してテストが実行される
-    }
-}
-```
-
-詳細なトラブルシューティングについては [GETTING_STARTED.md](GETTING_STARTED.md) を参照してください。
 
 ## React Native 連携
 
@@ -142,30 +89,10 @@ React Native からのアクセスは自動的に許可されます：
 - **開発環境**: `localhost:*`, `192.168.*.*:*`（実機テスト用）
 - **本番環境**: `https://*.example.com`（実際のドメインに変更）
 
-## 開発ガイドライン
-
-チーム開発プロジェクトです。コーディング規約とコントリビューションガイドラインに従ってください。
-
-## Claude Code / AI アシスタント
-
-このプロジェクトは Claude Code での開発を想定しています。
-
-### セットアップ
-
-```bash
-# Serena（コード解析）を使うには uvx が必要
-pip install uv
-```
-
-### 利用可能な機能
-
-| 機能 | 説明 |
-|-----|------|
-| **Serena** | コードのシンボル解析・リファクタリング支援 |
-| **Context7** | 最新のライブラリドキュメント取得 |
-| **sequential-thinking** | 複雑な問題の思考整理 |
-| **/commit** | 日本語コミットメッセージ自動生成 |
-
 ### ドキュメント参照
 
-`docs/` に仕様書・設計書があります。Claude Code は自動的にこれらを参照します。
+`docs/` に仕様書・設計書があります。git submodule管理しています。
+
+### 各自のユーザーidのテストデータの追加
+
+[src/main/resources/dev/README.md](src/main/resources/dev/README.md)

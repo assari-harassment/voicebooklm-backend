@@ -7,6 +7,7 @@ import com.assari.voicebooklm.domain.model.TranscriptionStatus
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import org.slf4j.LoggerFactory
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.MappedCollection
 import org.springframework.data.relational.core.mapping.Table
@@ -55,6 +56,9 @@ data class MemoEntity(
     val updatedAt: Instant,
 
     val deleted: Boolean,
+
+    @Version
+    val version: Long = 0,
 
     @Column("folder_id")
     val folderId: UUID? = null,
@@ -140,6 +144,7 @@ data class MemoEntity(
                 title = voiceMemo.formatting.title,
                 content = voiceMemo.formatting.content,
                 deleted = voiceMemo.deleted,
+                version = 0, // 新規エンティティは version = 0 で INSERT される
                 folderId = voiceMemo.formatting.folderId,
                 tags = voiceMemo.formatting.tags.map { MemoTag.create(it) }.toSet(),
                 createdAt = voiceMemo.createdAt,
