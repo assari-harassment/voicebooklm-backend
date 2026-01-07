@@ -172,8 +172,6 @@ class MemoController(
                 title = request.title,
                 content = request.content,
                 tags = request.tags,
-                folderId = request.folderId,
-                removeFolder = request.removeFolder,
             )
         )
 

@@ -3,7 +3,6 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,19 +13,18 @@ import java.util.UUID
  *
  * 指定されたメモの部分更新を行う（PATCH）。
  * 整形完了済みのメモのみ更新可能。
- * タイトル、本文、タグ、フォルダーを個別または組み合わせて更新できる。
+ * タイトル、本文、タグを個別または組み合わせて更新できる。
  */
 @Service
 open class UpdateMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
-    private val folderRepository: FolderRepository,
 ) {
     /**
      * メモを更新する
      *
      * @param input メモ更新Input
      * @return 更新後のメモ
-     * @throws DomainException メモが見つからない、権限がない、整形未完了、またはフォルダーが存在しない場合
+     * @throws DomainException メモが見つからない、権限がない、または整形未完了の場合
      */
     @Transactional
     open suspend fun execute(input: UpdateMemoInput): UpdateMemoOutput {
@@ -63,29 +61,6 @@ open class UpdateMemoUseCase(
             updated = updated.changeTags(input.tags)
         }
 
-        // フォルダー更新
-        if (input.removeFolder) {
-            // フォルダー解除
-            updated = updated.copy(
-                formatting = updated.formatting.copy(folderId = null),
-                updatedAt = java.time.Instant.now(),
-            )
-        } else if (input.folderId != null) {
-            // フォルダー設定
-            // フォルダーの存在と所有者確認
-            val folder = folderRepository.findById(input.folderId)
-                ?: throw DomainException(ErrorCode.FOLDER_NOT_FOUND)
-
-            if (folder.userId != input.userId) {
-                throw DomainException(ErrorCode.FOLDER_NOT_FOUND)
-            }
-
-            updated = updated.copy(
-                formatting = updated.formatting.copy(folderId = input.folderId),
-                updatedAt = java.time.Instant.now(),
-            )
-        }
-
         // 5. 永続化
         val savedMemo = voiceMemoRepository.save(updated)
 
@@ -103,8 +78,6 @@ data class UpdateMemoInput(
     val title: String?,
     val content: String?,
     val tags: List<String>?,
-    val folderId: UUID?,
-    val removeFolder: Boolean,
 )
 
 /**
