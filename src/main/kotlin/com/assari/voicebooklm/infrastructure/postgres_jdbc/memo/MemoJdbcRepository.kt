@@ -52,7 +52,6 @@ interface MemoJdbcRepository : CrudRepository<MemoEntity, UUID> {
         SELECT EXISTS(
             SELECT 1 FROM memos
             WHERE user_id = :userId AND folder_id = :folderId AND deleted = false
-            LIMIT 1
         )
     """)
     fun existsByUserIdAndFolderId(
