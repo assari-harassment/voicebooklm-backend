@@ -26,4 +26,13 @@ interface VoiceMemoRepository {
      * ユーザーID に紐づくすべての VoiceMemo を削除する（アカウント削除用）
      */
     fun deleteByUserId(userId: UUID)
+
+    /**
+     * 指定フォルダー内のメモが存在するかチェックする
+     *
+     * @param userId ユーザーID
+     * @param folderId フォルダーID
+     * @return メモが存在する場合true
+     */
+    suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean
 }

@@ -34,4 +34,7 @@ class VoiceMemoRepositoryImpl(
     override fun deleteByUserId(userId: UUID) {
         memoJdbcRepository.deleteByUserId(userId)
     }
+
+    override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
+        memoJdbcRepository.existsByUserIdAndFolderId(userId, folderId)
 }

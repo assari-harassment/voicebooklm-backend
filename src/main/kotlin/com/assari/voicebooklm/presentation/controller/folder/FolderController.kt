@@ -3,6 +3,8 @@ package com.assari.voicebooklm.presentation.controller.folder
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.folder.CreateFolderInput
 import com.assari.voicebooklm.usecase.folder.CreateFolderUseCase
+import com.assari.voicebooklm.usecase.folder.DeleteFolderInput
+import com.assari.voicebooklm.usecase.folder.DeleteFolderUseCase
 import com.assari.voicebooklm.usecase.folder.ListFoldersInput
 import com.assari.voicebooklm.usecase.folder.ListFoldersUseCase
 import com.assari.voicebooklm.usecase.folder.UpdateFolderInput
@@ -17,6 +19,7 @@ import java.util.UUID
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -35,6 +38,7 @@ class FolderController(
     private val listFoldersUseCase: ListFoldersUseCase,
     private val createFolderUseCase: CreateFolderUseCase,
     private val updateFolderUseCase: UpdateFolderUseCase,
+    private val deleteFolderUseCase: DeleteFolderUseCase,
 ) {
     @GetMapping("/folders")
     @Operation(
@@ -146,5 +150,37 @@ class FolderController(
             )
         )
         return ResponseEntity.ok(FolderResponse.from(result.folder, result.path))
+    }
+
+    @DeleteMapping("/folders/{id}")
+    @Operation(
+        summary = "フォルダー削除",
+        description = "フォルダーを削除する。子フォルダーまたはメモが存在する場合は削除できない。",
+        responses = [
+            ApiResponse(responseCode = "204", description = "削除成功"),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証エラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "フォルダーが見つからない",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+            ApiResponse(
+                responseCode = "409",
+                description = "子フォルダーまたはメモが存在するため削除できない",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))]
+            ),
+        ],
+    )
+    suspend fun deleteFolder(
+        @AuthenticationPrincipal userId: UUID?,
+        @PathVariable id: UUID,
+    ): ResponseEntity<Void> {
+        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        deleteFolderUseCase.execute(DeleteFolderInput(userId = userId, folderId = id))
+        return ResponseEntity.noContent().build()
     }
 }
