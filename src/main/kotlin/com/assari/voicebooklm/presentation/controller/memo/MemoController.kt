@@ -3,6 +3,8 @@ package com.assari.voicebooklm.presentation.controller.memo
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.DeleteMemoInput
 import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
+import com.assari.voicebooklm.usecase.memo.GetMemoInput
+import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import io.swagger.v3.oas.annotations.Operation
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 /**
  * メモ API
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Memo", description = "メモ API")
 class MemoController(
     private val listMemosUseCase: ListMemosUseCase,
+    private val getMemoUseCase: GetMemoUseCase,
     private val deleteMemoUseCase: DeleteMemoUseCase,
 ) {
     @GetMapping("/memos")
@@ -58,7 +62,11 @@ class MemoController(
         @Parameter(description = "true の場合、未分類メモのみ取得")
         @RequestParam(required = false, defaultValue = "false") uncategorizedOnly: Boolean,
     ): ResponseEntity<ListMemosResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
         val result = listMemosUseCase.execute(
             ListMemosInput(
                 userId = userId,
@@ -68,6 +76,44 @@ class MemoController(
             )
         )
         return ResponseEntity.ok(ListMemosResponse.from(result))
+    }
+
+    @GetMapping("/memos/{id}")
+    @Operation(
+        summary = "メモ詳細取得",
+        description = "指定されたIDのメモの詳細情報を取得します。セキュリティ上、権限のないメモも404として返します。",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "取得成功",
+                content = [Content(schema = Schema(implementation = MemoDetailResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証失敗",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "メモが見つからない（存在しない、削除済み、または権限なし）",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun getMemo(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userId: UUID?,
+    ): ResponseEntity<MemoDetailResponse> {
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
+        // ユースケース実行
+        val result = getMemoUseCase.execute(GetMemoInput(id, userId))
+
+        // レスポンス返却
+        return ResponseEntity.ok(MemoDetailResponse.from(result))
     }
 
     @DeleteMapping("/memos/{id}")
@@ -101,7 +147,9 @@ class MemoController(
         @AuthenticationPrincipal userId: UUID?,
     ): ResponseEntity<Void> {
         // 認証チェック
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
 
         // ユースケース実行
         deleteMemoUseCase.execute(DeleteMemoInput(id, userId))

@@ -5,6 +5,9 @@ import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.usecase.memo.DeleteMemoInput
 import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
+import com.assari.voicebooklm.usecase.memo.GetMemoInput
+import com.assari.voicebooklm.usecase.memo.GetMemoOutput
+import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
@@ -21,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 
 /**
  * MemoController の一覧取得と認証判定を直接呼び出しで検証。
@@ -28,15 +32,18 @@ import org.springframework.http.HttpStatus
 class MemoControllerTest {
 
     private lateinit var listMemosUseCase: ListMemosUseCase
+    private lateinit var getMemoUseCase: GetMemoUseCase
     private lateinit var deleteMemoUseCase: DeleteMemoUseCase
     private lateinit var controller: MemoController
 
     @BeforeEach
     fun setup() {
         listMemosUseCase = mockk()
+        getMemoUseCase = mockk()
         deleteMemoUseCase = mockk()
         controller = MemoController(
             listMemosUseCase = listMemosUseCase,
+            getMemoUseCase = getMemoUseCase,
             deleteMemoUseCase = deleteMemoUseCase,
         )
     }
@@ -100,12 +107,119 @@ class MemoControllerTest {
     }
 
     @Test
-    fun `未認証は401`() = runBlocking {
-        // 認証情報がない場合は Unauthorized を返す。
-        val response = controller.listMemos(null, null, false, false)
+    fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(null, null, false, false)
+        }
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
-        assertNull(response.body)
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
+    }
+
+    // ===== getMemo エンドポイントのテスト =====
+
+    @Test
+    fun `認証済みユーザーが自分のメモ詳細を取得すると200が返る`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val memo = VoiceMemo.create(id = memoId, userId = userId)
+            .completeTranscription("transcription text")
+            .completeFormatting(
+                title = "テストタイトル",
+                content = "テスト本文",
+                tags = listOf("tag1", "tag2"),
+            )
+
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo)
+
+        val response = controller.getMemo(memoId, userId)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        val body = requireNotNull(response.body) { "response body should not be null" }
+        assertEquals(memoId, body.memoId)
+        assertEquals("テストタイトル", body.title)
+        assertEquals("テスト本文", body.content)
+        assertEquals(listOf("tag1", "tag2"), body.tags)
+        assertEquals("transcription text", body.transcriptionText)
+        assertEquals("COMPLETED", body.transcriptionStatus)
+        assertEquals("COMPLETED", body.formattingStatus)
+    }
+
+    @Test
+    fun `getMemo 整形未完了のメモを取得するとnullのフィールドが含まれる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val memo = VoiceMemo.create(id = memoId, userId = userId)
+
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo)
+
+        val response = controller.getMemo(memoId, userId)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        val body = requireNotNull(response.body) { "response body should not be null" }
+        assertEquals(memoId, body.memoId)
+        assertNull(body.title)
+        assertNull(body.content)
+        assertTrue(body.tags.isEmpty())
+        assertNull(body.transcriptionText)
+        assertEquals("PENDING", body.transcriptionStatus)
+        assertEquals("PENDING", body.formattingStatus)
+    }
+
+    @Test
+    fun `getMemo 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
+        val memoId = UUID.randomUUID()
+
+        val exception = assertThrows<ResponseStatusException> {
+            controller.getMemo(memoId, null)
+        }
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
+    }
+
+    @Test
+    fun `getMemo 他人のメモを取得しようとするとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        // メモの存在を推測されないよう、403ではなく404を返す
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } throws
+            DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.getMemo(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    @Test
+    fun `getMemo 存在しないメモIDを指定するとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } throws
+            DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.getMemo(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    @Test
+    fun `getMemo 削除済みのメモを取得しようとするとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } throws
+            DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.getMemo(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
     }
 
     // ===== deleteMemo エンドポイントのテスト =====
@@ -124,13 +238,14 @@ class MemoControllerTest {
     }
 
     @Test
-    fun `deleteMemo 未認証の場合は401が返る`() = runBlocking {
+    fun `deleteMemo 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val memoId = UUID.randomUUID()
 
-        val response = controller.deleteMemo(memoId, null)
+        val exception = assertThrows<ResponseStatusException> {
+            controller.deleteMemo(memoId, null)
+        }
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
-        assertNull(response.body)
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
     }
 
     @Test
