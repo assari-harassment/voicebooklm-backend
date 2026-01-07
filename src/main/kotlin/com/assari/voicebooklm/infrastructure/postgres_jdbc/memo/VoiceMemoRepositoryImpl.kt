@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.infrastructure.postgres_jdbc.memo
 
+import com.assari.voicebooklm.domain.model.TagUsage
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Repository
@@ -32,5 +33,17 @@ class VoiceMemoRepositoryImpl(
     @Transactional
     override fun deleteByUserId(userId: UUID) {
         memoJdbcRepository.deleteByUserId(userId)
+    }
+
+    override suspend fun findTagsWithCountByUserId(userId: UUID): List<TagUsage> {
+        val results = memoJdbcRepository.findTagsWithCountByUserId(userId)
+        return results.map { projection ->
+            // 名前ベースでアクセス（SQLクエリの`AS tagname`と`AS tagcount`に対応）
+            // ドメインモデルにマッピング（バリデーションはドメインモデルのinitで実行される）
+            TagUsage(
+                name = projection.tagname,
+                count = projection.tagcount.toInt(),
+            )
+        }
     }
 }

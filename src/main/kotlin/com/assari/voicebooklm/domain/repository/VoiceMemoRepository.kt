@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.domain.repository
 
+import com.assari.voicebooklm.domain.model.TagUsage
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import java.util.UUID
 
@@ -31,7 +32,7 @@ interface VoiceMemoRepository {
      * ユーザーが所有するメモのタグ一覧を取得する（使用回数を含む、削除済みメモを除く）
      *
      * @param userId ユーザーID
-     * @return タグ名と使用回数のペアリスト（使用回数降順→タグ名昇順でソート済み）
+     * @return タグ使用状況のリスト（使用回数降順→タグ名昇順でソート済み）
      */
-    suspend fun findTagsWithCountByUserId(userId: UUID): List<Pair<String, Int>>
+    suspend fun findTagsWithCountByUserId(userId: UUID): List<TagUsage>
 }

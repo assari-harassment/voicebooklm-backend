@@ -1,6 +1,5 @@
 package com.assari.voicebooklm.presentation.controller.tag
 
-import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.GetTagsInput
 import com.assari.voicebooklm.usecase.memo.GetTagsUseCase
@@ -25,9 +24,8 @@ import java.util.UUID
 @RequestMapping("/api/tags")
 @Tag(name = "Tags", description = "タグ関連 API")
 class TagController(
-    private val voiceMemoRepository: VoiceMemoRepository,
+    private val getTagsUseCase: GetTagsUseCase,
 ) {
-    private val getTagsUseCase = GetTagsUseCase(voiceMemoRepository)
 
     /**
      * タグ一覧取得
@@ -51,14 +49,13 @@ class TagController(
     suspend fun getTags(
         @AuthenticationPrincipal userId: UUID?
     ): ResponseEntity<TagResponse> {
+        // 防御的プログラミング: SecurityConfigで認証必須だが、
+        // フィルターの実装変更やエッジケースに備えてnullチェックを維持
+        // 他のコントローラーと一貫性を保つため、UUID?のままとする
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
         val result = getTagsUseCase.execute(GetTagsInput(userId))
-        val response = TagResponse(
-            tags = result.tags.map { tagWithCount ->
-                TagInfo(name = tagWithCount.name, count = tagWithCount.count)
-            }
-        )
+        val response = TagResponse.from(result)
 
         return ResponseEntity.ok(response)
     }

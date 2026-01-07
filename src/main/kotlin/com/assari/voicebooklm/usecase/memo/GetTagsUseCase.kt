@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.usecase.memo
 
+import com.assari.voicebooklm.domain.model.TagUsage
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import java.util.UUID
 
@@ -19,9 +20,9 @@ open class GetTagsUseCase(
      * @return タグ一覧（使用頻度の高い順）
      */
     open suspend fun execute(input: GetTagsInput): GetTagsOutput {
-        val tagsWithCount = voiceMemoRepository.findTagsWithCountByUserId(input.userId)
-        val tagInfoList = tagsWithCount.map { (name, count) ->
-            TagWithCount(name = name, count = count)
+        val tagUsages = voiceMemoRepository.findTagsWithCountByUserId(input.userId)
+        val tagInfoList = tagUsages.map { tagUsage ->
+            TagWithCount(name = tagUsage.name, count = tagUsage.count)
         }
         return GetTagsOutput(tags = tagInfoList)
     }

@@ -1,4 +1,4 @@
-tepackage com.assari.voicebooklm.presentation.controller.tag
+package com.assari.voicebooklm.presentation.controller.tag
 
 import com.assari.voicebooklm.AbstractIntegrationTest
 import com.assari.voicebooklm.domain.model.Formatting
