@@ -7,19 +7,24 @@ import com.assari.voicebooklm.usecase.memo.GetMemoInput
 import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
+import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
+import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import java.util.UUID
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -34,6 +39,7 @@ import org.springframework.web.server.ResponseStatusException
 class MemoController(
     private val listMemosUseCase: ListMemosUseCase,
     private val getMemoUseCase: GetMemoUseCase,
+    private val updateMemoUseCase: UpdateMemoUseCase,
     private val deleteMemoUseCase: DeleteMemoUseCase,
 ) {
     @GetMapping("/memos")
@@ -111,6 +117,65 @@ class MemoController(
 
         // ユースケース実行
         val result = getMemoUseCase.execute(GetMemoInput(id, userId))
+
+        // レスポンス返却
+        return ResponseEntity.ok(MemoDetailResponse.from(result))
+    }
+
+    @PatchMapping("/memos/{id}")
+    @Operation(
+        summary = "メモ更新",
+        description = "メモの部分更新を行います。指定されたフィールドのみ更新されます。",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "更新成功",
+                content = [Content(schema = Schema(implementation = MemoDetailResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "バリデーションエラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証失敗",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "メモが見つからない（存在しない、削除済み、または権限なし）",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "422",
+                description = "メモの整形が完了していない、またはフォルダーが存在しない",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun updateMemo(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userId: UUID?,
+        @Valid @RequestBody request: UpdateMemoRequest,
+    ): ResponseEntity<MemoDetailResponse> {
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
+        // ユースケース実行
+        val result = updateMemoUseCase.execute(
+            UpdateMemoInput(
+                memoId = id,
+                userId = userId,
+                title = request.title,
+                content = request.content,
+                tags = request.tags,
+                folderId = request.folderId,
+                removeFolder = request.removeFolder,
+            )
+        )
 
         // レスポンス返却
         return ResponseEntity.ok(MemoDetailResponse.from(result))

@@ -58,7 +58,7 @@ data class MemoEntity(
     val deleted: Boolean,
 
     @Version
-    val version: Long = 0,
+    val version: Long? = null,
 
     @Column("folder_id")
     val folderId: UUID? = null,
@@ -131,7 +131,7 @@ data class MemoEntity(
         /**
          * VoiceMemo ドメインモデルからエンティティを作成
          */
-        fun fromDomain(voiceMemo: VoiceMemo): MemoEntity =
+        fun fromDomain(voiceMemo: VoiceMemo, version: Long? = null): MemoEntity =
             MemoEntity(
                 id = voiceMemo.id,
                 userId = voiceMemo.userId,
@@ -144,7 +144,8 @@ data class MemoEntity(
                 title = voiceMemo.formatting.title,
                 content = voiceMemo.formatting.content,
                 deleted = voiceMemo.deleted,
-                version = 0, // 新規エンティティは version = 0 で INSERT される
+                // version が null → INSERT、非null → UPDATE（Spring Data JDBC のルール）
+                version = version,
                 folderId = voiceMemo.formatting.folderId,
                 tags = voiceMemo.formatting.tags.map { MemoTag.create(it) }.toSet(),
                 createdAt = voiceMemo.createdAt,
