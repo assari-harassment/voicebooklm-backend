@@ -205,7 +205,7 @@ private class FakeVoiceMemoRepository : VoiceMemoRepository {
 
     override suspend fun findByUserIdWithKeyword(userId: UUID, keyword: String): List<VoiceMemo> =
         savedMemos.filter { memo ->
-            memo.userId == userId &&
+            memo.userId == userId && !memo.deleted &&
                 (memo.formatting.title?.contains(keyword, ignoreCase = true) == true ||
                     memo.formatting.content?.contains(keyword, ignoreCase = true) == true)
         }

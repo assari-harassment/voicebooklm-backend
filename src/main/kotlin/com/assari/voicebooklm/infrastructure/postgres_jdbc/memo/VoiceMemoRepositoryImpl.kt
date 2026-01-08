@@ -31,7 +31,7 @@ class VoiceMemoRepositoryImpl(
         memoJdbcRepository.findActiveMemosByUser(userId).map { it.toDomain() }
 
     override suspend fun findByUserIdWithKeyword(userId: UUID, keyword: String): List<VoiceMemo> =
-        memoJdbcRepository.findActiveMemosByUserWithKeyword(userId, keyword).map { it.toDomain() }
+        memoJdbcRepository.findActiveMemosByUserWithKeyword(userId, escapeWildcards(keyword)).map { it.toDomain() }
 
     @Transactional
     override fun deleteByUserId(userId: UUID) {
@@ -40,4 +40,14 @@ class VoiceMemoRepositoryImpl(
 
     override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
         memoJdbcRepository.existsByUserIdAndFolderId(userId, folderId)
+
+    /**
+     * SQLワイルドカード文字（%、_）をエスケープする
+     */
+    private fun escapeWildcards(keyword: String): String {
+        return keyword
+            .replace("\\", "\\\\")  // バックスラッシュを先にエスケープ
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+    }
 }
