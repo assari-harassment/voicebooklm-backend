@@ -82,6 +82,26 @@ class DevSeedUseCase(
     }
 
     /**
+     * ISO 8601形式の文字列をInstantに変換する
+     * nullまたは不正な形式の場合は現在時刻を返す
+     */
+    private fun parseInstant(isoString: String?): Instant {
+        if (isoString == null) {
+            logger.debug("createdAt/updatedAt is null, using current time")
+            return Instant.now()
+        }
+
+        return try {
+            val instant = Instant.parse(isoString)
+            logger.debug("Parsed timestamp: $isoString -> $instant")
+            instant
+        } catch (e: Exception) {
+            logger.warn("Invalid ISO 8601 format: '$isoString'. Using current time instead.", e)
+            Instant.now()
+        }
+    }
+
+    /**
      * フォルダーを再帰的に作成し、パス → Folder のマップを返す
      */
     private suspend fun createFolders(
@@ -93,12 +113,18 @@ class DevSeedUseCase(
         val folderMap = mutableMapOf<String, Folder>()
 
         for (seedFolder in seedFolders) {
+            logger.debug("Creating folder: ${seedFolder.name}, createdAt from YAML: ${seedFolder.createdAt}, updatedAt from YAML: ${seedFolder.updatedAt}")
+            val createdAt = parseInstant(seedFolder.createdAt)
+            val updatedAt = parseInstant(seedFolder.updatedAt)
+
             val folder = folderRepository.save(
                 Folder.create(
                     id = UuidCreator.getTimeOrderedEpoch(),
                     userId = userId,
                     name = seedFolder.name,
                     parentId = parentId,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                 )
             )
 
@@ -135,11 +161,17 @@ class DevSeedUseCase(
                 }
             }
 
+            logger.debug("Creating memo: ${seedMemo.title}, createdAt from YAML: ${seedMemo.createdAt}, updatedAt from YAML: ${seedMemo.updatedAt}")
+            val createdAt = parseInstant(seedMemo.createdAt)
+            val updatedAt = parseInstant(seedMemo.updatedAt)
+
             // 新規作成 → 文字起こし完了 → 整形完了 の流れで作成
-            val memo = VoiceMemo.create(
+            var memo = VoiceMemo.create(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 userId = userId,
                 languageCode = "ja-JP",
+                createdAt = createdAt,
+                updatedAt = updatedAt,
             ).completeTranscription(
                 text = seedMemo.transcription.trim(),
             ).completeFormatting(
@@ -148,6 +180,11 @@ class DevSeedUseCase(
                 tags = seedMemo.tags,
                 folderId = folderId,
             )
+
+            // updatedAtを指定されていた場合、最終的に復元
+            if (seedMemo.updatedAt != null) {
+                memo = memo.copy(updatedAt = updatedAt)
+            }
 
             voiceMemoRepository.save(memo)
             count++

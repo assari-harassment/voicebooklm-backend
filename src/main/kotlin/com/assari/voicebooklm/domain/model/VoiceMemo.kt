@@ -208,14 +208,16 @@ data class VoiceMemo(
             id: UUID,
             userId: UUID,
             languageCode: String = "ja-JP",
+            createdAt: Instant = Instant.now(),
+            updatedAt: Instant = Instant.now(),
         ): VoiceMemo = VoiceMemo(
             id = id,
             userId = userId,
             transcription = Transcription.pending(languageCode),
             formatting = Formatting.pending(),
             deleted = false,
-            createdAt = Instant.now(),
-            updatedAt = Instant.now(),
+            createdAt = createdAt,
+            updatedAt = updatedAt,
         )
 
         /**

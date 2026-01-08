@@ -80,7 +80,7 @@ class MemoControllerTest {
             ),
         )
 
-        val response = controller.listMemos(userId, null, false, false, null)
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -107,7 +107,7 @@ class MemoControllerTest {
             memos = emptyList(),
         )
 
-        val response = controller.listMemos(userId, null, false, false, null)
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -117,7 +117,7 @@ class MemoControllerTest {
     @Test
     fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(null, null, false, false, null)
+            controller.listMemos(null, null, false, false, null, "updated_at", "desc", null)
         }
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)

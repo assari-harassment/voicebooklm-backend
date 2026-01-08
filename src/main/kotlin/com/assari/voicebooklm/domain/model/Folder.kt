@@ -64,6 +64,8 @@ data class Folder(
             userId: UUID,
             name: String,
             parentId: UUID? = null,
+            createdAt: Instant = Instant.now(),
+            updatedAt: Instant = Instant.now(),
         ): Folder {
             val normalizedName = name.trim()
             return Folder(
@@ -71,6 +73,8 @@ data class Folder(
                 userId = userId,
                 name = normalizedName,
                 parentId = parentId,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
             )
         }
 

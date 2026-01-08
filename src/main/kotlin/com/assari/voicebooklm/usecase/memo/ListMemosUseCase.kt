@@ -50,10 +50,40 @@ open class ListMemosUseCase(
         val folderPathMap = folders.associate { it.id to it.buildPath(folderMap) }
 
         // 4. メモにフォルダー情報を付与
-        val memosWithFolder = memos.map { memo ->
+        var memosWithFolder = memos.map { memo ->
             val folder = memo.formatting.folderId?.let { folderMap[it] }
             val path = memo.formatting.folderId?.let { folderPathMap[it] }
             MemoWithFolder(memo = memo, folder = folder, folderPath = path)
+        }
+
+        // 5. ソート処理
+        memosWithFolder = when (input.sortBy) {
+            MemoSortField.UPDATED_AT -> {
+                if (input.sortOrder == SortOrder.ASC) {
+                    memosWithFolder.sortedBy { it.memo.updatedAt }
+                } else {
+                    memosWithFolder.sortedByDescending { it.memo.updatedAt }
+                }
+            }
+            MemoSortField.CREATED_AT -> {
+                if (input.sortOrder == SortOrder.ASC) {
+                    memosWithFolder.sortedBy { it.memo.createdAt }
+                } else {
+                    memosWithFolder.sortedByDescending { it.memo.createdAt }
+                }
+            }
+            MemoSortField.TITLE -> {
+                if (input.sortOrder == SortOrder.ASC) {
+                    memosWithFolder.sortedBy { it.memo.formatting.title }
+                } else {
+                    memosWithFolder.sortedByDescending { it.memo.formatting.title }
+                }
+            }
+        }
+
+        // 6. 件数制限
+        if (input.limit != null && input.limit > 0) {
+            memosWithFolder = memosWithFolder.take(input.limit)
         }
 
         return ListMemosOutput(memosWithFolder)
@@ -73,7 +103,30 @@ data class ListMemosInput(
     val uncategorizedOnly: Boolean = false,
     /** キーワード検索（null または空の場合は全件） */
     val keyword: String? = null,
+    /** ソート項目（デフォルト: updated_at） */
+    val sortBy: MemoSortField = MemoSortField.UPDATED_AT,
+    /** ソート順序（デフォルト: desc） */
+    val sortOrder: SortOrder = SortOrder.DESC,
+    /** 取得件数制限（null の場合は全件） */
+    val limit: Int? = null,
 )
+
+/**
+ * メモのソート項目
+ */
+enum class MemoSortField {
+    UPDATED_AT,
+    CREATED_AT,
+    TITLE,
+}
+
+/**
+ * ソート順序
+ */
+enum class SortOrder {
+    ASC,
+    DESC,
+}
 
 /**
  * メモ一覧取得 Output
