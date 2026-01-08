@@ -13,7 +13,7 @@ import java.util.UUID
  * 内部使用専用。外部からは TagRepository インターフェースを使用する。
  */
 @Repository
-interface TagMasterJdbcRepository : CrudRepository<TagMasterEntity, UUID> {
+interface TagJdbcRepository : CrudRepository<TagMasterEntity, UUID> {
 
     @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY name")
     fun findByUserId(@Param("userId") userId: UUID): List<TagMasterEntity>

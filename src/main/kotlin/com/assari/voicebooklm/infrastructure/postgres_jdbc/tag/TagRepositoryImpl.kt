@@ -12,36 +12,36 @@ import java.util.UUID
  * TagRepository の JDBC 実装
  *
  * Domain Layer の TagRepository インターフェースを実装する。
- * - CRUD操作は TagMasterJdbcRepository を使用
+ * - CRUD操作は TagJdbcRepository を使用
  * - カウント集計クエリは JdbcTemplate を使用
  */
 @Repository
 class TagRepositoryImpl(
-    private val tagMasterJdbcRepository: TagMasterJdbcRepository,
+    private val tagJdbcRepository: TagJdbcRepository,
     private val jdbcTemplate: JdbcTemplate,
 ) : TagRepository {
 
     override suspend fun save(tag: Tag): Tag {
         val entity = TagMasterEntity.fromDomain(tag)
-        val savedEntity = tagMasterJdbcRepository.save(entity)
+        val savedEntity = tagJdbcRepository.save(entity)
         return savedEntity.toDomain()
     }
 
     override suspend fun findById(id: UUID): Tag? {
-        return tagMasterJdbcRepository.findByIdOrNull(id)?.toDomain()
+        return tagJdbcRepository.findByIdOrNull(id)?.toDomain()
     }
 
     override suspend fun findByUserId(userId: UUID): List<Tag> {
-        return tagMasterJdbcRepository.findByUserId(userId).map { it.toDomain() }
+        return tagJdbcRepository.findByUserId(userId).map { it.toDomain() }
     }
 
     override suspend fun findByUserIdAndName(userId: UUID, name: String): Tag? {
-        return tagMasterJdbcRepository.findByUserIdAndName(userId, name)?.toDomain()
+        return tagJdbcRepository.findByUserIdAndName(userId, name)?.toDomain()
     }
 
     override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> {
         if (names.isEmpty()) return emptyList()
-        return tagMasterJdbcRepository.findByUserIdAndNameIn(userId, names).map { it.toDomain() }
+        return tagJdbcRepository.findByUserIdAndNameIn(userId, names).map { it.toDomain() }
     }
 
     override suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int?): List<TagWithCount> {
@@ -74,10 +74,10 @@ class TagRepositoryImpl(
     }
 
     override suspend fun delete(id: UUID) {
-        tagMasterJdbcRepository.deleteById(id)
+        tagJdbcRepository.deleteById(id)
     }
 
     override fun deleteByUserId(userId: UUID) {
-        tagMasterJdbcRepository.deleteByUserId(userId)
+        tagJdbcRepository.deleteByUserId(userId)
     }
 }
