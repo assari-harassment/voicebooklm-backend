@@ -16,14 +16,14 @@ import java.util.UUID
 class ListTagsUseCaseTest {
 
     @Test
-    fun `ユーザーのタグ一覧を使用回数順で取得できる`() = runTest {
+    fun `ユーザーのタグ一覧を取得できる`() = runTest {
         val userId = UUID.randomUUID()
         val tags = listOf(
-            TagWithCount(tag = createTag(userId, "仕事"), count = 5),
-            TagWithCount(tag = createTag(userId, "プライベート"), count = 3),
-            TagWithCount(tag = createTag(userId, "メモ"), count = 1),
+            createTag(userId, "仕事"),
+            createTag(userId, "プライベート"),
+            createTag(userId, "メモ"),
         )
-        val tagRepository = InMemoryTagRepository(
+        val tagRepository = ListTagsInMemoryTagRepository(
             tagsPerUser = mapOf(userId to tags),
         )
         val useCase = ListTagsUseCase(tagRepository)
@@ -31,17 +31,14 @@ class ListTagsUseCaseTest {
         val result = useCase.execute(ListTagsInput(userId = userId))
 
         assertEquals(3, result.tags.size)
-        assertEquals("仕事", result.tags[0].tag.name)
-        assertEquals(5, result.tags[0].count)
-        assertEquals("プライベート", result.tags[1].tag.name)
-        assertEquals(3, result.tags[1].count)
-        assertEquals("メモ", result.tags[2].tag.name)
-        assertEquals(1, result.tags[2].count)
+        assertEquals("仕事", result.tags[0].name)
+        assertEquals("プライベート", result.tags[1].name)
+        assertEquals("メモ", result.tags[2].name)
     }
 
     @Test
     fun `タグが0件の場合は空の一覧を返す`() = runTest {
-        val tagRepository = InMemoryTagRepository()
+        val tagRepository = ListTagsInMemoryTagRepository()
         val useCase = ListTagsUseCase(tagRepository)
 
         val result = useCase.execute(ListTagsInput(userId = UUID.randomUUID()))
@@ -54,9 +51,9 @@ class ListTagsUseCaseTest {
         val userId = UUID.randomUUID()
         val otherUserId = UUID.randomUUID()
         val tags = listOf(
-            TagWithCount(tag = createTag(otherUserId, "他人のタグ"), count = 10),
+            createTag(otherUserId, "他人のタグ"),
         )
-        val tagRepository = InMemoryTagRepository(
+        val tagRepository = ListTagsInMemoryTagRepository(
             tagsPerUser = mapOf(otherUserId to tags),
         )
         val useCase = ListTagsUseCase(tagRepository)
@@ -76,16 +73,15 @@ class ListTagsUseCaseTest {
 /**
  * テスト用 InMemory TagRepository
  */
-private class InMemoryTagRepository(
-    private val tagsPerUser: Map<UUID, List<TagWithCount>> = emptyMap(),
+private class ListTagsInMemoryTagRepository(
+    private val tagsPerUser: Map<UUID, List<Tag>> = emptyMap(),
 ) : TagRepository {
     override suspend fun save(tag: Tag): Tag = tag
     override suspend fun findById(id: UUID): Tag? = null
-    override suspend fun findByUserId(userId: UUID): List<Tag> = emptyList()
+    override suspend fun findByUserId(userId: UUID): List<Tag> = tagsPerUser[userId] ?: emptyList()
     override suspend fun findByUserIdAndName(userId: UUID, name: String): Tag? = null
     override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> = emptyList()
-    override suspend fun findTagsWithCountByUserId(userId: UUID): List<TagWithCount> =
-        tagsPerUser[userId] ?: emptyList()
+    override suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int?): List<TagWithCount> = emptyList()
     override suspend fun delete(id: UUID) {}
     override fun deleteByUserId(userId: UUID) {}
 }

@@ -1,13 +1,13 @@
 package com.assari.voicebooklm.usecase.tag
 
+import com.assari.voicebooklm.domain.model.Tag
 import com.assari.voicebooklm.domain.repository.TagRepository
-import com.assari.voicebooklm.domain.repository.TagWithCount
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * ユーザーのタグ一覧を使用回数順で取得するユースケース
+ * ユーザーのタグ一覧を取得するユースケース
  */
 @Service
 open class ListTagsUseCase(
@@ -15,7 +15,7 @@ open class ListTagsUseCase(
 ) {
     @Transactional(readOnly = true)
     open suspend fun execute(input: ListTagsInput): ListTagsOutput {
-        val tags = tagRepository.findTagsWithCountByUserId(input.userId, input.limit)
+        val tags = tagRepository.findByUserId(input.userId)
         return ListTagsOutput(tags)
     }
 }
@@ -25,12 +25,11 @@ open class ListTagsUseCase(
  */
 data class ListTagsInput(
     val userId: UUID,
-    val limit: Int? = null,
 )
 
 /**
  * タグ一覧取得 Output
  */
 data class ListTagsOutput(
-    val tags: List<TagWithCount>,
+    val tags: List<Tag>,
 )
