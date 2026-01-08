@@ -15,7 +15,7 @@ open class ListTagsUseCase(
 ) {
     @Transactional(readOnly = true)
     open suspend fun execute(input: ListTagsInput): ListTagsOutput {
-        val tags = tagRepository.findTagsWithCountByUserId(input.userId)
+        val tags = tagRepository.findTagsWithCountByUserId(input.userId, input.limit)
         return ListTagsOutput(tags)
     }
 }
@@ -25,6 +25,7 @@ open class ListTagsUseCase(
  */
 data class ListTagsInput(
     val userId: UUID,
+    val limit: Int? = null,
 )
 
 /**

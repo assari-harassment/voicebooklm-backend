@@ -44,8 +44,9 @@ class TagRepositoryImpl(
         return tagMasterJdbcRepository.findByUserIdAndNameIn(userId, names).map { it.toDomain() }
     }
 
-    override suspend fun findTagsWithCountByUserId(userId: UUID): List<TagWithCount> {
+    override suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int?): List<TagWithCount> {
         // memo_tags の tag_id を集計し、tags マスタと結合してタグ情報を取得
+        val limitClause = if (limit != null) "LIMIT $limit" else ""
         val sql = """
             SELECT t.id, t.user_id, t.name, t.created_at, t.updated_at, COUNT(mt.id) AS count
             FROM tags t
@@ -54,6 +55,7 @@ class TagRepositoryImpl(
             WHERE t.user_id = ?
             GROUP BY t.id, t.user_id, t.name, t.created_at, t.updated_at
             ORDER BY count DESC, t.name ASC
+            $limitClause
         """.trimIndent()
 
         return jdbcTemplate.query(sql, { rs, _ ->

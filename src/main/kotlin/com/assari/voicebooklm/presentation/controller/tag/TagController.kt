@@ -4,10 +4,12 @@ import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.tag.ListTagsInput
 import com.assari.voicebooklm.usecase.tag.ListTagsUseCase
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -29,6 +31,14 @@ class TagController(
     @Operation(
         summary = "タグ一覧取得",
         description = "認証ユーザーのメモで使用されているタグを使用回数の降順で取得する。",
+        parameters = [
+            Parameter(
+                name = "limit",
+                description = "取得件数上限（指定しない場合は全件取得）",
+                required = false,
+                schema = Schema(type = "integer", minimum = "1"),
+            ),
+        ],
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -44,9 +54,10 @@ class TagController(
     )
     suspend fun listTags(
         @AuthenticationPrincipal userId: UUID?,
+        @RequestParam(required = false) limit: Int?,
     ): ResponseEntity<ListTagsResponse> {
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
-        val result = listTagsUseCase.execute(ListTagsInput(userId = userId))
+        val result = listTagsUseCase.execute(ListTagsInput(userId = userId, limit = limit))
         return ResponseEntity.ok(ListTagsResponse.from(result))
     }
 }

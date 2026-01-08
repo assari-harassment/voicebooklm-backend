@@ -44,9 +44,10 @@ interface TagRepository {
      * ユーザーのタグを使用回数順で取得する
      *
      * @param userId ユーザーID
+     * @param limit 取得件数上限（nullの場合は全件取得）
      * @return 使用回数降順（同数の場合はタグ名昇順）でソートされたタグ一覧
      */
-    suspend fun findTagsWithCountByUserId(userId: UUID): List<TagWithCount>
+    suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int? = null): List<TagWithCount>
 
     /**
      * タグを削除する
