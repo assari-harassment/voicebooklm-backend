@@ -5,7 +5,7 @@ import java.util.UUID
 /**
  * AI整形結果を表す値オブジェクト
  *
- * 文字起こしテキストからAIが生成したタイトル、本文、タグを保持する。
+ * 文字起こしテキストからAIが生成したタイトル、本文、タグIDを保持する。
  */
 data class Formatting(
     /** 処理ステータス */
@@ -14,8 +14,8 @@ data class Formatting(
     val title: String?,
     /** AI整形済み本文（Markdown形式、処理完了前は null） */
     val content: String?,
-    /** AI生成タグ */
-    val tags: List<String>,
+    /** タグIDリスト（マスタへの参照） */
+    val tagIds: List<UUID>,
     /** フォールバックが使用されたかどうか */
     val fallbackUsed: Boolean = false,
     /** フォルダーID（未分類の場合は null） */
@@ -52,7 +52,7 @@ data class Formatting(
             status = FormattingStatus.PENDING,
             title = null,
             content = null,
-            tags = emptyList(),
+            tagIds = emptyList(),
             fallbackUsed = false,
         )
 
@@ -63,7 +63,7 @@ data class Formatting(
             status = FormattingStatus.PROCESSING,
             title = null,
             content = null,
-            tags = emptyList(),
+            tagIds = emptyList(),
             fallbackUsed = false,
         )
 
@@ -73,19 +73,18 @@ data class Formatting(
         fun completed(
             title: String,
             content: String,
-            tags: List<String> = emptyList(),
+            tagIds: List<UUID> = emptyList(),
             fallbackUsed: Boolean = false,
             folderId: UUID? = null,
         ): Formatting {
             val normalizedTitle = title.trim()
             require(normalizedTitle.isNotBlank()) { "Formatting title must not be blank when completed" }
             require(content.isNotBlank()) { "Formatting content must not be blank when completed" }
-            val sanitizedTags = tags.map { it.trim() }.filter { it.isNotEmpty() }
             return Formatting(
                 status = FormattingStatus.COMPLETED,
                 title = normalizedTitle,
                 content = content,
-                tags = sanitizedTags,
+                tagIds = tagIds,
                 fallbackUsed = fallbackUsed,
                 folderId = folderId,
             )
@@ -98,7 +97,7 @@ data class Formatting(
             status = FormattingStatus.FAILED,
             title = null,
             content = null,
-            tags = emptyList(),
+            tagIds = emptyList(),
             fallbackUsed = false,
         )
     }

@@ -1,0 +1,36 @@
+package com.assari.voicebooklm.infrastructure.postgres_jdbc.tag
+
+import org.springframework.data.jdbc.repository.query.Modifying
+import org.springframework.data.jdbc.repository.query.Query
+import org.springframework.data.repository.CrudRepository
+import org.springframework.data.repository.query.Param
+import org.springframework.stereotype.Repository
+import java.util.UUID
+
+/**
+ * Spring Data JDBC タグマスタリポジトリインターフェース
+ *
+ * 内部使用専用。外部からは TagRepository インターフェースを使用する。
+ */
+@Repository
+interface TagMasterJdbcRepository : CrudRepository<TagMasterEntity, UUID> {
+
+    @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY name")
+    fun findByUserId(@Param("userId") userId: UUID): List<TagMasterEntity>
+
+    @Query("SELECT * FROM tags WHERE user_id = :userId AND name = :name")
+    fun findByUserIdAndName(
+        @Param("userId") userId: UUID,
+        @Param("name") name: String
+    ): TagMasterEntity?
+
+    @Query("SELECT * FROM tags WHERE user_id = :userId AND name IN (:names)")
+    fun findByUserIdAndNameIn(
+        @Param("userId") userId: UUID,
+        @Param("names") names: List<String>
+    ): List<TagMasterEntity>
+
+    @Modifying
+    @Query("DELETE FROM tags WHERE user_id = :userId")
+    fun deleteByUserId(@Param("userId") userId: UUID)
+}

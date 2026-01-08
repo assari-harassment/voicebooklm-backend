@@ -15,6 +15,7 @@ import com.assari.voicebooklm.usecase.memo.MemoWithFolder
 import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
+import com.github.f4b6a3.uuid.UuidCreator
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.mockk
@@ -57,13 +58,14 @@ class MemoControllerTest {
     @Test
     fun `認証済みユーザーのメモ一覧を返す`() = runBlocking {
         val userId = UUID.randomUUID()
+        val tagId = UuidCreator.getTimeOrderedEpoch()
         // 整形済みメモと未整形メモを混在させてレスポンス形式を確認する。
         val completedMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text")
             .completeFormatting(
                 title = "title",
                 content = "content",
-                tags = listOf("t1"),
+                tagIds = listOf(tagId),
             )
         val pendingMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
         val input = ListMemosInput(
@@ -87,7 +89,7 @@ class MemoControllerTest {
         assertEquals(2, body.memos.size)
         assertEquals(completedMemo.id, body.memos[0].memoId)
         assertEquals("title", body.memos[0].title)
-        assertEquals(listOf("t1"), body.memos[0].tags)
+        assertEquals(listOf(tagId), body.memos[0].tagIds)
         assertEquals(pendingMemo.id, body.memos[1].memoId)
         assertNull(body.memos[1].title)
     }

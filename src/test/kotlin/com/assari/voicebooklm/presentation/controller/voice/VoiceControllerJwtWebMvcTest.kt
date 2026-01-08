@@ -128,7 +128,7 @@ class VoiceControllerJwtWebMvcTest {
             formatting = Formatting.completed(
                 title = "title",
                 content = "content",
-                tags = listOf("t1"),
+                tagIds = listOf(UUID.randomUUID()),
                 fallbackUsed = false,
             ),
         )

@@ -29,7 +29,7 @@ data class ListMemosResponse(
 data class MemoListItemResponse(
     val memoId: UUID,
     val title: String?,
-    val tags: List<String>,
+    val tagIds: List<UUID>,
     val transcriptionStatus: String,
     val formattingStatus: String,
     val folder: FolderInfo?,
@@ -49,7 +49,7 @@ data class MemoListItemResponse(
             return MemoListItemResponse(
                 memoId = memo.id,
                 title = memo.title,
-                tags = memo.tags,
+                tagIds = memo.tagIds,
                 transcriptionStatus = memo.transcription.status.name,
                 formattingStatus = memo.formatting.status.name,
                 folder = folderInfo,
