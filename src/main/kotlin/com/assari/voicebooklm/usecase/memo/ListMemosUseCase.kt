@@ -73,6 +73,7 @@ open class ListMemosUseCase(
                 }
             }
             MemoSortField.TITLE -> {
+                // タイトルがnullのメモは、昇順の場合は先頭に、降順の場合は末尾に配置される
                 if (input.sortOrder == SortOrder.ASC) {
                     memosWithFolder.sortedBy { it.memo.formatting.title }
                 } else {

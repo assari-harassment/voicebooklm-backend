@@ -3,6 +3,7 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
+import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -50,11 +51,25 @@ class ListMemosUseCaseTest {
     @Test
     fun `更新日時の降順でソートできる`() = runTest {
         val userId = UUID.randomUUID()
-        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
-        Thread.sleep(10)
-        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
-        Thread.sleep(10)
-        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val baseTime = Instant.parse("2024-01-01T00:00:00Z")
+        val memo1 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime,
+            updatedAt = baseTime,
+        )
+        val memo2 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(10),
+            updatedAt = baseTime.plusSeconds(10),
+        )
+        val memo3 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(20),
+            updatedAt = baseTime.plusSeconds(20),
+        )
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, memo3),
@@ -79,11 +94,25 @@ class ListMemosUseCaseTest {
     @Test
     fun `更新日時の昇順でソートできる`() = runTest {
         val userId = UUID.randomUUID()
-        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
-        Thread.sleep(10)
-        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
-        Thread.sleep(10)
-        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val baseTime = Instant.parse("2024-01-01T00:00:00Z")
+        val memo1 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime,
+            updatedAt = baseTime,
+        )
+        val memo2 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(10),
+            updatedAt = baseTime.plusSeconds(10),
+        )
+        val memo3 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(20),
+            updatedAt = baseTime.plusSeconds(20),
+        )
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, memo3),

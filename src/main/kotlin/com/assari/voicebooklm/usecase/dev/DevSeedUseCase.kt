@@ -166,6 +166,9 @@ class DevSeedUseCase(
             val updatedAt = parseInstant(seedMemo.updatedAt)
 
             // 新規作成 → 文字起こし完了 → 整形完了 の流れで作成
+            // 注: completeTranscription()とcompleteFormatting()はupdatedAtを現在時刻に更新するが、
+            // 開発用シードデータとしてはYAMLで指定された時刻を保持したいため、
+            // 後続の処理でupdatedAtを復元する（createdAtはcreate()で設定後、変更されないため復元不要）
             var memo = VoiceMemo.create(
                 id = UuidCreator.getTimeOrderedEpoch(),
                 userId = userId,
@@ -181,7 +184,7 @@ class DevSeedUseCase(
                 folderId = folderId,
             )
 
-            // updatedAtを指定されていた場合、最終的に復元
+            // YAMLで指定されたupdatedAtを復元（completeTranscription/completeFormattingで上書きされた値を元に戻す）
             if (seedMemo.updatedAt != null) {
                 memo = memo.copy(updatedAt = updatedAt)
             }
