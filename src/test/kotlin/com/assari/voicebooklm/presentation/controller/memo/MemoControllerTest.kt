@@ -12,6 +12,7 @@ import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import com.assari.voicebooklm.usecase.memo.MemoWithFolder
+import com.assari.voicebooklm.usecase.memo.ResummarizeUseCase
 import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
@@ -38,6 +39,7 @@ class MemoControllerTest {
     private lateinit var getMemoUseCase: GetMemoUseCase
     private lateinit var updateMemoUseCase: UpdateMemoUseCase
     private lateinit var deleteMemoUseCase: DeleteMemoUseCase
+    private lateinit var resummarizeUseCase: ResummarizeUseCase
     private lateinit var controller: MemoController
 
     @BeforeEach
@@ -46,11 +48,13 @@ class MemoControllerTest {
         getMemoUseCase = mockk()
         updateMemoUseCase = mockk()
         deleteMemoUseCase = mockk()
+        resummarizeUseCase = mockk()
         controller = MemoController(
             listMemosUseCase = listMemosUseCase,
             getMemoUseCase = getMemoUseCase,
             updateMemoUseCase = updateMemoUseCase,
             deleteMemoUseCase = deleteMemoUseCase,
+            resummarizeUseCase = resummarizeUseCase,
         )
     }
 
