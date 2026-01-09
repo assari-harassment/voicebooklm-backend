@@ -2,7 +2,9 @@ package com.assari.voicebooklm.usecase.auth
 
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
+import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
+import com.assari.voicebooklm.domain.repository.TagRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Service
@@ -13,12 +15,14 @@ import java.util.UUID
  * アカウント削除ユースケース
  *
  * ユーザーのすべてのデータを物理削除する。
- * 削除順序: VoiceMemo → リフレッシュトークン → ユーザー（参照整合性を維持）
+ * 削除順序: VoiceMemo → フォルダー → タグ → リフレッシュトークン → ユーザー（参照整合性を維持）
  */
 @Service
 open class DeleteAccountUseCase(
     private val userRepository: UserRepository,
     private val voiceMemoRepository: VoiceMemoRepository,
+    private val folderRepository: FolderRepository,
+    private val tagRepository: TagRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
 ) {
     /**
@@ -34,13 +38,19 @@ open class DeleteAccountUseCase(
             ?: throw DomainException(ErrorCode.USER_NOT_FOUND)
 
         // 参照整合性を維持するため、順番に削除
-        // 1. VoiceMemo を削除
+        // 1. VoiceMemo を削除（memo_tags も Aggregate Root として削除される）
         voiceMemoRepository.deleteByUserId(input.userId)
 
-        // 2. リフレッシュトークンを削除
+        // 2. フォルダーを削除
+        folderRepository.deleteByUserId(input.userId)
+
+        // 3. タグマスタを削除
+        tagRepository.deleteByUserId(input.userId)
+
+        // 4. リフレッシュトークンを削除
         refreshTokenRepository.deleteByUserId(input.userId)
 
-        // 3. ユーザーを削除
+        // 5. ユーザーを削除
         userRepository.deleteById(input.userId)
     }
 }

@@ -3,7 +3,9 @@ package com.assari.voicebooklm.usecase.auth
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.User
+import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.RefreshTokenRepository
+import com.assari.voicebooklm.domain.repository.TagRepository
 import com.assari.voicebooklm.domain.repository.UserRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import io.mockk.*
@@ -18,17 +20,23 @@ class DeleteAccountUseCaseTest {
     private lateinit var deleteAccountUseCase: DeleteAccountUseCase
     private lateinit var userRepository: UserRepository
     private lateinit var voiceMemoRepository: VoiceMemoRepository
+    private lateinit var folderRepository: FolderRepository
+    private lateinit var tagRepository: TagRepository
     private lateinit var refreshTokenRepository: RefreshTokenRepository
 
     @BeforeEach
     fun setUp() {
         userRepository = mockk()
         voiceMemoRepository = mockk()
+        folderRepository = mockk()
+        tagRepository = mockk()
         refreshTokenRepository = mockk()
 
         deleteAccountUseCase = DeleteAccountUseCase(
             userRepository = userRepository,
             voiceMemoRepository = voiceMemoRepository,
+            folderRepository = folderRepository,
+            tagRepository = tagRepository,
             refreshTokenRepository = refreshTokenRepository,
         )
     }
@@ -48,6 +56,8 @@ class DeleteAccountUseCaseTest {
 
         every { userRepository.findById(userId) } returns user
         every { voiceMemoRepository.deleteByUserId(userId) } just Runs
+        every { folderRepository.deleteByUserId(userId) } just Runs
+        every { tagRepository.deleteByUserId(userId) } just Runs
         every { refreshTokenRepository.deleteByUserId(userId) } just Runs
         every { userRepository.deleteById(userId) } just Runs
 
@@ -58,6 +68,8 @@ class DeleteAccountUseCaseTest {
         verifyOrder {
             userRepository.findById(userId)
             voiceMemoRepository.deleteByUserId(userId)
+            folderRepository.deleteByUserId(userId)
+            tagRepository.deleteByUserId(userId)
             refreshTokenRepository.deleteByUserId(userId)
             userRepository.deleteById(userId)
         }
@@ -78,12 +90,14 @@ class DeleteAccountUseCaseTest {
         assertEquals(ErrorCode.USER_NOT_FOUND, exception.code)
 
         verify(exactly = 0) { voiceMemoRepository.deleteByUserId(any()) }
+        verify(exactly = 0) { folderRepository.deleteByUserId(any()) }
+        verify(exactly = 0) { tagRepository.deleteByUserId(any()) }
         verify(exactly = 0) { refreshTokenRepository.deleteByUserId(any()) }
         verify(exactly = 0) { userRepository.deleteById(any()) }
     }
 
     @Test
-    fun `should delete memos before tokens before user`() {
+    fun `should delete memos before folders before tags before tokens before user`() {
         // Given
         val userId = UUID.randomUUID()
         val user = User(
@@ -97,6 +111,8 @@ class DeleteAccountUseCaseTest {
 
         every { userRepository.findById(userId) } returns user
         every { voiceMemoRepository.deleteByUserId(userId) } just Runs
+        every { folderRepository.deleteByUserId(userId) } just Runs
+        every { tagRepository.deleteByUserId(userId) } just Runs
         every { refreshTokenRepository.deleteByUserId(userId) } just Runs
         every { userRepository.deleteById(userId) } just Runs
 
@@ -106,6 +122,8 @@ class DeleteAccountUseCaseTest {
         // Then - verify order is important for referential integrity
         verifyOrder {
             voiceMemoRepository.deleteByUserId(userId)
+            folderRepository.deleteByUserId(userId)
+            tagRepository.deleteByUserId(userId)
             refreshTokenRepository.deleteByUserId(userId)
             userRepository.deleteById(userId)
         }

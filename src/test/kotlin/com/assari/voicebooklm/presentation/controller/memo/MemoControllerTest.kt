@@ -15,6 +15,7 @@ import com.assari.voicebooklm.usecase.memo.MemoWithFolder
 import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
+import com.github.f4b6a3.uuid.UuidCreator
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.mockk
@@ -57,13 +58,14 @@ class MemoControllerTest {
     @Test
     fun `認証済みユーザーのメモ一覧を返す`() = runBlocking {
         val userId = UUID.randomUUID()
+        val tagId = UuidCreator.getTimeOrderedEpoch()
         // 整形済みメモと未整形メモを混在させてレスポンス形式を確認する。
         val completedMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text")
             .completeFormatting(
                 title = "title",
                 content = "content",
-                tags = listOf("t1"),
+                tagIds = listOf(tagId),
             )
         val pendingMemo = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
         val input = ListMemosInput(
@@ -87,7 +89,7 @@ class MemoControllerTest {
         assertEquals(2, body.memos.size)
         assertEquals(completedMemo.id, body.memos[0].memoId)
         assertEquals("title", body.memos[0].title)
-        assertEquals(listOf("t1"), body.memos[0].tags)
+        assertEquals(listOf(tagId), body.memos[0].tagIds)
         assertEquals(pendingMemo.id, body.memos[1].memoId)
         assertNull(body.memos[1].title)
     }
@@ -151,12 +153,13 @@ class MemoControllerTest {
     fun `認証済みユーザーが自分のメモ詳細を取得すると200が返る`() = runBlocking {
         val userId = UUID.randomUUID()
         val memoId = UUID.randomUUID()
+        val tagIds = listOf(UuidCreator.getTimeOrderedEpoch(), UuidCreator.getTimeOrderedEpoch())
         val memo = VoiceMemo.create(id = memoId, userId = userId)
             .completeTranscription("transcription text")
             .completeFormatting(
                 title = "テストタイトル",
                 content = "テスト本文",
-                tags = listOf("tag1", "tag2"),
+                tagIds = tagIds,
             )
 
         coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo)
@@ -168,7 +171,7 @@ class MemoControllerTest {
         assertEquals(memoId, body.memoId)
         assertEquals("テストタイトル", body.title)
         assertEquals("テスト本文", body.content)
-        assertEquals(listOf("tag1", "tag2"), body.tags)
+        assertEquals(tagIds, body.tagIds)
         assertEquals("transcription text", body.transcriptionText)
         assertEquals("COMPLETED", body.transcriptionStatus)
         assertEquals("COMPLETED", body.formattingStatus)
@@ -189,7 +192,7 @@ class MemoControllerTest {
         assertEquals(memoId, body.memoId)
         assertNull(body.title)
         assertNull(body.content)
-        assertTrue(body.tags.isEmpty())
+        assertTrue(body.tagIds.isEmpty())
         assertNull(body.transcriptionText)
         assertEquals("PENDING", body.transcriptionStatus)
         assertEquals("PENDING", body.formattingStatus)
@@ -316,6 +319,7 @@ class MemoControllerTest {
     fun `認証済みユーザーが自分のメモを更新すると更新されたメモが返る`() = runBlocking {
         val userId = UUID.randomUUID()
         val memoId = UUID.randomUUID()
+        val newTagIds = listOf(UuidCreator.getTimeOrderedEpoch(), UuidCreator.getTimeOrderedEpoch())
         val updatedMemo = VoiceMemo.create(id = memoId, userId = userId)
             .startTranscription()
             .completeTranscription("transcription text")
@@ -323,13 +327,13 @@ class MemoControllerTest {
             .completeFormatting(
                 title = "更新後タイトル",
                 content = "更新後本文",
-                tags = listOf("new1", "new2"),
+                tagIds = newTagIds,
             )
 
         val request = UpdateMemoRequest(
             title = "更新後タイトル",
             content = null,
-            tags = null,
+            tagIds = null,
         )
 
         coEvery {
@@ -339,7 +343,7 @@ class MemoControllerTest {
                     userId = userId,
                     title = "更新後タイトル",
                     content = null,
-                    tags = null,
+                    tagIds = null,
                 )
             )
         } returns UpdateMemoOutput(updatedMemo)
@@ -351,7 +355,7 @@ class MemoControllerTest {
         assertEquals(memoId, body.memoId)
         assertEquals("更新後タイトル", body.title)
         assertEquals("更新後本文", body.content)
-        assertEquals(listOf("new1", "new2"), body.tags)
+        assertEquals(newTagIds, body.tagIds)
     }
 
     @Test
@@ -379,7 +383,7 @@ class MemoControllerTest {
                     userId = userId,
                     title = "新タイトル",
                     content = null,
-                    tags = null,
+                    tagIds = null,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
@@ -404,7 +408,7 @@ class MemoControllerTest {
                     userId = userId,
                     title = "新タイトル",
                     content = null,
-                    tags = null,
+                    tagIds = null,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_COMPLETED)
@@ -429,7 +433,7 @@ class MemoControllerTest {
                     userId = userId,
                     title = "新タイトル",
                     content = null,
-                    tags = null,
+                    tagIds = null,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_FOUND)

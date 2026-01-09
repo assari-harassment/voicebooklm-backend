@@ -7,12 +7,17 @@ import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
 import com.assari.voicebooklm.domain.model.Folder
+import com.assari.voicebooklm.domain.model.Tag
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
+import com.assari.voicebooklm.domain.repository.SortOrder
+import com.assari.voicebooklm.domain.repository.TagRepository
+import com.assari.voicebooklm.domain.repository.TagSortField
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.infrastructure.service.FolderPathResolver
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
 import com.assari.voicebooklm.usecase.support.TimedResult
+import com.github.f4b6a3.uuid.UuidCreator
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -44,6 +49,7 @@ class CreateMemoUseCaseTest {
         )
         val voiceMemoRepository = FakeVoiceMemoRepository()
         val folderRepository = FakeFolderRepository()
+        val tagRepository = FakeTagRepository()
         val folderPathResolver = FolderPathResolver(folderRepository)
         val executionTimer = FakeExecutionTimer(
             timeSource = timeSource,
@@ -56,6 +62,7 @@ class CreateMemoUseCaseTest {
             memoFormatter = memoFormatter,
             folderRepository = folderRepository,
             folderPathResolver = folderPathResolver,
+            tagRepository = tagRepository,
             executionTimer = executionTimer,
             timeSource = timeSource,
         )
@@ -80,7 +87,12 @@ class CreateMemoUseCaseTest {
         assertEquals(userId, savedMemo.userId)
         assertEquals("AI が作ったタイトル", savedMemo.title)
         assertEquals("整形済みの本文", savedMemo.content)
-        assertEquals(listOf("voice", "memo"), savedMemo.tags)
+        // タグがマスタに登録され、tagIdsとして保存されている
+        assertEquals(2, savedMemo.tagIds.size)
+        // 登録されたタグ名を検証
+        val savedTagNames = tagRepository.savedTags.map { it.name }
+        assertTrue(savedTagNames.contains("voice"))
+        assertTrue(savedTagNames.contains("memo"))
 
         assertEquals(100.milliseconds, result.processingTime.transcription)
         assertEquals(200.milliseconds, result.processingTime.formatting)
@@ -95,6 +107,7 @@ class CreateMemoUseCaseTest {
         val userId = UUID.randomUUID()
         val timeSource = TestTimeSource()
         val folderRepository = FakeFolderRepository()
+        val tagRepository = FakeTagRepository()
 
         val useCase = CreateMemoUseCase(
             voiceMemoRepository = FakeVoiceMemoRepository(),
@@ -106,6 +119,7 @@ class CreateMemoUseCaseTest {
             ),
             folderRepository = folderRepository,
             folderPathResolver = FolderPathResolver(folderRepository),
+            tagRepository = tagRepository,
             executionTimer = FakeExecutionTimer(
                 timeSource = timeSource,
                 durations = listOf(5.seconds, 10.seconds, 5.seconds),
@@ -131,6 +145,7 @@ class CreateMemoUseCaseTest {
     @Test
     fun `音声が空の場合は例外を返す`() = runTest {
         val folderRepository = FakeFolderRepository()
+        val tagRepository = FakeTagRepository()
         val useCase = CreateMemoUseCase(
             voiceMemoRepository = FakeVoiceMemoRepository(),
             speechTranscriber = FakeSpeechTranscriber(""),
@@ -141,6 +156,7 @@ class CreateMemoUseCaseTest {
             ),
             folderRepository = folderRepository,
             folderPathResolver = FolderPathResolver(folderRepository),
+            tagRepository = tagRepository,
             executionTimer = FakeExecutionTimer(TestTimeSource(), emptyList()),
             timeSource = TestTimeSource(),
         )
@@ -257,6 +273,44 @@ private class FakeFolderRepository : FolderRepository {
 
     override fun deleteByUserId(userId: UUID) {
         savedFolders.removeIf { it.userId == userId }
+    }
+}
+
+private class FakeTagRepository : TagRepository {
+    val savedTags = mutableListOf<Tag>()
+
+    override suspend fun save(tag: Tag): Tag {
+        savedTags.removeIf { it.id == tag.id }
+        savedTags += tag
+        return tag
+    }
+
+    override suspend fun findById(id: UUID): Tag? = savedTags.find { it.id == id }
+
+    override suspend fun findByUserId(userId: UUID): List<Tag> = savedTags.filter { it.userId == userId }
+
+    override suspend fun findByUserIdAndName(userId: UUID, name: String): Tag? =
+        savedTags.find { it.userId == userId && it.name == name }
+
+    override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> =
+        savedTags.filter { it.userId == userId && names.contains(it.name) }
+
+    override suspend fun findByUserIdWithSort(
+        userId: UUID,
+        sortField: TagSortField,
+        sortOrder: SortOrder,
+        limit: Int?,
+    ): List<Tag> = emptyList()
+
+    override suspend fun findByIds(ids: List<UUID>): List<Tag> =
+        savedTags.filter { ids.contains(it.id) }
+
+    override suspend fun delete(id: UUID) {
+        savedTags.removeIf { it.id == id }
+    }
+
+    override fun deleteByUserId(userId: UUID) {
+        savedTags.removeIf { it.userId == userId }
     }
 }
 

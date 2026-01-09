@@ -5,6 +5,7 @@ import com.assari.voicebooklm.domain.model.FormattingStatus
 import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.TranscriptionStatus
 import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.infrastructure.postgres_jdbc.tag.TagEntity
 import org.slf4j.LoggerFactory
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
@@ -64,7 +65,7 @@ data class MemoEntity(
     val folderId: UUID? = null,
 
     @MappedCollection(idColumn = "memo_id")
-    val tags: Set<MemoTag> = emptySet()
+    val tags: Set<TagEntity> = emptySet()
 ) {
     /**
      * VoiceMemo ドメインモデルに変換
@@ -105,7 +106,7 @@ data class MemoEntity(
                     Formatting.completed(
                         title = title ?: "Untitled",
                         content = content,
-                        tags = tags.map { it.tag },
+                        tagIds = tags.map { it.tagId },
                         fallbackUsed = formattingFallbackUsed,
                         folderId = folderId,
                     )
@@ -147,7 +148,7 @@ data class MemoEntity(
                 // version が null → INSERT、非null → UPDATE（Spring Data JDBC のルール）
                 version = version,
                 folderId = voiceMemo.formatting.folderId,
-                tags = voiceMemo.formatting.tags.map { MemoTag.create(it) }.toSet(),
+                tags = voiceMemo.formatting.tagIds.map { TagEntity.create(it) }.toSet(),
                 createdAt = voiceMemo.createdAt,
                 updatedAt = voiceMemo.updatedAt,
             )

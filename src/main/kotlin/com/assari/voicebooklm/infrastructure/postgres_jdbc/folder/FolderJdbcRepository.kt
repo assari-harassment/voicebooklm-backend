@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.infrastructure.postgres_jdbc.folder
 
+import org.springframework.data.jdbc.repository.query.Modifying
 import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.repository.CrudRepository
 import org.springframework.data.repository.query.Param
@@ -67,6 +68,7 @@ interface FolderJdbcRepository : CrudRepository<FolderEntity, UUID> {
         @Param("excludeId") excludeId: UUID
     ): Boolean
 
+    @Modifying
     @Query("DELETE FROM folders WHERE user_id = :userId")
     fun deleteByUserId(@Param("userId") userId: UUID)
 }

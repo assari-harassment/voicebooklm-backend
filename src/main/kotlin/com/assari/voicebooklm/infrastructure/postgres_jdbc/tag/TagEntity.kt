@@ -1,30 +1,33 @@
-package com.assari.voicebooklm.infrastructure.postgres_jdbc.memo
+package com.assari.voicebooklm.infrastructure.postgres_jdbc.tag
 
 import com.github.f4b6a3.uuid.UuidCreator
 import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
 import java.util.UUID
 
 /**
- * メモタグ JDBC エンティティ
+ * メモ-タグ関連 JDBC エンティティ
  *
  * memo_tags テーブルにマッピングされる。
  * MemoEntity の子エンティティとして @MappedCollection で管理される。
+ * タグマスタ（tags テーブル）への参照を tag_id で保持する。
  */
 @Table("memo_tags")
-data class MemoTag(
+data class TagEntity(
     @Id
     val id: UUID,
 
-    val tag: String
+    @Column("tag_id")
+    val tagId: UUID
 ) {
     companion object {
         /**
-         * 新規タグを作成（UUIDv7を生成）
+         * 新規関連を作成（UUIDv7を生成）
          */
-        fun create(tag: String): MemoTag = MemoTag(
+        fun create(tagId: UUID): TagEntity = TagEntity(
             id = UuidCreator.getTimeOrderedEpoch(),
-            tag = tag
+            tagId = tagId
         )
     }
 }

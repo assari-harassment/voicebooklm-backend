@@ -162,13 +162,13 @@ class ListMemosUseCaseTest {
         val userId = UUID.randomUUID()
         val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text1")
-            .completeFormatting(title = "C-Title", content = "content1", tags = emptyList())
+            .completeFormatting(title = "C-Title", content = "content1", tagIds = emptyList())
         val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text2")
-            .completeFormatting(title = "A-Title", content = "content2", tags = emptyList())
+            .completeFormatting(title = "A-Title", content = "content2", tagIds = emptyList())
         val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text3")
-            .completeFormatting(title = "B-Title", content = "content3", tags = emptyList())
+            .completeFormatting(title = "B-Title", content = "content3", tagIds = emptyList())
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, memo3),
@@ -189,21 +189,19 @@ class ListMemosUseCaseTest {
         assertEquals("B-Title", result.memos[1].memo.formatting.title)
         assertEquals("C-Title", result.memos[2].memo.formatting.title)
     }
-}
-
 
     @Test
     fun `タイトルでキーワード検索できる`() = runTest {
         val userId = UUID.randomUUID()
         val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text1")
-            .completeFormatting(title = "Kotlin開発のメモ", content = "content1", tags = emptyList())
+            .completeFormatting(title = "Kotlin開発のメモ", content = "content1", tagIds = emptyList())
         val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text2")
-            .completeFormatting(title = "Java開発のメモ", content = "content2", tags = emptyList())
+            .completeFormatting(title = "Java開発のメモ", content = "content2", tagIds = emptyList())
         val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text3")
-            .completeFormatting(title = "会議メモ", content = "content3", tags = emptyList())
+            .completeFormatting(title = "会議メモ", content = "content3", tagIds = emptyList())
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, memo3),
@@ -227,13 +225,13 @@ class ListMemosUseCaseTest {
         val userId = UUID.randomUUID()
         val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text1")
-            .completeFormatting(title = "title1", content = "Springフレームワークを使った開発", tags = emptyList())
+            .completeFormatting(title = "title1", content = "Springフレームワークを使った開発", tagIds = emptyList())
         val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text2")
-            .completeFormatting(title = "title2", content = "Reactを使ったフロントエンド", tags = emptyList())
+            .completeFormatting(title = "title2", content = "Reactを使ったフロントエンド", tagIds = emptyList())
         val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text3")
-            .completeFormatting(title = "title3", content = "データベース設計", tags = emptyList())
+            .completeFormatting(title = "title3", content = "データベース設計", tagIds = emptyList())
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2, memo3),
@@ -257,10 +255,10 @@ class ListMemosUseCaseTest {
         val userId = UUID.randomUUID()
         val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text1")
-            .completeFormatting(title = "KOTLIN開発", content = "content1", tags = emptyList())
+            .completeFormatting(title = "KOTLIN開発", content = "content1", tagIds = emptyList())
         val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text2")
-            .completeFormatting(title = "title2", content = "kotlin入門", tags = emptyList())
+            .completeFormatting(title = "title2", content = "kotlin入門", tagIds = emptyList())
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1, memo2),
@@ -287,7 +285,7 @@ class ListMemosUseCaseTest {
         val userId = UUID.randomUUID()
         val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text1")
-            .completeFormatting(title = "title1", content = "content1", tags = emptyList())
+            .completeFormatting(title = "title1", content = "content1", tagIds = emptyList())
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
             initialMemos = listOf(memo1),
@@ -310,10 +308,10 @@ class ListMemosUseCaseTest {
         val userId = UUID.randomUUID()
         val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text1")
-            .completeFormatting(title = "Kotlin開発", content = "content1", tags = emptyList())
+            .completeFormatting(title = "Kotlin開発", content = "content1", tagIds = emptyList())
         val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
             .completeTranscription("text2")
-            .completeFormatting(title = "Kotlin入門", content = "content2", tags = emptyList())
+            .completeFormatting(title = "Kotlin入門", content = "content2", tagIds = emptyList())
             .markAsDeleted()  // 削除済み
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(
@@ -333,6 +331,7 @@ class ListMemosUseCaseTest {
         assertEquals(1, result.memos.size)
         assertEquals(memo1.id, result.memos[0].memo.id)
     }
+}
 
 // インメモリで動作する FolderRepository のテストダブル。
 private class InMemoryFolderRepository(

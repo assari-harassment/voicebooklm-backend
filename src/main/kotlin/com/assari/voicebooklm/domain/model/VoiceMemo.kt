@@ -89,14 +89,14 @@ data class VoiceMemo(
     fun completeFormatting(
         title: String,
         content: String,
-        tags: List<String> = emptyList(),
+        tagIds: List<UUID> = emptyList(),
         fallbackUsed: Boolean = false,
         folderId: UUID? = null,
     ): VoiceMemo = copy(
         formatting = Formatting.completed(
             title = title,
             content = content,
-            tags = tags,
+            tagIds = tagIds,
             fallbackUsed = fallbackUsed,
             folderId = folderId,
         ),
@@ -141,13 +141,12 @@ data class VoiceMemo(
     }
 
     /**
-     * タグを変更する（整形完了後のみ）
+     * タグIDを変更する（整形完了後のみ）
      */
-    fun changeTags(newTags: List<String>): VoiceMemo {
+    fun changeTagIds(newTagIds: List<UUID>): VoiceMemo {
         require(formatting.isCompleted) { "Cannot change tags before formatting is completed" }
-        val sanitizedTags = newTags.map { it.trim() }.filter { it.isNotEmpty() }
         return copy(
-            formatting = formatting.copy(tags = sanitizedTags),
+            formatting = formatting.copy(tagIds = newTagIds),
             updatedAt = Instant.now(),
         )
     }
@@ -189,10 +188,10 @@ data class VoiceMemo(
         get() = formatting.content
 
     /**
-     * タグ（整形完了後のみ、それ以外は空リスト）
+     * タグIDリスト（整形完了後のみ、それ以外は空リスト）
      */
-    val tags: List<String>
-        get() = formatting.tags
+    val tagIds: List<UUID>
+        get() = formatting.tagIds
 
     /**
      * 文字起こしテキスト（文字起こし完了後のみ、それ以外は null）
