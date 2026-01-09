@@ -57,8 +57,8 @@ open class UpdateMemoUseCase(
         }
 
         // タグ更新
-        if (input.tags != null) {
-            updated = updated.changeTags(input.tags)
+        if (input.tagIds != null) {
+            updated = updated.changeTagIds(input.tagIds)
         }
 
         // 5. 永続化
@@ -77,7 +77,7 @@ data class UpdateMemoInput(
     val userId: UUID,
     val title: String?,
     val content: String?,
-    val tags: List<String>?,
+    val tagIds: List<UUID>?,
 )
 
 /**
