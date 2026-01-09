@@ -206,7 +206,7 @@ class MemoController(
                 userId = userId,
                 title = request.title,
                 content = request.content,
-                tagIds = request.tagIds,
+                tags = request.tags,
             )
         )
 

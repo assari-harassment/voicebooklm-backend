@@ -129,7 +129,7 @@ class DeleteFolderUseCaseTest {
             formatting = Formatting.completed(
                 title = "テストメモ",
                 content = "テスト内容",
-                tagIds = emptyList(),
+                tags = emptyList(),
                 folderId = folder.id,
             ),
             deleted = false,
@@ -173,7 +173,7 @@ class DeleteFolderUseCaseTest {
             formatting = Formatting.completed(
                 title = "テストメモ",
                 content = "テスト内容",
-                tagIds = emptyList(),
+                tags = emptyList(),
                 folderId = parentFolder.id,
             ),
             deleted = false,

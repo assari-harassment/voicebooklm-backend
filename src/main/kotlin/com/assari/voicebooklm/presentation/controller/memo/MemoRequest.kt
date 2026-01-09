@@ -1,7 +1,6 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
 import jakarta.validation.constraints.Size
-import java.util.UUID
 
 /**
  * メモ更新リクエスト
@@ -14,5 +13,5 @@ data class UpdateMemoRequest(
 
     val content: String? = null,
 
-    val tagIds: List<UUID>? = null,
+    val tags: List<String>? = null,
 )

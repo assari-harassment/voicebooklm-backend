@@ -8,11 +8,9 @@ import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
 import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.model.Folder
-import com.assari.voicebooklm.domain.model.Tag
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.model.buildPath
 import com.assari.voicebooklm.domain.repository.FolderRepository
-import com.assari.voicebooklm.domain.repository.TagRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.infrastructure.service.FolderPathResolver
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
@@ -38,7 +36,6 @@ open class CreateMemoUseCase(
     private val memoFormatter: MemoFormatter,
     private val folderRepository: FolderRepository,
     private val folderPathResolver: FolderPathResolver,
-    private val tagRepository: TagRepository,
     private val executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
@@ -117,19 +114,16 @@ open class CreateMemoUseCase(
         // 5. フォルダーパスをIDに解決（必要に応じて作成）
         val folderId = resolveFolderId(input.userId, memoFormat.folderPath)
 
-        // 6. タグ名をタグIDに解決（必要に応じて新規作成）
-        val tagIds = resolveOrCreateTags(input.userId, memoFormat.tags)
-
         val formattingFallbackUsed = memoFormat.title == "ボイスメモ" && memoFormat.tags.isEmpty()
         voiceMemo = voiceMemo.completeFormatting(
             title = memoFormat.title,
             content = memoFormat.content,
-            tagIds = tagIds,
+            tags = memoFormat.tags,
             fallbackUsed = formattingFallbackUsed,
             folderId = folderId,
         )
 
-        // 7. 永続化
+        // 6. 永続化
         val (savedVoiceMemo, persistenceDuration) = executionTimer.measure {
             voiceMemoRepository.save(voiceMemo)
         }
@@ -176,36 +170,6 @@ open class CreateMemoUseCase(
         }.onFailure { ex ->
             logger.warn("Failed to resolve folder path: $folderPath", ex)
         }.getOrNull()
-    }
-
-    /**
-     * タグ名をタグIDに解決する（必要に応じて新規作成）
-     *
-     * 既存のタグはIDを返し、新規のタグはマスタに登録してからIDを返す。
-     */
-    private suspend fun resolveOrCreateTags(userId: UUID, tagNames: List<String>): List<UUID> {
-        if (tagNames.isEmpty()) return emptyList()
-
-        // タグ名を正規化
-        val normalizedNames = tagNames.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-        if (normalizedNames.isEmpty()) return emptyList()
-
-        // 既存タグを一括取得
-        val existingTags = tagRepository.findByUserIdAndNames(userId, normalizedNames)
-        val existingNameMap = existingTags.associateBy { it.name }
-
-        // タグ名の順序を維持しながらIDを解決
-        return normalizedNames.map { name ->
-            existingNameMap[name]?.id ?: run {
-                // 新規タグを作成してマスタに登録
-                val newTag = Tag.create(
-                    id = UuidCreator.getTimeOrderedEpoch(),
-                    userId = userId,
-                    name = name,
-                )
-                tagRepository.save(newTag).id
-            }
-        }
     }
 }
 

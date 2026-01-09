@@ -3,7 +3,6 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import com.assari.voicebooklm.domain.repository.TagRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +18,6 @@ import java.util.UUID
 @Service
 open class UpdateMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
-    private val tagRepository: TagRepository,
 ) {
     /**
      * メモを更新する
@@ -59,17 +57,8 @@ open class UpdateMemoUseCase(
         }
 
         // タグ更新
-        if (input.tagIds != null) {
-            // タグIDの存在とユーザー所有権を検証
-            if (input.tagIds.isNotEmpty()) {
-                val tags = tagRepository.findByIds(input.tagIds)
-                // すべてのタグが存在し、ユーザーのものであることを確認
-                val validTagIds = tags.filter { it.userId == input.userId }.map { it.id }.toSet()
-                if (validTagIds.size != input.tagIds.size) {
-                    throw DomainException(ErrorCode.TAG_NOT_FOUND)
-                }
-            }
-            updated = updated.changeTagIds(input.tagIds)
+        if (input.tags != null) {
+            updated = updated.changeTags(input.tags)
         }
 
         // 5. 永続化
@@ -88,7 +77,7 @@ data class UpdateMemoInput(
     val userId: UUID,
     val title: String?,
     val content: String?,
-    val tagIds: List<UUID>?,
+    val tags: List<String>?,
 )
 
 /**

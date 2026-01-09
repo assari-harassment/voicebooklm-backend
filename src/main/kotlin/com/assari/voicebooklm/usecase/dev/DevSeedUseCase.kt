@@ -2,11 +2,9 @@ package com.assari.voicebooklm.usecase.dev
 
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.Formatting
-import com.assari.voicebooklm.domain.model.Tag
 import com.assari.voicebooklm.domain.model.Transcription
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
-import com.assari.voicebooklm.domain.repository.TagRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
@@ -30,7 +28,6 @@ import java.util.UUID
 class DevSeedUseCase(
     private val folderRepository: FolderRepository,
     private val voiceMemoRepository: VoiceMemoRepository,
-    private val tagRepository: TagRepository,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -167,8 +164,6 @@ class DevSeedUseCase(
             logger.debug("Creating memo: ${seedMemo.title}, createdAt from YAML: ${seedMemo.createdAt}, updatedAt from YAML: ${seedMemo.updatedAt}")
             val createdAt = parseInstant(seedMemo.createdAt)
             val updatedAt = parseInstant(seedMemo.updatedAt)
-            // タグ名からタグIDを解決（必要に応じて新規作成）
-            val tagIds = resolveOrCreateTags(userId, seedMemo.tags)
 
             // 新規作成 → 文字起こし完了 → 整形完了 の流れで作成
             // 注: completeTranscription()とcompleteFormatting()はupdatedAtを現在時刻に更新するが、
@@ -185,7 +180,7 @@ class DevSeedUseCase(
             ).completeFormatting(
                 title = seedMemo.title,
                 content = seedMemo.content.trim(),
-                tagIds = tagIds,
+                tags = seedMemo.tags,
                 folderId = folderId,
             )
 
@@ -199,33 +194,5 @@ class DevSeedUseCase(
         }
 
         return count
-    }
-
-    /**
-     * タグ名をタグIDに解決する（必要に応じて新規作成）
-     */
-    private suspend fun resolveOrCreateTags(userId: UUID, tagNames: List<String>): List<UUID> {
-        if (tagNames.isEmpty()) return emptyList()
-
-        // タグ名を正規化
-        val normalizedNames = tagNames.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-        if (normalizedNames.isEmpty()) return emptyList()
-
-        // 既存タグを一括取得
-        val existingTags = tagRepository.findByUserIdAndNames(userId, normalizedNames)
-        val existingNameMap = existingTags.associateBy { it.name }
-
-        // タグ名の順序を維持しながらIDを解決
-        return normalizedNames.map { name ->
-            existingNameMap[name]?.id ?: run {
-                // 新規タグを作成してマスタに登録
-                val newTag = Tag.create(
-                    id = UuidCreator.getTimeOrderedEpoch(),
-                    userId = userId,
-                    name = name,
-                )
-                tagRepository.save(newTag).id
-            }
-        }
     }
 }
