@@ -123,6 +123,28 @@ class MemoControllerTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
     }
 
+    @Test
+    fun `listMemos limitが0の場合はBAD_REQUESTがスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", 0)
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
+        assertEquals("limitは1以上の値を指定してください", exception.reason)
+    }
+
+    @Test
+    fun `listMemos limitが負の値の場合はBAD_REQUESTがスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", -1)
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
+        assertEquals("limitは1以上の値を指定してください", exception.reason)
+    }
+
     // ===== getMemo エンドポイントのテスト =====
 
     @Test

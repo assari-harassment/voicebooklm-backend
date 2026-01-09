@@ -84,6 +84,11 @@ class MemoController(
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
         }
 
+        // limitパラメータのバリデーション
+        if (limit != null && limit <= 0) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "limitは1以上の値を指定してください")
+        }
+
         // ソート項目のパース
         val sortBy = when (sort.lowercase()) {
             "updated_at" -> MemoSortField.UPDATED_AT
