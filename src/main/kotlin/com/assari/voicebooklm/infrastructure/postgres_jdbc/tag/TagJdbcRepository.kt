@@ -39,6 +39,9 @@ interface TagJdbcRepository : CrudRepository<TagMasterEntity, UUID> {
         @Param("names") names: List<String>
     ): List<TagMasterEntity>
 
+    @Query("SELECT * FROM tags WHERE id IN (:ids)")
+    fun findByIdIn(@Param("ids") ids: List<UUID>): List<TagMasterEntity>
+
     @Modifying
     @Query("DELETE FROM tags WHERE user_id = :userId")
     fun deleteByUserId(@Param("userId") userId: UUID)

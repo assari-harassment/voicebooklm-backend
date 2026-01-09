@@ -15,7 +15,7 @@ import java.util.UUID
  * アカウント削除ユースケース
  *
  * ユーザーのすべてのデータを物理削除する。
- * 削除順序: VoiceMemo → タグ → リフレッシュトークン → ユーザー（参照整合性を維持）
+ * 削除順序: VoiceMemo → フォルダー → タグ → リフレッシュトークン → ユーザー（参照整合性を維持）
  */
 @Service
 open class DeleteAccountUseCase(

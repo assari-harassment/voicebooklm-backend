@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Version
 import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.mapping.Table
+import org.springframework.jdbc.core.RowMapper
 import java.time.Instant
 import java.util.UUID
 
@@ -59,5 +60,20 @@ data class TagMasterEntity(
             updatedAt = tag.updatedAt,
             // usageCount はDBトリガーで管理されるため、ここでは設定しない
         )
+
+        /**
+         * JdbcTemplate用 RowMapper
+         */
+        fun rowMapper(): RowMapper<TagMasterEntity> = RowMapper { rs, _ ->
+            TagMasterEntity(
+                id = rs.getObject("id", UUID::class.java),
+                userId = rs.getObject("user_id", UUID::class.java),
+                name = rs.getString("name"),
+                createdAt = rs.getTimestamp("created_at").toInstant(),
+                updatedAt = rs.getTimestamp("updated_at").toInstant(),
+                usageCount = rs.getInt("usage_count"),
+                version = rs.getLong("version"),
+            )
+        }
     }
 }

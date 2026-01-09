@@ -31,10 +31,11 @@ class ListTagsUseCaseTest {
 
         val result = useCase.execute(ListTagsInput(userId = userId))
 
+        // デフォルトは名前昇順でソートされる
         assertEquals(3, result.tags.size)
-        assertEquals("仕事", result.tags[0].name)
-        assertEquals("プライベート", result.tags[1].name)
-        assertEquals("メモ", result.tags[2].name)
+        assertEquals("プライベート", result.tags[0].name)
+        assertEquals("メモ", result.tags[1].name)
+        assertEquals("仕事", result.tags[2].name)
     }
 
     @Test
@@ -87,10 +88,19 @@ private class ListTagsInMemoryTagRepository(
         limit: Int?,
     ): List<Tag> {
         val tags = tagsPerUser[userId] ?: emptyList()
-        return if (limit != null) tags.take(limit) else tags
+        // ソートを適用
+        val sorted = when (sortField) {
+            TagSortField.NAME -> when (sortOrder) {
+                SortOrder.ASC -> tags.sortedBy { it.name }
+                SortOrder.DESC -> tags.sortedByDescending { it.name }
+            }
+            TagSortField.USAGE -> tags // テスト用リポジトリではusage_countがないため、名前順で代用
+        }
+        return if (limit != null) sorted.take(limit) else sorted
     }
     override suspend fun findByUserIdAndName(userId: UUID, name: String): Tag? = null
     override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> = emptyList()
+    override suspend fun findByIds(ids: List<UUID>): List<Tag> = emptyList()
     override suspend fun delete(id: UUID) {}
     override fun deleteByUserId(userId: UUID) {}
 }

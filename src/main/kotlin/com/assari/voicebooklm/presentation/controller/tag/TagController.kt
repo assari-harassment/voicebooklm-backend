@@ -74,6 +74,11 @@ class TagController(
     ): ResponseEntity<ListTagsResponse> {
         userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
 
+        // limitパラメータのバリデーション
+        if (limit != null && limit < 1) {
+            return ResponseEntity.badRequest().build()
+        }
+
         val sortField = TagSortField.fromString(sort)
         val sortOrder = SortOrder.fromString(order)
 

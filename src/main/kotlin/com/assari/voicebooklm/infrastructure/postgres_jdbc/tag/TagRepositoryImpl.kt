@@ -5,6 +5,7 @@ import com.assari.voicebooklm.domain.repository.SortOrder
 import com.assari.voicebooklm.domain.repository.TagRepository
 import com.assari.voicebooklm.domain.repository.TagSortField
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -16,6 +17,7 @@ import java.util.UUID
 @Repository
 class TagRepositoryImpl(
     private val tagJdbcRepository: TagJdbcRepository,
+    private val jdbcTemplate: JdbcTemplate,
 ) : TagRepository {
 
     override suspend fun save(tag: Tag): Tag {
@@ -38,18 +40,28 @@ class TagRepositoryImpl(
         sortOrder: SortOrder,
         limit: Int?,
     ): List<Tag> {
-        val entities = when (sortField) {
-            TagSortField.NAME -> when (sortOrder) {
-                SortOrder.ASC -> tagJdbcRepository.findByUserIdOrderByNameAsc(userId)
-                SortOrder.DESC -> tagJdbcRepository.findByUserIdOrderByNameDesc(userId)
-            }
-            TagSortField.USAGE -> when (sortOrder) {
-                SortOrder.ASC -> tagJdbcRepository.findByUserIdOrderByUsageCountAsc(userId)
-                SortOrder.DESC -> tagJdbcRepository.findByUserIdOrderByUsageCountDesc(userId)
+        // ソート条件を構築
+        val orderBy = when (sortField) {
+            TagSortField.NAME -> "name"
+            TagSortField.USAGE -> "usage_count"
+        }
+        val orderDirection = when (sortOrder) {
+            SortOrder.ASC -> "ASC"
+            SortOrder.DESC -> "DESC"
+        }
+        // usage_countの場合は第2ソートキーとしてnameを追加
+        val secondarySort = if (sortField == TagSortField.USAGE) ", name ASC" else ""
+
+        // 動的SQLを構築（LIMIT句をDB側で適用）
+        val sql = buildString {
+            append("SELECT * FROM tags WHERE user_id = ? ORDER BY $orderBy $orderDirection$secondarySort")
+            if (limit != null) {
+                append(" LIMIT $limit")
             }
         }
-        val tags = entities.map { it.toDomain() }
-        return if (limit != null) tags.take(limit) else tags
+
+        val entities = jdbcTemplate.query(sql, TagMasterEntity.rowMapper(), userId)
+        return entities.map { it.toDomain() }
     }
 
     override suspend fun findByUserIdAndName(userId: UUID, name: String): Tag? {
@@ -59,6 +71,11 @@ class TagRepositoryImpl(
     override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> {
         if (names.isEmpty()) return emptyList()
         return tagJdbcRepository.findByUserIdAndNameIn(userId, names).map { it.toDomain() }
+    }
+
+    override suspend fun findByIds(ids: List<UUID>): List<Tag> {
+        if (ids.isEmpty()) return emptyList()
+        return tagJdbcRepository.findByIdIn(ids).map { it.toDomain() }
     }
 
     override suspend fun delete(id: UUID) {

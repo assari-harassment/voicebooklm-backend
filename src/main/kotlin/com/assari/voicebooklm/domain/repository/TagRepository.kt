@@ -80,6 +80,11 @@ interface TagRepository {
     suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag>
 
     /**
+     * IDリストでタグを一括取得する
+     */
+    suspend fun findByIds(ids: List<UUID>): List<Tag>
+
+    /**
      * タグを削除する
      */
     suspend fun delete(id: UUID)

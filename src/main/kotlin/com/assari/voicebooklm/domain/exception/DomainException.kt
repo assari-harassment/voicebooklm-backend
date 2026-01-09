@@ -19,6 +19,7 @@ enum class ErrorCode(val httpStatus: HttpStatus, val defaultMessage: String) {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "ユーザーが見つかりません"),
     MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "メモが見つかりません"),
     FOLDER_NOT_FOUND(HttpStatus.NOT_FOUND, "フォルダーが見つかりません"),
+    TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "指定されたタグが見つかりません"),
 
     // 競合 (409)
     FOLDER_ALREADY_EXISTS(HttpStatus.CONFLICT, "同じ名前のフォルダーが既に存在します"),

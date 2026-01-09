@@ -6,6 +6,43 @@
 -- - memo_tags テーブルを tag 文字列から tag_id 参照に変更
 
 -- ==============================================
+-- 0. UUIDv7 生成用関数を作成
+-- ==============================================
+-- pgcrypto拡張を有効化（gen_random_bytes関数に必要）
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- PostgreSQLにはビルトインのUUIDv7生成関数がないため、カスタム関数を作成
+CREATE OR REPLACE FUNCTION generate_uuidv7()
+RETURNS UUID AS $$
+DECLARE
+    unix_ts_ms BIGINT;
+    uuid_bytes BYTEA;
+BEGIN
+    -- 現在のUnixタイムスタンプ（ミリ秒）を取得
+    unix_ts_ms := (EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::BIGINT;
+
+    -- 16バイトのランダムデータを生成
+    uuid_bytes := gen_random_bytes(16);
+
+    -- 最初の6バイトをタイムスタンプで上書き（BIGINTでビット演算後にINTへキャスト）
+    uuid_bytes := set_byte(uuid_bytes, 0, ((unix_ts_ms >> 40) & 255)::INT);
+    uuid_bytes := set_byte(uuid_bytes, 1, ((unix_ts_ms >> 32) & 255)::INT);
+    uuid_bytes := set_byte(uuid_bytes, 2, ((unix_ts_ms >> 24) & 255)::INT);
+    uuid_bytes := set_byte(uuid_bytes, 3, ((unix_ts_ms >> 16) & 255)::INT);
+    uuid_bytes := set_byte(uuid_bytes, 4, ((unix_ts_ms >> 8) & 255)::INT);
+    uuid_bytes := set_byte(uuid_bytes, 5, (unix_ts_ms & 255)::INT);
+
+    -- バージョン7を設定（7バイト目の上位4ビット）
+    uuid_bytes := set_byte(uuid_bytes, 6, (get_byte(uuid_bytes, 6) & 15) | 112);
+
+    -- バリアント（RFC 4122）を設定（9バイト目の上位2ビット）
+    uuid_bytes := set_byte(uuid_bytes, 8, (get_byte(uuid_bytes, 8) & 63) | 128);
+
+    RETURN encode(uuid_bytes, 'hex')::UUID;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ==============================================
 -- 1. tags マスタテーブル作成
 -- ==============================================
 CREATE TABLE tags (
@@ -30,7 +67,7 @@ CREATE INDEX idx_tags_user_name ON tags(user_id, name);
 -- ==============================================
 INSERT INTO tags (id, user_id, name, created_at, updated_at)
 SELECT DISTINCT
-    gen_random_uuid() AS id,
+    generate_uuidv7() AS id,
     m.user_id,
     mt.tag AS name,
     CURRENT_TIMESTAMP,

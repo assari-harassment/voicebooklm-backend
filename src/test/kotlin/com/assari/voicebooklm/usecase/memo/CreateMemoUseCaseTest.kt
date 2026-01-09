@@ -302,6 +302,9 @@ private class FakeTagRepository : TagRepository {
         limit: Int?,
     ): List<Tag> = emptyList()
 
+    override suspend fun findByIds(ids: List<UUID>): List<Tag> =
+        savedTags.filter { ids.contains(it.id) }
+
     override suspend fun delete(id: UUID) {
         savedTags.removeIf { it.id == id }
     }
