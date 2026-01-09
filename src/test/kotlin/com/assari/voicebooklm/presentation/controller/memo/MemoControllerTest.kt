@@ -71,6 +71,7 @@ class MemoControllerTest {
             folderId = null,
             includeDescendants = false,
             uncategorizedOnly = false,
+            keyword = null,
         )
         coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
             memos = listOf(
@@ -79,7 +80,7 @@ class MemoControllerTest {
             ),
         )
 
-        val response = controller.listMemos(userId, null, false, false)
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -100,12 +101,13 @@ class MemoControllerTest {
             folderId = null,
             includeDescendants = false,
             uncategorizedOnly = false,
+            keyword = null,
         )
         coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
             memos = emptyList(),
         )
 
-        val response = controller.listMemos(userId, null, false, false)
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -115,10 +117,32 @@ class MemoControllerTest {
     @Test
     fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(null, null, false, false)
+            controller.listMemos(null, null, false, false, null, "updated_at", "desc", null)
         }
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
+    }
+
+    @Test
+    fun `listMemos limitが0の場合はBAD_REQUESTがスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", 0)
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
+        assertEquals("limitは1以上の値を指定してください", exception.reason)
+    }
+
+    @Test
+    fun `listMemos limitが負の値の場合はBAD_REQUESTがスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", -1)
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
+        assertEquals("limitは1以上の値を指定してください", exception.reason)
     }
 
     // ===== getMemo エンドポイントのテスト =====
@@ -306,8 +330,6 @@ class MemoControllerTest {
             title = "更新後タイトル",
             content = null,
             tags = null,
-            folderId = null,
-            removeFolder = false,
         )
 
         coEvery {
@@ -318,8 +340,6 @@ class MemoControllerTest {
                     title = "更新後タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } returns UpdateMemoOutput(updatedMemo)
@@ -360,8 +380,6 @@ class MemoControllerTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
@@ -387,8 +405,6 @@ class MemoControllerTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_COMPLETED)
@@ -414,8 +430,6 @@ class MemoControllerTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         } throws DomainException(ErrorCode.MEMO_NOT_FOUND)

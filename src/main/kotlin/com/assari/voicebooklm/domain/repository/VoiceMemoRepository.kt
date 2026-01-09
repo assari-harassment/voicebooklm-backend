@@ -23,6 +23,12 @@ interface VoiceMemoRepository {
     suspend fun findByUserId(userId: UUID): List<VoiceMemo>
 
     /**
+     * キーワードでユーザーID の VoiceMemo 一覧を検索する（削除済みを除く）
+     * タイトルまたはコンテントにキーワードが含まれるメモを返す
+     */
+    suspend fun findByUserIdWithKeyword(userId: UUID, keyword: String): List<VoiceMemo>
+
+    /**
      * ユーザーID に紐づくすべての VoiceMemo を削除する（アカウント削除用）
      */
     fun deleteByUserId(userId: UUID)

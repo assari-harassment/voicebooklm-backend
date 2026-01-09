@@ -44,3 +44,6 @@ docker/data/
 AGENTS.md
 GEMINI.md
 
+# Kotlin
+.kotlin/
+

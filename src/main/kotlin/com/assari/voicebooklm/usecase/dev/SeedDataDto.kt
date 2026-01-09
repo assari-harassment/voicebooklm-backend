@@ -14,6 +14,8 @@ data class SeedData(
 data class SeedFolder(
     val name: String,
     val children: List<SeedFolder> = emptyList(),
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 /**
@@ -26,4 +28,6 @@ data class SeedMemo(
     val transcription: String,
     val content: String,
     val tags: List<String> = emptyList(),
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )

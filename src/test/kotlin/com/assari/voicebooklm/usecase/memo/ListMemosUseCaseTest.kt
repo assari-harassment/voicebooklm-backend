@@ -3,6 +3,7 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
+import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,9 +31,11 @@ class ListMemosUseCaseTest {
 
         val result = useCase.execute(ListMemosInput(userId = userId))
 
+        // ユーザーのメモが2件取得できることを確認（順序はデフォルトソートに依存）
         assertEquals(2, result.memos.size)
-        assertEquals(memo1.id, result.memos[0].memo.id)
-        assertEquals(memo2.id, result.memos[1].memo.id)
+        val memoIds = result.memos.map { it.memo.id }
+        assertTrue(memoIds.contains(memo1.id))
+        assertTrue(memoIds.contains(memo2.id))
     }
 
     @Test
@@ -44,7 +47,292 @@ class ListMemosUseCaseTest {
 
         assertTrue(result.memos.isEmpty())
     }
+
+    @Test
+    fun `更新日時の降順でソートできる`() = runTest {
+        val userId = UUID.randomUUID()
+        val baseTime = Instant.parse("2024-01-01T00:00:00Z")
+        val memo1 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime,
+            updatedAt = baseTime,
+        )
+        val memo2 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(10),
+            updatedAt = baseTime.plusSeconds(10),
+        )
+        val memo3 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(20),
+            updatedAt = baseTime.plusSeconds(20),
+        )
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.UPDATED_AT,
+                sortOrder = SortOrder.DESC,
+            )
+        )
+
+        assertEquals(3, result.memos.size)
+        assertEquals(memo3.id, result.memos[0].memo.id)
+        assertEquals(memo2.id, result.memos[1].memo.id)
+        assertEquals(memo1.id, result.memos[2].memo.id)
+    }
+
+    @Test
+    fun `更新日時の昇順でソートできる`() = runTest {
+        val userId = UUID.randomUUID()
+        val baseTime = Instant.parse("2024-01-01T00:00:00Z")
+        val memo1 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime,
+            updatedAt = baseTime,
+        )
+        val memo2 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(10),
+            updatedAt = baseTime.plusSeconds(10),
+        )
+        val memo3 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(20),
+            updatedAt = baseTime.plusSeconds(20),
+        )
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.UPDATED_AT,
+                sortOrder = SortOrder.ASC,
+            )
+        )
+
+        assertEquals(3, result.memos.size)
+        assertEquals(memo1.id, result.memos[0].memo.id)
+        assertEquals(memo2.id, result.memos[1].memo.id)
+        assertEquals(memo3.id, result.memos[2].memo.id)
+    }
+
+    @Test
+    fun `件数制限が適用される`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                limit = 2,
+            )
+        )
+
+        assertEquals(2, result.memos.size)
+    }
+
+    @Test
+    fun `タイトルの昇順でソートできる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "C-Title", content = "content1", tags = emptyList())
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "A-Title", content = "content2", tags = emptyList())
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text3")
+            .completeFormatting(title = "B-Title", content = "content3", tags = emptyList())
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.TITLE,
+                sortOrder = SortOrder.ASC,
+            )
+        )
+
+        assertEquals(3, result.memos.size)
+        assertEquals("A-Title", result.memos[0].memo.formatting.title)
+        assertEquals("B-Title", result.memos[1].memo.formatting.title)
+        assertEquals("C-Title", result.memos[2].memo.formatting.title)
+    }
 }
+
+
+    @Test
+    fun `タイトルでキーワード検索できる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "Kotlin開発のメモ", content = "content1", tags = emptyList())
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "Java開発のメモ", content = "content2", tags = emptyList())
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text3")
+            .completeFormatting(title = "会議メモ", content = "content3", tags = emptyList())
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                keyword = "Kotlin",
+            )
+        )
+
+        assertEquals(1, result.memos.size)
+        assertEquals(memo1.id, result.memos[0].memo.id)
+    }
+
+    @Test
+    fun `コンテントでキーワード検索できる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "title1", content = "Springフレームワークを使った開発", tags = emptyList())
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "title2", content = "Reactを使ったフロントエンド", tags = emptyList())
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text3")
+            .completeFormatting(title = "title3", content = "データベース設計", tags = emptyList())
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                keyword = "Spring",
+            )
+        )
+
+        assertEquals(1, result.memos.size)
+        assertEquals(memo1.id, result.memos[0].memo.id)
+    }
+
+    @Test
+    fun `大文字小文字を区別せずキーワード検索できる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "KOTLIN開発", content = "content1", tags = emptyList())
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "title2", content = "kotlin入門", tags = emptyList())
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                keyword = "kotlin",
+            )
+        )
+
+        // 大文字小文字を区別せずマッチするので2件取得
+        assertEquals(2, result.memos.size)
+        val memoIds = result.memos.map { it.memo.id }
+        assertTrue(memoIds.contains(memo1.id))
+        assertTrue(memoIds.contains(memo2.id))
+    }
+
+    @Test
+    fun `キーワードに該当するメモがない場合は空の一覧を返す`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "title1", content = "content1", tags = emptyList())
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                keyword = "存在しないキーワード",
+            )
+        )
+
+        assertTrue(result.memos.isEmpty())
+    }
+
+    @Test
+    fun `削除済みメモはキーワード検索結果に含まれない`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "Kotlin開発", content = "content1", tags = emptyList())
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "Kotlin入門", content = "content2", tags = emptyList())
+            .markAsDeleted()  // 削除済み
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                keyword = "Kotlin",
+            )
+        )
+
+        // 削除済みメモは結果に含まれない
+        assertEquals(1, result.memos.size)
+        assertEquals(memo1.id, result.memos[0].memo.id)
+    }
 
 // インメモリで動作する FolderRepository のテストダブル。
 private class InMemoryFolderRepository(

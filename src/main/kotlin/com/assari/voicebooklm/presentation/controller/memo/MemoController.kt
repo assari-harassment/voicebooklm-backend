@@ -7,6 +7,8 @@ import com.assari.voicebooklm.usecase.memo.GetMemoInput
 import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
+import com.assari.voicebooklm.usecase.memo.MemoSortField
+import com.assari.voicebooklm.usecase.memo.SortOrder
 import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
 import io.swagger.v3.oas.annotations.Operation
@@ -45,11 +47,12 @@ class MemoController(
     @GetMapping("/memos")
     @Operation(
         summary = "メモ一覧取得",
-        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリングが可能。",
+        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリング、キーワード検索、ソート、件数制限が可能。",
         responses = [
             ApiResponse(
                 responseCode = "200",
                 description = "取得成功",
+
                 content = [Content(schema = Schema(implementation = ListMemosResponse::class))],
             ),
             ApiResponse(
@@ -67,10 +70,38 @@ class MemoController(
         @RequestParam(required = false, defaultValue = "false") includeDescendants: Boolean,
         @Parameter(description = "true の場合、未分類メモのみ取得")
         @RequestParam(required = false, defaultValue = "false") uncategorizedOnly: Boolean,
+        @Parameter(description = "キーワード検索（タイトルまたはコンテントに含まれるメモを検索）")
+        @RequestParam(required = false) keyword: String?,
+        @Parameter(description = "ソート項目（updated_at, created_at, title）")
+        @RequestParam(required = false, defaultValue = "updated_at") sort: String,
+        @Parameter(description = "ソート順序（asc, desc）")
+        @RequestParam(required = false, defaultValue = "desc") order: String,
+        @Parameter(description = "取得件数制限")
+        @RequestParam(required = false) limit: Int?,
     ): ResponseEntity<ListMemosResponse> {
         // 認証チェック
         if (userId == null) {
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
+        // limitパラメータのバリデーション
+        if (limit != null && limit <= 0) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "limitは1以上の値を指定してください")
+        }
+
+        // ソート項目のパース
+        val sortBy = when (sort.lowercase()) {
+            "updated_at" -> MemoSortField.UPDATED_AT
+            "created_at" -> MemoSortField.CREATED_AT
+            "title" -> MemoSortField.TITLE
+            else -> MemoSortField.UPDATED_AT
+        }
+
+        // ソート順序のパース
+        val sortOrder = when (order.lowercase()) {
+            "asc" -> SortOrder.ASC
+            "desc" -> SortOrder.DESC
+            else -> SortOrder.DESC
         }
 
         val result = listMemosUseCase.execute(
@@ -79,6 +110,10 @@ class MemoController(
                 folderId = folderId,
                 includeDescendants = includeDescendants,
                 uncategorizedOnly = uncategorizedOnly,
+                keyword = keyword,
+                sortBy = sortBy,
+                sortOrder = sortOrder,
+                limit = limit,
             )
         )
         return ResponseEntity.ok(ListMemosResponse.from(result))
