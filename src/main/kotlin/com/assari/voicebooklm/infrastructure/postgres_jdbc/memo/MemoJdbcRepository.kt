@@ -41,7 +41,7 @@ interface MemoJdbcRepository : CrudRepository<MemoEntity, UUID> {
     @Query("""
         SELECT * FROM memos
         WHERE user_id = :userId AND deleted = false
-        AND (title ILIKE '%' || :keyword || '%' ESCAPE '\' OR content ILIKE '%' || :keyword || '%' ESCAPE '\')
+        AND (title ILIKE '%' || :keyword || '%' ESCAPE E'\\' OR content ILIKE '%' || :keyword || '%' ESCAPE E'\\')
         ORDER BY created_at DESC
     """)
     fun findActiveMemosByUserWithKeyword(

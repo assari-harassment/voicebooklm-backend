@@ -213,6 +213,9 @@ private class FakeVoiceMemoRepository : VoiceMemoRepository {
     override fun deleteByUserId(userId: UUID) {
         savedMemos.removeIf { it.userId == userId }
     }
+
+    override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
+        savedMemos.any { it.userId == userId && it.formatting.folderId == folderId && !it.deleted }
 }
 
 private class FakeFolderRepository : FolderRepository {
