@@ -1,7 +1,9 @@
 package com.assari.voicebooklm.usecase.tag
 
 import com.assari.voicebooklm.domain.model.Tag
+import com.assari.voicebooklm.domain.repository.SortOrder
 import com.assari.voicebooklm.domain.repository.TagRepository
+import com.assari.voicebooklm.domain.repository.TagSortField
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -15,7 +17,12 @@ open class ListTagsUseCase(
 ) {
     @Transactional(readOnly = true)
     open suspend fun execute(input: ListTagsInput): ListTagsOutput {
-        val tags = tagRepository.findByUserId(input.userId)
+        val tags = tagRepository.findByUserIdWithSort(
+            userId = input.userId,
+            sortField = input.sort,
+            sortOrder = input.order,
+            limit = input.limit,
+        )
         return ListTagsOutput(tags)
     }
 }
@@ -25,6 +32,9 @@ open class ListTagsUseCase(
  */
 data class ListTagsInput(
     val userId: UUID,
+    val sort: TagSortField = TagSortField.NAME,
+    val order: SortOrder = SortOrder.ASC,
+    val limit: Int? = null,
 )
 
 /**

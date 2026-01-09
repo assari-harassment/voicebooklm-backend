@@ -4,12 +4,36 @@ import com.assari.voicebooklm.domain.model.Tag
 import java.util.UUID
 
 /**
- * タグと使用回数
+ * ソート対象フィールド
  */
-data class TagWithCount(
-    val tag: Tag,
-    val count: Int,
-)
+enum class TagSortField {
+    NAME,
+    USAGE;
+
+    companion object {
+        fun fromString(value: String): TagSortField = when (value.lowercase()) {
+            "name" -> NAME
+            "usage" -> USAGE
+            else -> NAME
+        }
+    }
+}
+
+/**
+ * ソート順
+ */
+enum class SortOrder {
+    ASC,
+    DESC;
+
+    companion object {
+        fun fromString(value: String): SortOrder = when (value.lowercase()) {
+            "asc" -> ASC
+            "desc" -> DESC
+            else -> ASC
+        }
+    }
+}
 
 /**
  * タグ集約の永続化ポート
@@ -26,9 +50,24 @@ interface TagRepository {
     suspend fun findById(id: UUID): Tag?
 
     /**
-     * ユーザーの全タグを取得する
+     * ユーザーの全タグを取得する（名前昇順）
      */
     suspend fun findByUserId(userId: UUID): List<Tag>
+
+    /**
+     * ユーザーのタグをソート条件付きで取得する
+     *
+     * @param userId ユーザーID
+     * @param sortField ソート対象フィールド
+     * @param sortOrder ソート順
+     * @param limit 取得件数上限（nullの場合は全件取得）
+     */
+    suspend fun findByUserIdWithSort(
+        userId: UUID,
+        sortField: TagSortField,
+        sortOrder: SortOrder,
+        limit: Int? = null,
+    ): List<Tag>
 
     /**
      * ユーザーのタグ名でタグを取得する
@@ -39,15 +78,6 @@ interface TagRepository {
      * 複数のタグ名でタグを一括取得する
      */
     suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag>
-
-    /**
-     * ユーザーのタグを使用回数順で取得する
-     *
-     * @param userId ユーザーID
-     * @param limit 取得件数上限（nullの場合は全件取得）
-     * @return 使用回数降順（同数の場合はタグ名昇順）でソートされたタグ一覧
-     */
-    suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int? = null): List<TagWithCount>
 
     /**
      * タグを削除する

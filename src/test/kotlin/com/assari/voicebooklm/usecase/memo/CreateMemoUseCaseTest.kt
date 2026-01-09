@@ -10,8 +10,9 @@ import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.Tag
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
+import com.assari.voicebooklm.domain.repository.SortOrder
 import com.assari.voicebooklm.domain.repository.TagRepository
-import com.assari.voicebooklm.domain.repository.TagWithCount
+import com.assari.voicebooklm.domain.repository.TagSortField
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import com.assari.voicebooklm.infrastructure.service.FolderPathResolver
 import com.assari.voicebooklm.usecase.support.ExecutionTimer
@@ -294,7 +295,12 @@ private class FakeTagRepository : TagRepository {
     override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> =
         savedTags.filter { it.userId == userId && names.contains(it.name) }
 
-    override suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int?): List<TagWithCount> = emptyList()
+    override suspend fun findByUserIdWithSort(
+        userId: UUID,
+        sortField: TagSortField,
+        sortOrder: SortOrder,
+        limit: Int?,
+    ): List<Tag> = emptyList()
 
     override suspend fun delete(id: UUID) {
         savedTags.removeIf { it.id == id }

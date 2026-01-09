@@ -8,15 +8,24 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 /**
- * Spring Data JDBC タグマスタリポジトリインターフェース
+ * Spring Data JDBC タグリポジトリインターフェース
  *
  * 内部使用専用。外部からは TagRepository インターフェースを使用する。
  */
 @Repository
 interface TagJdbcRepository : CrudRepository<TagMasterEntity, UUID> {
 
-    @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY name")
-    fun findByUserId(@Param("userId") userId: UUID): List<TagMasterEntity>
+    @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY name ASC")
+    fun findByUserIdOrderByNameAsc(@Param("userId") userId: UUID): List<TagMasterEntity>
+
+    @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY name DESC")
+    fun findByUserIdOrderByNameDesc(@Param("userId") userId: UUID): List<TagMasterEntity>
+
+    @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY usage_count ASC, name ASC")
+    fun findByUserIdOrderByUsageCountAsc(@Param("userId") userId: UUID): List<TagMasterEntity>
+
+    @Query("SELECT * FROM tags WHERE user_id = :userId ORDER BY usage_count DESC, name ASC")
+    fun findByUserIdOrderByUsageCountDesc(@Param("userId") userId: UUID): List<TagMasterEntity>
 
     @Query("SELECT * FROM tags WHERE user_id = :userId AND name = :name")
     fun findByUserIdAndName(

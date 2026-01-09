@@ -1,8 +1,9 @@
 package com.assari.voicebooklm.usecase.tag
 
 import com.assari.voicebooklm.domain.model.Tag
+import com.assari.voicebooklm.domain.repository.SortOrder
 import com.assari.voicebooklm.domain.repository.TagRepository
-import com.assari.voicebooklm.domain.repository.TagWithCount
+import com.assari.voicebooklm.domain.repository.TagSortField
 import com.github.f4b6a3.uuid.UuidCreator
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -79,9 +80,17 @@ private class ListTagsInMemoryTagRepository(
     override suspend fun save(tag: Tag): Tag = tag
     override suspend fun findById(id: UUID): Tag? = null
     override suspend fun findByUserId(userId: UUID): List<Tag> = tagsPerUser[userId] ?: emptyList()
+    override suspend fun findByUserIdWithSort(
+        userId: UUID,
+        sortField: TagSortField,
+        sortOrder: SortOrder,
+        limit: Int?,
+    ): List<Tag> {
+        val tags = tagsPerUser[userId] ?: emptyList()
+        return if (limit != null) tags.take(limit) else tags
+    }
     override suspend fun findByUserIdAndName(userId: UUID, name: String): Tag? = null
     override suspend fun findByUserIdAndNames(userId: UUID, names: List<String>): List<Tag> = emptyList()
-    override suspend fun findTagsWithCountByUserId(userId: UUID, limit: Int?): List<TagWithCount> = emptyList()
     override suspend fun delete(id: UUID) {}
     override fun deleteByUserId(userId: UUID) {}
 }

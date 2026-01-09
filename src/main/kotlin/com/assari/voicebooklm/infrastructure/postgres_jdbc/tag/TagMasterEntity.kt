@@ -30,6 +30,9 @@ data class TagMasterEntity(
     @Column("updated_at")
     val updatedAt: Instant,
 
+    @Column("usage_count")
+    val usageCount: Int = 0,
+
     @Version
     val version: Long? = null
 ) {
@@ -54,6 +57,7 @@ data class TagMasterEntity(
             name = tag.name,
             createdAt = tag.createdAt,
             updatedAt = tag.updatedAt,
+            // usageCount はDBトリガーで管理されるため、ここでは設定しない
         )
     }
 }
