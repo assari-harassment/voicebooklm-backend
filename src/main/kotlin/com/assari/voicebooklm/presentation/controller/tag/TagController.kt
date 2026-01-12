@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -30,6 +31,12 @@ import java.util.UUID
 class TagController(
     private val listTagsUseCase: ListTagsUseCase,
 ) {
+    private val logger = LoggerFactory.getLogger(TagController::class.java)
+
+    companion object {
+        private val VALID_SORT_VALUES = setOf("name", "usage_count")
+        private val VALID_ORDER_VALUES = setOf("asc", "desc")
+    }
     @GetMapping
     @Operation(
         summary = "タグ一覧取得",
@@ -37,7 +44,7 @@ class TagController(
             認証ユーザーが使用している全タグを取得する。
             ソート順と件数制限が指定可能。
 
-            人気タグを取得する場合: sort=usage_count&order=desc&limit=10
+            例：）人気タグを取得する場合: sort=usage_count&order=desc&limit=10
         """,
         responses = [
             ApiResponse(
@@ -69,13 +76,21 @@ class TagController(
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "limitは1以上の値を指定してください")
         }
 
-        val sortField = when (sort.lowercase()) {
+        val sortLower = sort.lowercase()
+        if (sortLower !in VALID_SORT_VALUES) {
+            logger.warn("Invalid sort parameter '{}', using default 'name'", sort)
+        }
+        val sortField = when (sortLower) {
             "name" -> TagSortField.NAME
             "usage_count" -> TagSortField.USAGE_COUNT
             else -> TagSortField.NAME
         }
 
-        val sortOrder = when (order.lowercase()) {
+        val orderLower = order.lowercase()
+        if (orderLower !in VALID_ORDER_VALUES) {
+            logger.warn("Invalid order parameter '{}', using default 'asc'", order)
+        }
+        val sortOrder = when (orderLower) {
             "asc" -> SortOrder.ASC
             "desc" -> SortOrder.DESC
             else -> SortOrder.ASC

@@ -32,13 +32,15 @@ class TagJdbcRepository(
         order: SortOrder,
         limit: Int?,
     ): List<String> {
-        val orderByClause = when (sort) {
-            TagSortField.NAME -> "tag"
-            TagSortField.USAGE_COUNT -> "usage_count"
-        }
         val orderDirection = when (order) {
             SortOrder.ASC -> "ASC"
             SortOrder.DESC -> "DESC"
+        }
+
+        // セカンダリソートキーとしてtag列を追加し、ソート順を安定させる
+        val orderByClause = when (sort) {
+            TagSortField.NAME -> "tag $orderDirection"
+            TagSortField.USAGE_COUNT -> "usage_count $orderDirection, tag ASC"
         }
 
         val limitClause = if (limit != null && limit > 0) "LIMIT :limit" else ""
@@ -49,7 +51,7 @@ class TagJdbcRepository(
             JOIN memos m ON mt.memo_id = m.id
             WHERE m.user_id = :userId AND m.deleted = FALSE
             GROUP BY mt.tag
-            ORDER BY $orderByClause $orderDirection
+            ORDER BY $orderByClause
             $limitClause
         """.trimIndent()
 

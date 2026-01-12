@@ -26,6 +26,7 @@ internal class InMemoryTagRepository(
         val grouped = userTags.groupBy { it.second }
             .map { (tag, occurrences) -> tag to occurrences.size }
 
+        // セカンダリソートキーとしてtag列を追加し、ソート順を安定させる
         val sorted = when (sort) {
             TagSortField.NAME -> {
                 when (order) {
@@ -35,8 +36,8 @@ internal class InMemoryTagRepository(
             }
             TagSortField.USAGE_COUNT -> {
                 when (order) {
-                    SortOrder.ASC -> grouped.sortedBy { it.second }
-                    SortOrder.DESC -> grouped.sortedByDescending { it.second }
+                    SortOrder.ASC -> grouped.sortedWith(compareBy({ it.second }, { it.first }))
+                    SortOrder.DESC -> grouped.sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
                 }
             }
         }
