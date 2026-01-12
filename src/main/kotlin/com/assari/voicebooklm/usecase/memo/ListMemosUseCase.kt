@@ -1,6 +1,8 @@
 package com.assari.voicebooklm.usecase.memo
 
 import com.assari.voicebooklm.domain.model.Folder
+import com.assari.voicebooklm.domain.model.MemoSortField
+import com.assari.voicebooklm.domain.model.SortOrder
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.model.buildPath
 import com.assari.voicebooklm.domain.repository.FolderRepository
@@ -111,23 +113,6 @@ data class ListMemosInput(
     /** 取得件数制限（null の場合は全件） */
     val limit: Int? = null,
 )
-
-/**
- * メモのソート項目
- */
-enum class MemoSortField {
-    UPDATED_AT,
-    CREATED_AT,
-    TITLE,
-}
-
-/**
- * ソート順序
- */
-enum class SortOrder {
-    ASC,
-    DESC,
-}
 
 /**
  * メモ一覧取得 Output

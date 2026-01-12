@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.usecase.tag
 
-import com.assari.voicebooklm.domain.repository.SortOrder
-import com.assari.voicebooklm.domain.repository.TagSortField
+import com.assari.voicebooklm.domain.model.SortOrder
+import com.assari.voicebooklm.domain.model.TagSortField
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach

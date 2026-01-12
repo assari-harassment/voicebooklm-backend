@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.presentation.controller.tag
 
-import com.assari.voicebooklm.domain.repository.SortOrder
-import com.assari.voicebooklm.domain.repository.TagSortField
+import com.assari.voicebooklm.domain.model.SortOrder
+import com.assari.voicebooklm.domain.model.TagSortField
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.tag.ListTagsInput
 import com.assari.voicebooklm.usecase.tag.ListTagsUseCase

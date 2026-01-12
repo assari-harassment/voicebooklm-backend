@@ -1,8 +1,8 @@
 package com.assari.voicebooklm.usecase.tag
 
-import com.assari.voicebooklm.domain.repository.SortOrder
+import com.assari.voicebooklm.domain.model.SortOrder
+import com.assari.voicebooklm.domain.model.TagSortField
 import com.assari.voicebooklm.domain.repository.TagRepository
-import com.assari.voicebooklm.domain.repository.TagSortField
 import java.util.UUID
 
 /**

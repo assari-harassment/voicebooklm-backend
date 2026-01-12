@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.domain.repository
 
+import com.assari.voicebooklm.domain.model.SortOrder
+import com.assari.voicebooklm.domain.model.TagSortField
 import java.util.UUID
 
 /**
@@ -20,30 +22,8 @@ interface TagRepository {
      */
     suspend fun findByUserId(
         userId: UUID,
-        sort: TagSortField = TagSortField.NAME,
-        order: SortOrder = SortOrder.ASC,
-        limit: Int? = null,
+        sort: TagSortField,
+        order: SortOrder,
+        limit: Int?,
     ): List<String>
-}
-
-/**
- * タグのソート基準
- */
-enum class TagSortField {
-    /** タグ名でソート */
-    NAME,
-
-    /** 使用回数でソート */
-    USAGE_COUNT,
-}
-
-/**
- * ソート順
- */
-enum class SortOrder {
-    /** 昇順 */
-    ASC,
-
-    /** 降順 */
-    DESC,
 }

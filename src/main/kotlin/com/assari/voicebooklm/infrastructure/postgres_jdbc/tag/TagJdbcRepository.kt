@@ -1,7 +1,7 @@
 package com.assari.voicebooklm.infrastructure.postgres_jdbc.tag
 
-import com.assari.voicebooklm.domain.repository.SortOrder
-import com.assari.voicebooklm.domain.repository.TagSortField
+import com.assari.voicebooklm.domain.model.SortOrder
+import com.assari.voicebooklm.domain.model.TagSortField
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Repository
