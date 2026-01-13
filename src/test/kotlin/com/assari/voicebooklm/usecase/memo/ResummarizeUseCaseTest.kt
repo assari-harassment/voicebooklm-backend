@@ -246,7 +246,7 @@ class ResummarizeUseCaseTest {
         )
 
         // 実行して例外を確認
-        assertThrowsSuspend<IllegalArgumentException> {
+        assertThrowsSuspend<DomainException> {
             useCase.execute(
                 ResummarizeInput(
                     memoId = memoId,

@@ -28,6 +28,8 @@ enum class ErrorCode(val httpStatus: HttpStatus, val defaultMessage: String) {
 
     // 処理失敗 (422)
     TRANSCRIPTION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "音声の文字起こしに失敗しました"),
+    TRANSCRIPTION_NOT_COMPLETED(HttpStatus.UNPROCESSABLE_ENTITY, "文字起こしが完了していないため編集できません"),
+    INVALID_TRANSCRIPTION(HttpStatus.UNPROCESSABLE_ENTITY, "文字起こしテキストが空です"),
     MEMO_NOT_COMPLETED(HttpStatus.UNPROCESSABLE_ENTITY, "メモの整形が完了していないため編集できません"),
 }
 

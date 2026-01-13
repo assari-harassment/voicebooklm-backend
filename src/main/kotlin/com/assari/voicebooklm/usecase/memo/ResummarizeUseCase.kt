@@ -3,6 +3,7 @@ package com.assari.voicebooklm.usecase.memo
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
+import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.model.buildPath
@@ -20,33 +21,33 @@ import kotlin.time.Duration
  * 編集された文字起こしテキストから再要約するユースケース
  */
 @Service
-class ResummarizeUseCase(
+open class ResummarizeUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
     private val folderRepository: FolderRepository,
     private val folderPathResolver: FolderPathResolver,
     private val memoFormatter: MemoFormatter,
     private val executionTimer: ExecutionTimer,
 ) {
-    companion object {
-        private val logger = LoggerFactory.getLogger(ResummarizeUseCase::class.java)
-    }
+    private val logger = LoggerFactory.getLogger(ResummarizeUseCase::class.java)
 
     @Transactional
     open suspend fun execute(input: ResummarizeInput): ResummarizeOutput {
         // 1. メモの取得と権限チェック
         val voiceMemo = voiceMemoRepository.findById(input.memoId)
-            ?: throw DomainException(ErrorCode.MEMO_NOT_FOUND, "メモが見つかりません")
+            ?: throw DomainException(ErrorCode.MEMO_NOT_FOUND)
 
         if (voiceMemo.userId != input.userId) {
-            throw DomainException(ErrorCode.MEMO_NOT_FOUND, "メモが見つかりません")
+            throw DomainException(ErrorCode.MEMO_NOT_FOUND)
         }
 
         if (voiceMemo.deleted) {
-            throw DomainException(ErrorCode.MEMO_NOT_FOUND, "メモが見つかりません")
+            throw DomainException(ErrorCode.MEMO_NOT_FOUND)
         }
 
         // 2. 文字起こしテキストが空でないことを確認
-        require(input.editedTranscription.isNotBlank()) { "文字起こしテキストが空です" }
+        if (input.editedTranscription.isBlank()) {
+            throw DomainException(ErrorCode.INVALID_TRANSCRIPTION)
+        }
 
         // 3. 既存フォルダーパスを取得（AI整形用）
         val existingFolderPaths = getExistingFolderPaths(input.userId)
@@ -84,6 +85,9 @@ class ResummarizeUseCase(
         )
 
         // 7. 文字起こしテキストも更新
+        if (!updatedMemo.transcription.isCompleted) {
+            throw DomainException(ErrorCode.TRANSCRIPTION_NOT_COMPLETED)
+        }
         updatedMemo = updatedMemo.editTranscription(input.editedTranscription)
 
         // 8. 永続化
@@ -119,8 +123,8 @@ class ResummarizeUseCase(
         }.getOrNull()
     }
 
-    private fun fallbackFormatResult(transcriptionText: String): com.assari.voicebooklm.domain.gateway.MemoFormatResult {
-        return com.assari.voicebooklm.domain.gateway.MemoFormatResult(
+    private fun fallbackFormatResult(transcriptionText: String): MemoFormatResult {
+        return MemoFormatResult(
             title = "ボイスメモ",
             content = transcriptionText,
             tags = emptyList(),
