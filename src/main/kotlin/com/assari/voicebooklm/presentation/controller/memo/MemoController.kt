@@ -8,6 +8,8 @@ import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import com.assari.voicebooklm.usecase.memo.MemoSortField
+import com.assari.voicebooklm.usecase.memo.ResummarizeInput
+import com.assari.voicebooklm.usecase.memo.ResummarizeUseCase
 import com.assari.voicebooklm.usecase.memo.SortOrder
 import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
@@ -43,6 +46,7 @@ class MemoController(
     private val getMemoUseCase: GetMemoUseCase,
     private val updateMemoUseCase: UpdateMemoUseCase,
     private val deleteMemoUseCase: DeleteMemoUseCase,
+    private val resummarizeUseCase: ResummarizeUseCase,
 ) {
     @GetMapping("/memos")
     @Operation(
@@ -254,5 +258,60 @@ class MemoController(
 
         // 204 No Content を返却
         return ResponseEntity.noContent().build()
+    }
+
+    @PostMapping("/memos/{id}/resummarize")
+    @Operation(
+        summary = "メモ再要約",
+        description = "編集された文字起こしテキストから再度AI整形（要約）を行います。",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "再要約成功",
+                content = [Content(schema = Schema(implementation = MemoDetailResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "バリデーションエラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証失敗",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "メモが見つからない（存在しない、削除済み、または権限なし）",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "422",
+                description = "処理エラー（整形失敗など）",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun resummarize(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userId: UUID?,
+        @Valid @RequestBody request: ResummarizeRequest,
+    ): ResponseEntity<MemoDetailResponse> {
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
+        // ユースケース実行
+        val result = resummarizeUseCase.execute(
+            ResummarizeInput(
+                memoId = id,
+                userId = userId,
+                editedTranscription = request.editedTranscription,
+            )
+        )
+
+        // レスポンス返却
+        return ResponseEntity.ok(MemoDetailResponse.from(result))
     }
 }

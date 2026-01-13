@@ -1,5 +1,6 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 
 /**
@@ -14,4 +15,12 @@ data class UpdateMemoRequest(
     val content: String? = null,
 
     val tags: List<String>? = null,
+)
+
+/**
+ * 再要約リクエスト
+ */
+data class ResummarizeRequest(
+    @field:NotBlank(message = "編集された文字起こしテキストは必須です")
+    val editedTranscription: String,
 )

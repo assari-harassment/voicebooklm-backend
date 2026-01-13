@@ -3,6 +3,7 @@ package com.assari.voicebooklm.presentation.controller.memo
 import com.assari.voicebooklm.usecase.memo.GetMemoOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.MemoWithFolder
+import com.assari.voicebooklm.usecase.memo.ResummarizeOutput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import java.time.Instant
 import java.util.UUID
@@ -101,6 +102,21 @@ data class MemoDetailResponse(
 
         fun from(result: UpdateMemoOutput): MemoDetailResponse {
             val memo = result.memo
+            return MemoDetailResponse(
+                memoId = memo.id,
+                title = memo.title,
+                content = memo.content,
+                tags = memo.tags,
+                transcriptionText = memo.transcriptionText,
+                transcriptionStatus = memo.transcription.status.name,
+                formattingStatus = memo.formatting.status.name,
+                createdAt = memo.createdAt,
+                updatedAt = memo.updatedAt,
+            )
+        }
+
+        fun from(result: ResummarizeOutput): MemoDetailResponse {
+            val memo = result.voiceMemo
             return MemoDetailResponse(
                 memoId = memo.id,
                 title = memo.title,
