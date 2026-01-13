@@ -1,6 +1,8 @@
 package com.assari.voicebooklm.usecase.memo
 
 import com.assari.voicebooklm.domain.model.Folder
+import com.assari.voicebooklm.domain.model.MemoSortField
+import com.assari.voicebooklm.domain.model.SortOrder
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.repository.FolderRepository
 import java.time.Instant
