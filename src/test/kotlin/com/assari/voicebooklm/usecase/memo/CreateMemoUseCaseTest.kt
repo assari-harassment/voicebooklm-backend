@@ -158,7 +158,7 @@ class CreateMemoUseCaseTest {
     }
 }
 
-private class FakeSpeechTranscriber(
+internal class FakeSpeechTranscriber(
     private val transcript: String,
 ) : SpeechTranscriber {
     var receivedCommand: SpeechTranscriptionCommand? = null
@@ -172,7 +172,7 @@ private class FakeSpeechTranscriber(
     }
 }
 
-private class FakeMemoFormatter(
+internal class FakeMemoFormatter(
     private val title: String,
     private val content: String,
     private val tags: List<String>,
@@ -191,7 +191,7 @@ private class FakeMemoFormatter(
     }
 }
 
-private class FakeVoiceMemoRepository : VoiceMemoRepository {
+internal class FakeVoiceMemoRepository : VoiceMemoRepository {
     val savedMemos = mutableListOf<VoiceMemo>()
 
     override suspend fun save(voiceMemo: VoiceMemo): VoiceMemo {
@@ -218,7 +218,7 @@ private class FakeVoiceMemoRepository : VoiceMemoRepository {
         savedMemos.any { it.userId == userId && it.formatting.folderId == folderId && !it.deleted }
 }
 
-private class FakeFolderRepository : FolderRepository {
+internal class FakeFolderRepository : FolderRepository {
     val savedFolders = mutableListOf<Folder>()
 
     override suspend fun save(folder: Folder): Folder {
@@ -260,7 +260,7 @@ private class FakeFolderRepository : FolderRepository {
     }
 }
 
-private class FakeExecutionTimer(
+internal class FakeExecutionTimer(
     private val timeSource: TestTimeSource,
     durations: List<Duration>,
 ) : ExecutionTimer {
@@ -274,7 +274,7 @@ private class FakeExecutionTimer(
     }
 }
 
-private suspend inline fun <reified T : Throwable> assertThrowsSuspend(
+internal suspend inline fun <reified T : Throwable> assertThrowsSuspend(
     noinline block: suspend () -> Unit,
 ): T {
     try {
