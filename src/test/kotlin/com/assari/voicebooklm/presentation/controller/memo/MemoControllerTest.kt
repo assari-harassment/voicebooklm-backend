@@ -8,6 +8,9 @@ import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
 import com.assari.voicebooklm.usecase.memo.GetMemoInput
 import com.assari.voicebooklm.usecase.memo.GetMemoOutput
 import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
+import com.assari.voicebooklm.usecase.memo.GetTranscriptionInput
+import com.assari.voicebooklm.usecase.memo.GetTranscriptionOutput
+import com.assari.voicebooklm.usecase.memo.GetTranscriptionUseCase
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
@@ -37,6 +40,7 @@ class MemoControllerTest {
 
     private lateinit var listMemosUseCase: ListMemosUseCase
     private lateinit var getMemoUseCase: GetMemoUseCase
+    private lateinit var getTranscriptionUseCase: GetTranscriptionUseCase
     private lateinit var updateMemoUseCase: UpdateMemoUseCase
     private lateinit var deleteMemoUseCase: DeleteMemoUseCase
     private lateinit var resummarizeUseCase: ResummarizeUseCase
@@ -46,12 +50,14 @@ class MemoControllerTest {
     fun setup() {
         listMemosUseCase = mockk()
         getMemoUseCase = mockk()
+        getTranscriptionUseCase = mockk()
         updateMemoUseCase = mockk()
         deleteMemoUseCase = mockk()
         resummarizeUseCase = mockk()
         controller = MemoController(
             listMemosUseCase = listMemosUseCase,
             getMemoUseCase = getMemoUseCase,
+            getTranscriptionUseCase = getTranscriptionUseCase,
             updateMemoUseCase = updateMemoUseCase,
             deleteMemoUseCase = deleteMemoUseCase,
             resummarizeUseCase = resummarizeUseCase,
@@ -443,5 +449,99 @@ class MemoControllerTest {
         }
 
         assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    // ===== getTranscription エンドポイントのテスト =====
+
+    @Test
+    fun `認証済みユーザーが自分のメモの文字起こしテキストを取得すると200が返る`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val transcriptionText = "これはテスト用の文字起こしテキストです。"
+
+        coEvery {
+            getTranscriptionUseCase.execute(GetTranscriptionInput(memoId, userId))
+        } returns GetTranscriptionOutput(transcriptionText)
+
+        val response = controller.getTranscription(memoId, userId)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        val body = requireNotNull(response.body) { "response body should not be null" }
+        assertEquals(transcriptionText, body.transcription)
+    }
+
+    @Test
+    fun `getTranscription 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
+        val memoId = UUID.randomUUID()
+
+        val exception = assertThrows<ResponseStatusException> {
+            controller.getTranscription(memoId, null)
+        }
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
+    }
+
+    @Test
+    fun `getTranscription 他人のメモを取得しようとするとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        coEvery {
+            getTranscriptionUseCase.execute(GetTranscriptionInput(memoId, userId))
+        } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.getTranscription(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    @Test
+    fun `getTranscription 存在しないメモIDを指定するとMEMO_NOT_FOUND例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        coEvery {
+            getTranscriptionUseCase.execute(GetTranscriptionInput(memoId, userId))
+        } throws DomainException(ErrorCode.MEMO_NOT_FOUND)
+
+        val exception = assertThrows<DomainException> {
+            controller.getTranscription(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.MEMO_NOT_FOUND, exception.code)
+    }
+
+    @Test
+    fun `getTranscription 文字起こしが未完了のメモを取得しようとするとTRANSCRIPTION_NOT_COMPLETED例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        coEvery {
+            getTranscriptionUseCase.execute(GetTranscriptionInput(memoId, userId))
+        } throws DomainException(ErrorCode.TRANSCRIPTION_NOT_COMPLETED)
+
+        val exception = assertThrows<DomainException> {
+            controller.getTranscription(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.TRANSCRIPTION_NOT_COMPLETED, exception.code)
+    }
+
+    @Test
+    fun `getTranscription 文字起こしが失敗したメモを取得しようとするとTRANSCRIPTION_FAILED例外がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+
+        coEvery {
+            getTranscriptionUseCase.execute(GetTranscriptionInput(memoId, userId))
+        } throws DomainException(ErrorCode.TRANSCRIPTION_FAILED)
+
+        val exception = assertThrows<DomainException> {
+            controller.getTranscription(memoId, userId)
+        }
+
+        assertEquals(ErrorCode.TRANSCRIPTION_FAILED, exception.code)
     }
 }

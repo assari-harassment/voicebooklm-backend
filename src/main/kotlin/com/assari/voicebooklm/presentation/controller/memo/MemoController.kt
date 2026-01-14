@@ -5,6 +5,8 @@ import com.assari.voicebooklm.usecase.memo.DeleteMemoInput
 import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
 import com.assari.voicebooklm.usecase.memo.GetMemoInput
 import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
+import com.assari.voicebooklm.usecase.memo.GetTranscriptionInput
+import com.assari.voicebooklm.usecase.memo.GetTranscriptionUseCase
 import com.assari.voicebooklm.domain.model.MemoSortField
 import com.assari.voicebooklm.domain.model.SortOrder
 import com.assari.voicebooklm.usecase.memo.ListMemosInput
@@ -44,6 +46,7 @@ import org.springframework.web.server.ResponseStatusException
 class MemoController(
     private val listMemosUseCase: ListMemosUseCase,
     private val getMemoUseCase: GetMemoUseCase,
+    private val getTranscriptionUseCase: GetTranscriptionUseCase,
     private val updateMemoUseCase: UpdateMemoUseCase,
     private val deleteMemoUseCase: DeleteMemoUseCase,
     private val resummarizeUseCase: ResummarizeUseCase,
@@ -159,6 +162,49 @@ class MemoController(
 
         // レスポンス返却
         return ResponseEntity.ok(MemoDetailResponse.from(result))
+    }
+
+    @GetMapping("/memos/{id}/transcription")
+    @Operation(
+        summary = "文字起こしテキスト取得",
+        description = "指定されたIDのメモの文字起こしテキストを取得します。再要約画面で使用します。",
+        responses = [
+            ApiResponse(
+                responseCode = "200",
+                description = "取得成功",
+                content = [Content(schema = Schema(implementation = TranscriptionResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証失敗",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "404",
+                description = "メモが見つからない（存在しない、削除済み、または権限なし）",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "422",
+                description = "文字起こしが完了していない、または失敗した",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun getTranscription(
+        @PathVariable id: UUID,
+        @AuthenticationPrincipal userId: UUID?,
+    ): ResponseEntity<TranscriptionResponse> {
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
+        // ユースケース実行
+        val result = getTranscriptionUseCase.execute(GetTranscriptionInput(id, userId))
+
+        // レスポンス返却
+        return ResponseEntity.ok(TranscriptionResponse.from(result))
     }
 
     @PatchMapping("/memos/{id}")

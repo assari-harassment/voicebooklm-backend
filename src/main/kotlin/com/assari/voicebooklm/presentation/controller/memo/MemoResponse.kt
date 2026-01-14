@@ -1,6 +1,7 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
 import com.assari.voicebooklm.usecase.memo.GetMemoOutput
+import com.assari.voicebooklm.usecase.memo.GetTranscriptionOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.MemoWithFolder
 import com.assari.voicebooklm.usecase.memo.ResummarizeOutput
@@ -128,6 +129,19 @@ data class MemoDetailResponse(
                 createdAt = memo.createdAt,
                 updatedAt = memo.updatedAt,
             )
+        }
+    }
+}
+
+/**
+ * 文字起こしテキストレスポンス
+ */
+data class TranscriptionResponse(
+    val transcription: String,
+) {
+    companion object {
+        fun from(result: GetTranscriptionOutput): TranscriptionResponse {
+            return TranscriptionResponse(transcription = result.transcription)
         }
     }
 }
