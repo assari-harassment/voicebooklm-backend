@@ -133,7 +133,7 @@ data class VoiceMemo(
      */
     fun changeContent(newContent: String): VoiceMemo {
         require(formatting.isCompleted) { "Cannot change content before formatting is completed" }
-        require(newContent.isNotBlank()) { "Content must not be blank" }
+        require(newContent.isNotBlank()) { "GeminiResponseContent must not be blank" }
         return copy(
             formatting = formatting.copy(content = newContent),
             updatedAt = Instant.now(),

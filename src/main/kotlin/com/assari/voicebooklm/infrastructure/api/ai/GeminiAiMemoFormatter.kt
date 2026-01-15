@@ -285,14 +285,14 @@ data class GeminiResponse(
     }
 }
 
-data class Content(
-    val parts: List<Part> = emptyList(),
+data class GeminiResponseContent(
+    val parts: List<GeminiResponsePart> = emptyList(),
 )
 
-data class Part(
+data class GeminiResponsePart(
     val text: String? = null,
 )
 
 data class Candidate(
-    val content: Content? = null,
+    val content: GeminiResponseContent? = null,
 )

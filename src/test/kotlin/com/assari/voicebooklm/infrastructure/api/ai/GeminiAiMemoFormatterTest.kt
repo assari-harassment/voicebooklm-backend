@@ -52,7 +52,7 @@ class GeminiAiMemoFormatterTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
+                .setHeader("GeminiResponseContent-Type", "application/json")
                 .setBody(responseJson),
         )
         server.start()
@@ -83,7 +83,7 @@ class GeminiAiMemoFormatterTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(500)
-                .setHeader("Content-Type", "application/json"),
+                .setHeader("GeminiResponseContent-Type", "application/json"),
         )
         server.start()
 
@@ -114,7 +114,7 @@ class GeminiAiMemoFormatterTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
+                .setHeader("GeminiResponseContent-Type", "application/json")
                 .setBody("{}")
                 .setBodyDelay(2, java.util.concurrent.TimeUnit.SECONDS),
         )

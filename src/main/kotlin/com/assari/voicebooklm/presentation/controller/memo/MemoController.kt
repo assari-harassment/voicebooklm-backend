@@ -256,7 +256,7 @@ class MemoController(
         // ユースケース実行
         deleteMemoUseCase.execute(DeleteMemoInput(id, userId))
 
-        // 204 No Content を返却
+        // 204 No GeminiResponseContent を返却
         return ResponseEntity.noContent().build()
     }
 
