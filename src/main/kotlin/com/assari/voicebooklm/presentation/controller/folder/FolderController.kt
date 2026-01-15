@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 /**
  * フォルダー API
@@ -60,7 +61,10 @@ class FolderController(
     suspend fun listFolders(
         @AuthenticationPrincipal userId: UUID?,
     ): ResponseEntity<ListFoldersResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         val result = listFoldersUseCase.execute(ListFoldersInput(userId))
         return ResponseEntity.ok(ListFoldersResponse.from(result))
     }
@@ -96,7 +100,10 @@ class FolderController(
         @AuthenticationPrincipal userId: UUID?,
         @Valid @RequestBody request: CreateFolderRequest,
     ): ResponseEntity<FolderResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         val result = createFolderUseCase.execute(
             CreateFolderInput(
                 userId = userId,
@@ -139,7 +146,10 @@ class FolderController(
         @PathVariable id: UUID,
         @Valid @RequestBody request: UpdateFolderRequest,
     ): ResponseEntity<FolderResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         val result = updateFolderUseCase.execute(
             UpdateFolderInput(
                 userId = userId,
@@ -179,7 +189,10 @@ class FolderController(
         @AuthenticationPrincipal userId: UUID?,
         @PathVariable id: UUID,
     ): ResponseEntity<Void> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         deleteFolderUseCase.execute(DeleteFolderInput(userId = userId, folderId = id))
         return ResponseEntity.noContent().build()
     }
