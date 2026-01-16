@@ -86,14 +86,16 @@ class VoiceControllerTest {
             byteArrayOf(1, 2, 3),
         )
 
-        val response = runBlocking {
-            controller.createMemo(
-                userId = null,
-                file = file,
-                language = null,
-            )
+        val exception = assertThrows(ResponseStatusException::class.java) {
+            runBlocking {
+                controller.createMemo(
+                    userId = null,
+                    file = file,
+                    language = null,
+                )
+            }
         }
-        assertEquals(HttpStatus.UNAUTHORIZED, response.statusCode)
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
     }
 
     @Test

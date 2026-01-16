@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 /**
@@ -97,7 +98,10 @@ class DevSeedController(
     suspend fun seed(
         @AuthenticationPrincipal userId: UUID?,
     ): ResponseEntity<DevSeedResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
 
         val result = devSeedUseCase.execute(userId)
 
