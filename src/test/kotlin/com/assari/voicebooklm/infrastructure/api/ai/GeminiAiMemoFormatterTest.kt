@@ -140,4 +140,112 @@ class GeminiAiMemoFormatterTest {
         assertEquals("遅延テスト", draft.content)
         assertEquals("遅延テスト", draft.title)
     }
+
+    // parseContent関数のテスト
+
+    @Test
+    fun `parseContent - 区切り文字ありで本文を抽出`() {
+        val text = """
+            タイトル: テストメモ
+            フォルダー: 仕事/会議
+            タグ: test, memo
+            ---
+            ## 本文の内容
+            
+            これは本文です。
+        """.trimIndent()
+
+        val response = GeminiResponse(
+            candidates = listOf(
+                Candidate(
+                    content = GeminiResponseContent(
+                        parts = listOf(GeminiResponsePart(text = text))
+                    )
+                )
+            )
+        )
+
+        val result = response.toResult("fallback")
+        assertEquals("## 本文の内容\n\nこれは本文です。", result.content)
+    }
+
+    @Test
+    fun `parseContent - 区切り文字なしでメタデータ行を除外`() {
+        val text = """
+            タイトル: テストメモ
+            フォルダー: 仕事
+            タグ: tag1, tag2
+            
+            ## 本文の見出し
+            本文の内容です。
+        """.trimIndent()
+
+        val response = GeminiResponse(
+            candidates = listOf(
+                Candidate(
+                    content = GeminiResponseContent(
+                        parts = listOf(GeminiResponsePart(text = text))
+                    )
+                )
+            )
+        )
+
+        val result = response.toResult("fallback")
+        assertEquals("## 本文の見出し\n本文の内容です。", result.content)
+    }
+
+    @Test
+    fun `parseContent - 英語のメタデータ行を除外`() {
+        val text = """
+            Title: Test Memo
+            Folder: work/meeting
+            Tags: test, memo
+            
+            ## Content
+            This is the body content.
+        """.trimIndent()
+
+        val response = GeminiResponse(
+            candidates = listOf(
+                Candidate(
+                    content = GeminiResponseContent(
+                        parts = listOf(GeminiResponsePart(text = text))
+                    )
+                )
+            )
+        )
+
+        val result = response.toResult("fallback")
+        assertEquals("## Content\nThis is the body content.", result.content)
+    }
+
+    @Test
+    fun `parseContent - 空白行が混在する場合`() {
+        val text = """
+            タイトル: メモ
+            
+            フォルダー: 未分類
+            
+            タグ: a, b
+            
+            ## 内容
+            
+            段落1です。
+            
+            段落2です。
+        """.trimIndent()
+
+        val response = GeminiResponse(
+            candidates = listOf(
+                Candidate(
+                    content = GeminiResponseContent(
+                        parts = listOf(GeminiResponsePart(text = text))
+                    )
+                )
+            )
+        )
+
+        val result = response.toResult("fallback")
+        assertEquals("## 内容\n\n段落1です。\n\n段落2です。", result.content)
+    }
 }
