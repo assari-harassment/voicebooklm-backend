@@ -52,7 +52,7 @@ class GeminiAiMemoFormatterTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setHeader("GeminiResponseContent-Type", "application/json")
+                .setHeader("Content-Type", "application/json")
                 .setBody(responseJson),
         )
         server.start()
@@ -73,7 +73,7 @@ class GeminiAiMemoFormatterTest {
         }
 
         assertEquals("# 会議メモ", draft.title)
-        assertEquals(listOf("voice", "memo"), draft.tags)
+        assertEquals(listOf("#voice", "#memo"), draft.tags)
         org.junit.jupiter.api.Assertions.assertTrue(draft.content.contains("# 会議メモ"))
         org.junit.jupiter.api.Assertions.assertTrue(draft.content.contains("Tags: voice, memo"))
     }
@@ -83,7 +83,7 @@ class GeminiAiMemoFormatterTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(500)
-                .setHeader("GeminiResponseContent-Type", "application/json"),
+                .setHeader("Content-Type", "application/json"),
         )
         server.start()
 
@@ -114,7 +114,7 @@ class GeminiAiMemoFormatterTest {
         server.enqueue(
             MockResponse()
                 .setResponseCode(200)
-                .setHeader("GeminiResponseContent-Type", "application/json")
+                .setHeader("Content-Type", "application/json")
                 .setBody("{}")
                 .setBodyDelay(2, java.util.concurrent.TimeUnit.SECONDS),
         )

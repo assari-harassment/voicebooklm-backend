@@ -51,7 +51,7 @@ class VoiceController(
             ),
             ApiResponse(
                 responseCode = "400",
-                description = "入力不正（音声が空、GeminiResponseContent-Type 不正など）",
+                description = "入力不正（音声が空、Content-Type 不正など）",
                 content = [Content(schema = Schema(implementation = ErrorResponse::class))],
             ),
             ApiResponse(
