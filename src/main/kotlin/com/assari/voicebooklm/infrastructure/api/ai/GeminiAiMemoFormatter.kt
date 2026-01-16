@@ -124,7 +124,7 @@ data class GeminiRequest(
                 - 出力は必ず次の順で行う（順番変更禁止）
                   タイトル: <30文字以内>
                   フォルダー: <1つだけ>
-                  タグ: <2〜4個をカンマ区切り>
+                  タグ: <2〜4個を#付きでカンマ区切り（例: #会議, #メモ）>
                   ---
                   <本文（Markdown）>
                 - 1〜4行目（タイトル/フォルダー/タグ/---）は必ず出力する
@@ -233,9 +233,10 @@ data class GeminiResponse(
             ?: return emptyList()
 
         return normalized.split(",", "・", " ")
-            .map { it.trim().trimStart('#') }
+            .map { it.trim() }
             .filter { it.isNotBlank() }
             .filterNot { it.equals("tags", ignoreCase = true) }
+            .map { tag -> if (tag.startsWith("#")) tag else "#$tag" }
             .take(4)
     }
 
