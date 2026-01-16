@@ -180,7 +180,7 @@ class DevSeedUseCase(
             ).completeFormatting(
                 title = seedMemo.title,
                 content = seedMemo.content.trim(),
-                tags = seedMemo.tags,
+                tags = seedMemo.tags.map { tag -> if (tag.startsWith("#")) tag else "#$tag" },
                 folderId = folderId,
             )
 
