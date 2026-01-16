@@ -216,6 +216,21 @@ internal class FakeVoiceMemoRepository : VoiceMemoRepository {
 
     override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
         savedMemos.any { it.userId == userId && it.formatting.folderId == folderId && !it.deleted }
+
+    override suspend fun countByFolderIds(
+        userId: UUID,
+        folderIdsWithDescendants: Map<UUID, List<UUID>>,
+    ): Map<UUID, Int> {
+        // ユーザーの削除されていないメモをフィルタ
+        val userMemos = savedMemos.filter { it.userId == userId && !it.deleted }
+
+        // 各フォルダーIDについて、そのフォルダーと子孫フォルダーに属するメモをカウント
+        return folderIdsWithDescendants.mapValues { (_, descendantIds) ->
+            userMemos.count { memo ->
+                memo.formatting.folderId != null && memo.formatting.folderId in descendantIds
+            }
+        }
+    }
 }
 
 internal class FakeFolderRepository : FolderRepository {

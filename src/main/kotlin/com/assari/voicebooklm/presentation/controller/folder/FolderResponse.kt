@@ -46,7 +46,7 @@ data class FolderResponse(
                 name = folder.name,
                 parentId = folder.parentId,
                 path = path,
-                memoCount = 0, // 単一フォルダ取得時はメモ数は0（必要に応じて後で実装）
+                memoCount = 0, // フォルダー作成/更新APIではメモ数は返さない仕様のため常に0（一覧APIでは実装済み）
             )
         }
     }
