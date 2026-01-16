@@ -5,6 +5,7 @@ import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.usecase.folder.CreateFolderInput
 import com.assari.voicebooklm.usecase.folder.CreateFolderOutput
+import com.assari.voicebooklm.usecase.folder.CreateFolderUseCase
 import com.assari.voicebooklm.usecase.folder.DeleteFolderInput
 import com.assari.voicebooklm.usecase.folder.DeleteFolderUseCase
 import com.assari.voicebooklm.usecase.folder.FolderWithPath
@@ -14,7 +15,6 @@ import com.assari.voicebooklm.usecase.folder.ListFoldersUseCase
 import com.assari.voicebooklm.usecase.folder.UpdateFolderInput
 import com.assari.voicebooklm.usecase.folder.UpdateFolderOutput
 import com.assari.voicebooklm.usecase.folder.UpdateFolderUseCase
-import com.assari.voicebooklm.usecase.folder.CreateFolderUseCase
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.mockk
@@ -586,4 +586,3 @@ class FolderControllerTest {
         assertEquals(ErrorCode.FOLDER_HAS_MEMOS, exception.code)
     }
 }
-

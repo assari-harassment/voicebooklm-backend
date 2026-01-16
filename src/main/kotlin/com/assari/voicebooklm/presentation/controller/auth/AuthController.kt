@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 /**
@@ -114,7 +115,10 @@ class AuthController(
     )
     @DeleteMapping("/account")
     fun deleteAccount(@AuthenticationPrincipal userId: UUID?): ResponseEntity<Void> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         deleteAccountUseCase.execute(DeleteAccountInput(userId))
         return ResponseEntity.noContent().build()
     }
@@ -136,7 +140,10 @@ class AuthController(
     )
     @GetMapping("/me")
     fun getCurrentUser(@AuthenticationPrincipal userId: UUID?): ResponseEntity<UserResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         val userInfo = getCurrentUserUseCase.execute(GetCurrentUserInput(userId))
         return ResponseEntity.ok(
                 UserResponse(id = userInfo.id, email = userInfo.email, name = userInfo.name)

@@ -71,7 +71,10 @@ class VoiceController(
         @RequestPart("file") file: MultipartFile,
         @RequestParam("language", required = false) language: String?,
     ): ResponseEntity<VoiceMemoCreatedResponse> {
-        userId ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
         validateFile(file)
         val tempPath = writeTempFile(file)
         val audioBytes = readAudio(tempPath)
