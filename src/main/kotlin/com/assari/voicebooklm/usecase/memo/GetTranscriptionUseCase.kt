@@ -38,11 +38,12 @@ open class GetTranscriptionUseCase(
         }
 
         // 3. 文字起こし状態チェック
-        if (memo.transcription.isFailed) {
-            throw DomainException(ErrorCode.TRANSCRIPTION_FAILED)
-        }
         if (!memo.transcription.isCompleted) {
-            throw DomainException(ErrorCode.TRANSCRIPTION_NOT_COMPLETED)
+            val errorCode = if (memo.transcription.isFailed)
+                ErrorCode.TRANSCRIPTION_FAILED
+            else
+                ErrorCode.TRANSCRIPTION_NOT_COMPLETED
+            throw DomainException(errorCode)
         }
 
         // 4. 結果を返却

@@ -38,9 +38,13 @@ open class UpdateMemoUseCase(
             throw DomainException(ErrorCode.MEMO_NOT_FOUND)
         }
 
-        // 3. 整形完了チェック
+        // 3. 整形状態チェック
         if (!memo.formatting.isCompleted) {
-            throw DomainException(ErrorCode.MEMO_NOT_COMPLETED)
+            val errorCode = if (memo.formatting.isFailed)
+                ErrorCode.FORMATTING_FAILED
+            else
+                ErrorCode.MEMO_NOT_COMPLETED
+            throw DomainException(errorCode)
         }
 
         // 4. ドメインメソッドで更新
