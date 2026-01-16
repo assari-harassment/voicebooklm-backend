@@ -14,7 +14,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
-import io.netty.resolver.DefaultAddressResolverGroup
 import org.slf4j.LoggerFactory
 
 /**
@@ -38,7 +37,6 @@ class GeminiAiMemoFormatter(
             ReactorClientHttpConnector(
                 HttpClient.create()
                     .responseTimeout(timeout)
-                    .resolver(DefaultAddressResolverGroup.INSTANCE), // システムのDNSリゾルバーを使用
             ),
         )
         .baseUrl(baseUrl)
@@ -46,8 +44,6 @@ class GeminiAiMemoFormatter(
 
     override suspend fun format(command: MemoFormatCommand): MemoFormatResult {
         val request = GeminiRequest.fromTranscript(command.transcript, command.existingFolderPaths)
-
-        logger.debug("Calling Gemini API with model: $model")
 
         return runCatching {
             client.post()
