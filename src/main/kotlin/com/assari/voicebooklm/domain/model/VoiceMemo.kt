@@ -145,7 +145,10 @@ data class VoiceMemo(
      */
     fun changeTags(newTags: List<String>): VoiceMemo {
         require(formatting.isCompleted) { "Cannot change tags before formatting is completed" }
-        val sanitizedTags = newTags.map { it.trim() }.filter { it.isNotEmpty() }
+        val sanitizedTags = newTags
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .map { tag -> if (tag.startsWith("#")) tag else "#$tag" }
         return copy(
             formatting = formatting.copy(tags = sanitizedTags),
             updatedAt = Instant.now(),
