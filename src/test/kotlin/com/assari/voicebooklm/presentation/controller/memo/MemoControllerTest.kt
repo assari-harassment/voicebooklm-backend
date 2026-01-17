@@ -92,7 +92,7 @@ class MemoControllerTest {
             hasMore = false,
         )
 
-        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, null)
+        val response = controller.listMemos(userId, null, false, false, null, null, "updated_at", "desc", null, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -121,7 +121,7 @@ class MemoControllerTest {
             hasMore = false,
         )
 
-        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, null)
+        val response = controller.listMemos(userId, null, false, false, null, null, "updated_at", "desc", null, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -131,7 +131,7 @@ class MemoControllerTest {
     @Test
     fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(null, null, false, false, null, "updated_at", "desc", null, null)
+            controller.listMemos(null, null, false, false, null, null, "updated_at", "desc", null, null)
         }
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
@@ -141,7 +141,7 @@ class MemoControllerTest {
     fun `listMemos limitが0の場合はBAD_REQUESTがスローされる`() = runBlocking {
         val userId = UUID.randomUUID()
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", 0, null)
+            controller.listMemos(userId, null, false, false, null, null, "updated_at", "desc", 0, null)
         }
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
@@ -152,7 +152,7 @@ class MemoControllerTest {
     fun `listMemos limitが負の値の場合はBAD_REQUESTがスローされる`() = runBlocking {
         val userId = UUID.randomUUID()
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", -1, null)
+            controller.listMemos(userId, null, false, false, null, null, "updated_at", "desc", -1, null)
         }
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
@@ -163,7 +163,7 @@ class MemoControllerTest {
     fun `listMemos offsetが負の値の場合はBAD_REQUESTがスローされる`() = runBlocking {
         val userId = UUID.randomUUID()
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, -1)
+            controller.listMemos(userId, null, false, false, null, null, "updated_at", "desc", null, -1)
         }
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
@@ -194,7 +194,7 @@ class MemoControllerTest {
             hasMore = true,
         )
 
-        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, null)
+        val response = controller.listMemos(userId, null, false, false, null, null, "updated_at", "desc", null, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }

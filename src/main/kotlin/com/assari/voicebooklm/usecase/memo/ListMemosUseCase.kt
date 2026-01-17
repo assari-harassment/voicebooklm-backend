@@ -46,6 +46,17 @@ open class ListMemosUseCase(
             else -> memos
         }
 
+        // 2.5. タグフィルタリング（AND検索: 指定されたすべてのタグを持つメモのみ）
+        if (!input.tags.isNullOrEmpty()) {
+            val requiredTags = input.tags.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+            if (requiredTags.isNotEmpty()) {
+                memos = memos.filter { memo ->
+                    val memoTags = memo.formatting.tags.map { it.lowercase() }.toSet()
+                    requiredTags.all { requiredTag -> memoTags.contains(requiredTag) }
+                }
+            }
+        }
+
         // 3. フォルダー情報を取得
         val folders = folderRepository.findByUserId(input.userId)
         val folderMap = folders.associateBy { it.id }
@@ -113,6 +124,8 @@ data class ListMemosInput(
     val uncategorizedOnly: Boolean = false,
     /** キーワード検索（null または空の場合は全件） */
     val keyword: String? = null,
+    /** タグでフィルタリング（AND検索: すべてのタグを持つメモのみ取得） */
+    val tags: List<String>? = null,
     /** ソート項目（デフォルト: updated_at） */
     val sortBy: MemoSortField = MemoSortField.UPDATED_AT,
     /** ソート順序（デフォルト: desc） */

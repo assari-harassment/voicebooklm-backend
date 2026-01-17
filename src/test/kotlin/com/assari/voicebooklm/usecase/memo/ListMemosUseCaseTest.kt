@@ -500,6 +500,153 @@ class ListMemosUseCaseTest {
         assertEquals(memo1.id, result.memos[0].memo.id)
     }
 
+    @Test
+    fun `単一タグでフィルタリングできる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "title1", content = "content1", tags = listOf("開発", "Kotlin"))
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "title2", content = "content2", tags = listOf("開発", "Java"))
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text3")
+            .completeFormatting(title = "title3", content = "content3", tags = listOf("ミーティング"))
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                tags = listOf("開発"),
+            )
+        )
+
+        assertEquals(2, result.memos.size)
+        val memoIds = result.memos.map { it.memo.id }
+        assertTrue(memoIds.contains(memo1.id))
+        assertTrue(memoIds.contains(memo2.id))
+    }
+
+    @Test
+    fun `複数タグでAND検索できる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "title1", content = "content1", tags = listOf("開発", "Kotlin"))
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "title2", content = "content2", tags = listOf("開発", "Java"))
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text3")
+            .completeFormatting(title = "title3", content = "content3", tags = listOf("開発", "Kotlin", "重要"))
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        // 「開発」と「Kotlin」の両方を持つメモのみ取得
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                tags = listOf("開発", "Kotlin"),
+            )
+        )
+
+        assertEquals(2, result.memos.size)
+        val memoIds = result.memos.map { it.memo.id }
+        assertTrue(memoIds.contains(memo1.id))
+        assertTrue(memoIds.contains(memo3.id))
+    }
+
+    @Test
+    fun `タグ検索とキーワード検索を組み合わせできる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "Kotlin開発入門", content = "content1", tags = listOf("開発"))
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "Java開発入門", content = "content2", tags = listOf("開発"))
+        val memo3 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text3")
+            .completeFormatting(title = "Kotlinの基礎", content = "content3", tags = listOf("学習"))
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        // 「開発」タグを持ち、かつタイトルに「Kotlin」を含むメモのみ取得
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                keyword = "Kotlin",
+                tags = listOf("開発"),
+            )
+        )
+
+        assertEquals(1, result.memos.size)
+        assertEquals(memo1.id, result.memos[0].memo.id)
+    }
+
+    @Test
+    fun `タグ検索で大文字小文字を区別しない`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "title1", content = "content1", tags = listOf("Development"))
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text2")
+            .completeFormatting(title = "title2", content = "content2", tags = listOf("DEVELOPMENT"))
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        // 小文字で検索しても大文字・小文字のタグがマッチする
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                tags = listOf("development"),
+            )
+        )
+
+        assertEquals(2, result.memos.size)
+    }
+
+    @Test
+    fun `該当するタグがない場合は空の一覧を返す`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text1")
+            .completeFormatting(title = "title1", content = "content1", tags = listOf("開発"))
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                tags = listOf("存在しないタグ"),
+            )
+        )
+
+        assertTrue(result.memos.isEmpty())
+    }
+
     // インメモリで動作する FolderRepository のテストダブル。
     private class InMemoryFolderRepository(
         initialFolders: List<Folder> = emptyList(),

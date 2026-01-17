@@ -79,6 +79,8 @@ class MemoController(
         @RequestParam(required = false, defaultValue = "false") uncategorizedOnly: Boolean,
         @Parameter(description = "キーワード検索（タイトルまたはコンテントに含まれるメモを検索）")
         @RequestParam(required = false) keyword: String?,
+        @Parameter(description = "タグでフィルタリング（AND検索: 指定されたすべてのタグを持つメモを取得）")
+        @RequestParam(required = false) tags: List<String>?,
         @Parameter(description = "ソート項目（updated_at, created_at, title）")
         @RequestParam(required = false, defaultValue = "updated_at") sort: String,
         @Parameter(description = "ソート順序（asc, desc）")
@@ -125,6 +127,7 @@ class MemoController(
                 includeDescendants = includeDescendants,
                 uncategorizedOnly = uncategorizedOnly,
                 keyword = keyword,
+                tags = tags,
                 sortBy = sortBy,
                 sortOrder = sortOrder,
                 limit = limit,
