@@ -86,7 +86,11 @@ open class ResummarizeUseCase(
 
         // 7. 文字起こしテキストも更新
         if (!updatedMemo.transcription.isCompleted) {
-            throw DomainException(ErrorCode.TRANSCRIPTION_NOT_COMPLETED)
+            val errorCode = if (updatedMemo.transcription.isFailed)
+                ErrorCode.TRANSCRIPTION_FAILED
+            else
+                ErrorCode.TRANSCRIPTION_NOT_COMPLETED
+            throw DomainException(errorCode)
         }
         updatedMemo = updatedMemo.editTranscription(input.editedTranscription)
 
