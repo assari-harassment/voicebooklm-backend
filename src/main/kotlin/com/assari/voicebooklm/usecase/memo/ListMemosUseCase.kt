@@ -84,18 +84,27 @@ open class ListMemosUseCase(
             }
         }
 
-        // 6. 件数制限
+        // 6. 全件数を保存（ページネーション前）
+        val total = memosWithFolder.size
+
+        // 7. offset適用
+        val offset = input.offset ?: 0
+        if (offset > 0) {
+            memosWithFolder = memosWithFolder.drop(offset)
+        }
+
+        // 8. limit適用
         if (input.limit != null && input.limit > 0) {
             memosWithFolder = memosWithFolder.take(input.limit)
         }
 
-        return ListMemosOutput(memosWithFolder)
+        // 9. 次のページがあるかを計算
+        val hasMore = offset + memosWithFolder.size < total
+
+        return ListMemosOutput(memosWithFolder, total, hasMore)
     }
 }
 
-/**
- * メモ一覧取得 Input
- */
 data class ListMemosInput(
     val userId: UUID,
     /** フォルダーIDでフィルタリング（null の場合は全件） */
@@ -112,13 +121,16 @@ data class ListMemosInput(
     val sortOrder: SortOrder = SortOrder.DESC,
     /** 取得件数制限（null の場合は全件） */
     val limit: Int? = null,
+    /** 取得開始位置（0から開始、null の場合は0） */
+    val offset: Int? = null,
 )
 
-/**
- * メモ一覧取得 Output
- */
 data class ListMemosOutput(
     val memos: List<MemoWithFolder>,
+    /** 全件数（フィルタリング・検索後、ページネーション前の件数） */
+    val total: Int,
+    /** 次のページが存在するか */
+    val hasMore: Boolean,
 )
 
 /**
