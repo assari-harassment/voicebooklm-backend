@@ -148,7 +148,6 @@ data class VoiceMemo(
         val sanitizedTags = newTags
             .map { it.trim() }
             .filter { it.isNotEmpty() }
-            .map { tag -> if (tag.startsWith("#")) tag else "#$tag" }
         return copy(
             formatting = formatting.copy(tags = sanitizedTags),
             updatedAt = Instant.now(),

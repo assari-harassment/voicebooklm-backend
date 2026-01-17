@@ -73,7 +73,7 @@ class GeminiAiMemoFormatterTest {
         }
 
         assertEquals("# 会議メモ", draft.title)
-        assertEquals(listOf("#voice", "#memo"), draft.tags)
+        assertEquals(listOf("voice", "memo"), draft.tags)
         org.junit.jupiter.api.Assertions.assertTrue(draft.content.contains("# 会議メモ"))
         org.junit.jupiter.api.Assertions.assertTrue(draft.content.contains("Tags: voice, memo"))
     }
