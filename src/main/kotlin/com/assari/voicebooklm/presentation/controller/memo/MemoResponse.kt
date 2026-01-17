@@ -14,13 +14,19 @@ import java.util.UUID
  */
 data class ListMemosResponse(
     val memos: List<MemoListItemResponse>,
+    val total: Int,
+    val hasMore: Boolean,
 ) {
     companion object {
         fun from(result: ListMemosOutput): ListMemosResponse {
             val memos = result.memos.map { memoWithFolder ->
                 MemoListItemResponse.from(memoWithFolder)
             }
-            return ListMemosResponse(memos = memos)
+            return ListMemosResponse(
+                memos = memos,
+                total = result.total,
+                hasMore = result.hasMore,
+            )
         }
     }
 }

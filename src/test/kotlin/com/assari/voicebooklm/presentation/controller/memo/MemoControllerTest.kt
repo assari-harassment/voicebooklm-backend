@@ -88,9 +88,11 @@ class MemoControllerTest {
                 MemoWithFolder(memo = completedMemo, folder = null, folderPath = null),
                 MemoWithFolder(memo = pendingMemo, folder = null, folderPath = null),
             ),
+            total = 2,
+            hasMore = false,
         )
 
-        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null)
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -115,9 +117,11 @@ class MemoControllerTest {
         )
         coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
             memos = emptyList(),
+            total = 0,
+            hasMore = false,
         )
 
-        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null)
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, null)
 
         assertEquals(HttpStatus.OK, response.statusCode)
         val body = requireNotNull(response.body) { "response body should not be null" }
@@ -127,7 +131,7 @@ class MemoControllerTest {
     @Test
     fun `listMemos 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(null, null, false, false, null, "updated_at", "desc", null)
+            controller.listMemos(null, null, false, false, null, "updated_at", "desc", null, null)
         }
 
         assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
@@ -137,7 +141,7 @@ class MemoControllerTest {
     fun `listMemos limitが0の場合はBAD_REQUESTがスローされる`() = runBlocking {
         val userId = UUID.randomUUID()
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", 0)
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", 0, null)
         }
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
@@ -148,11 +152,55 @@ class MemoControllerTest {
     fun `listMemos limitが負の値の場合はBAD_REQUESTがスローされる`() = runBlocking {
         val userId = UUID.randomUUID()
         val exception = assertThrows<ResponseStatusException> {
-            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", -1)
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", -1, null)
         }
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
         assertEquals("limitは1以上の値を指定してください", exception.reason)
+    }
+
+    @Test
+    fun `listMemos offsetが負の値の場合はBAD_REQUESTがスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val exception = assertThrows<ResponseStatusException> {
+            controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, -1)
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
+        assertEquals("offsetは0以上の値を指定してください", exception.reason)
+    }
+
+    @Test
+    fun `listMemos レスポンスにtotalとhasMoreが含まれる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text")
+            .completeFormatting(title = "title1", content = "content1", tags = emptyList())
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+            .completeTranscription("text")
+            .completeFormatting(title = "title2", content = "content2", tags = emptyList())
+        val input = ListMemosInput(
+            userId = userId,
+            folderId = null,
+            includeDescendants = false,
+            uncategorizedOnly = false,
+            keyword = null,
+        )
+        coEvery { listMemosUseCase.execute(input) } returns ListMemosOutput(
+            memos = listOf(
+                MemoWithFolder(memo = memo1, folder = null, folderPath = null),
+            ),
+            total = 2,
+            hasMore = true,
+        )
+
+        val response = controller.listMemos(userId, null, false, false, null, "updated_at", "desc", null, null)
+
+        assertEquals(HttpStatus.OK, response.statusCode)
+        val body = requireNotNull(response.body) { "response body should not be null" }
+        assertEquals(1, body.memos.size)
+        assertEquals(2, body.total)
+        assertTrue(body.hasMore)
     }
 
     // ===== getMemo エンドポイントのテスト =====

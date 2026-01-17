@@ -54,7 +54,7 @@ class MemoController(
     @GetMapping("/memos")
     @Operation(
         summary = "メモ一覧取得",
-        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリング、キーワード検索、ソート、件数制限が可能。",
+        description = "認証ユーザーのメモを取得する。フォルダーによるフィルタリング、キーワード検索、ソート、ページネーションが可能。",
         responses = [
             ApiResponse(
                 responseCode = "200",
@@ -85,6 +85,8 @@ class MemoController(
         @RequestParam(required = false, defaultValue = "desc") order: String,
         @Parameter(description = "取得件数制限")
         @RequestParam(required = false) limit: Int?,
+        @Parameter(description = "取得開始位置（0から開始）")
+        @RequestParam(required = false) offset: Int?,
     ): ResponseEntity<ListMemosResponse> {
         // 認証チェック
         if (userId == null) {
@@ -94,6 +96,11 @@ class MemoController(
         // limitパラメータのバリデーション
         if (limit != null && limit <= 0) {
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "limitは1以上の値を指定してください")
+        }
+
+        // offsetパラメータのバリデーション
+        if (offset != null && offset < 0) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "offsetは0以上の値を指定してください")
         }
 
         // ソート項目のパース
@@ -121,6 +128,7 @@ class MemoController(
                 sortBy = sortBy,
                 sortOrder = sortOrder,
                 limit = limit,
+                offset = offset,
             )
         )
         return ResponseEntity.ok(ListMemosResponse.from(result))

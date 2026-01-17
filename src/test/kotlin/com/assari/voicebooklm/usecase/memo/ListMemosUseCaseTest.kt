@@ -9,6 +9,7 @@ import java.time.Instant
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -157,6 +158,170 @@ class ListMemosUseCaseTest {
         )
 
         assertEquals(2, result.memos.size)
+        assertEquals(3, result.total)
+        assertTrue(result.hasMore)
+    }
+
+    @Test
+    fun `offsetを指定すると先頭からスキップされる`() = runTest {
+        val userId = UUID.randomUUID()
+        val baseTime = Instant.parse("2024-01-01T00:00:00Z")
+        val memo1 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime,
+            updatedAt = baseTime,
+        )
+        val memo2 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(10),
+            updatedAt = baseTime.plusSeconds(10),
+        )
+        val memo3 = VoiceMemo.create(
+            id = UUID.randomUUID(),
+            userId = userId,
+            createdAt = baseTime.plusSeconds(20),
+            updatedAt = baseTime.plusSeconds(20),
+        )
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2, memo3),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        // 降順ソート（memo3, memo2, memo1の順）でoffset=1を指定
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.UPDATED_AT,
+                sortOrder = SortOrder.DESC,
+                offset = 1,
+            )
+        )
+
+        // memo3がスキップされ、memo2, memo1が返る
+        assertEquals(2, result.memos.size)
+        assertEquals(memo2.id, result.memos[0].memo.id)
+        assertEquals(memo1.id, result.memos[1].memo.id)
+        assertEquals(3, result.total)
+        assertFalse(result.hasMore)
+    }
+
+    @Test
+    fun `offset と limit を組み合わせてページネーションできる`() = runTest {
+        val userId = UUID.randomUUID()
+        val baseTime = Instant.parse("2024-01-01T00:00:00Z")
+        val memos = (1..5).map { i ->
+            VoiceMemo.create(
+                id = UUID.randomUUID(),
+                userId = userId,
+                createdAt = baseTime.plusSeconds(i.toLong() * 10),
+                updatedAt = baseTime.plusSeconds(i.toLong() * 10),
+            )
+        }
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = memos)
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        // 1ページ目: offset=0, limit=2
+        val page1 = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.UPDATED_AT,
+                sortOrder = SortOrder.DESC,
+                offset = 0,
+                limit = 2,
+            )
+        )
+        assertEquals(2, page1.memos.size)
+        assertEquals(5, page1.total)
+        assertTrue(page1.hasMore)
+
+        // 2ページ目: offset=2, limit=2
+        val page2 = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.UPDATED_AT,
+                sortOrder = SortOrder.DESC,
+                offset = 2,
+                limit = 2,
+            )
+        )
+        assertEquals(2, page2.memos.size)
+        assertEquals(5, page2.total)
+        assertTrue(page2.hasMore)
+
+        // 3ページ目: offset=4, limit=2
+        val page3 = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                sortBy = MemoSortField.UPDATED_AT,
+                sortOrder = SortOrder.DESC,
+                offset = 4,
+                limit = 2,
+            )
+        )
+        assertEquals(1, page3.memos.size)
+        assertEquals(5, page3.total)
+        assertFalse(page3.hasMore)
+    }
+
+    @Test
+    fun `全件取得時はhasMoreがfalseになる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(ListMemosInput(userId = userId))
+
+        assertEquals(2, result.memos.size)
+        assertEquals(2, result.total)
+        assertFalse(result.hasMore)
+    }
+
+    @Test
+    fun `メモが0件の場合はtotalが0でhasMoreがfalse`() = runTest {
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(InMemoryVoiceMemoRepository(), folderRepository)
+
+        val result = useCase.execute(ListMemosInput(userId = UUID.randomUUID()))
+
+        assertTrue(result.memos.isEmpty())
+        assertEquals(0, result.total)
+        assertFalse(result.hasMore)
+    }
+
+    @Test
+    fun `offsetが全件数以上の場合は空リストが返りhasMoreはfalse`() = runTest {
+        val userId = UUID.randomUUID()
+        val memo1 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+        val memo2 = VoiceMemo.create(id = UUID.randomUUID(), userId = userId)
+
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo1, memo2),
+        )
+        val folderRepository = InMemoryFolderRepository()
+        val useCase = ListMemosUseCase(voiceMemoRepository, folderRepository)
+
+        val result = useCase.execute(
+            ListMemosInput(
+                userId = userId,
+                offset = 10,
+            )
+        )
+
+        assertTrue(result.memos.isEmpty())
+        assertEquals(2, result.total)
+        assertFalse(result.hasMore)
     }
 
     @Test
@@ -191,7 +356,6 @@ class ListMemosUseCaseTest {
         assertEquals("B-Title", result.memos[1].memo.formatting.title)
         assertEquals("C-Title", result.memos[2].memo.formatting.title)
     }
-}
 
 
     @Test
@@ -336,47 +500,48 @@ class ListMemosUseCaseTest {
         assertEquals(memo1.id, result.memos[0].memo.id)
     }
 
-// インメモリで動作する FolderRepository のテストダブル。
-private class InMemoryFolderRepository(
-    initialFolders: List<Folder> = emptyList(),
-) : FolderRepository {
-    private val folders = initialFolders.toMutableList()
+    // インメモリで動作する FolderRepository のテストダブル。
+    private class InMemoryFolderRepository(
+        initialFolders: List<Folder> = emptyList(),
+    ) : FolderRepository {
+        private val folders = initialFolders.toMutableList()
 
-    override suspend fun save(folder: Folder): Folder {
-        folders.removeIf { it.id == folder.id }
-        folders += folder
-        return folder
-    }
-
-    override suspend fun findById(id: UUID): Folder? = folders.find { it.id == id }
-
-    override suspend fun findByUserId(userId: UUID): List<Folder> = folders.filter { it.userId == userId }
-
-    override suspend fun findByUserIdAndParentId(userId: UUID, parentId: UUID?): List<Folder> =
-        folders.filter { it.userId == userId && it.parentId == parentId }
-
-    override suspend fun findByUserIdAndPath(userId: UUID, path: String): Folder? = null
-
-    override suspend fun findDescendantIds(folderId: UUID): List<UUID> = emptyList()
-
-    override suspend fun delete(id: UUID) {
-        folders.removeIf { it.id == id }
-    }
-
-    override suspend fun existsByUserIdAndParentIdAndName(
-        userId: UUID,
-        parentId: UUID?,
-        name: String,
-        excludeId: UUID?,
-    ): Boolean =
-        folders.any {
-            it.userId == userId &&
-                it.parentId == parentId &&
-                it.name == name &&
-                (excludeId == null || it.id != excludeId)
+        override suspend fun save(folder: Folder): Folder {
+            folders.removeIf { it.id == folder.id }
+            folders += folder
+            return folder
         }
 
-    override fun deleteByUserId(userId: UUID) {
-        folders.removeIf { it.userId == userId }
+        override suspend fun findById(id: UUID): Folder? = folders.find { it.id == id }
+
+        override suspend fun findByUserId(userId: UUID): List<Folder> = folders.filter { it.userId == userId }
+
+        override suspend fun findByUserIdAndParentId(userId: UUID, parentId: UUID?): List<Folder> =
+            folders.filter { it.userId == userId && it.parentId == parentId }
+
+        override suspend fun findByUserIdAndPath(userId: UUID, path: String): Folder? = null
+
+        override suspend fun findDescendantIds(folderId: UUID): List<UUID> = emptyList()
+
+        override suspend fun delete(id: UUID) {
+            folders.removeIf { it.id == id }
+        }
+
+        override suspend fun existsByUserIdAndParentIdAndName(
+            userId: UUID,
+            parentId: UUID?,
+            name: String,
+            excludeId: UUID?,
+        ): Boolean =
+            folders.any {
+                it.userId == userId &&
+                        it.parentId == parentId &&
+                        it.name == name &&
+                        (excludeId == null || it.id != excludeId)
+            }
+
+        override fun deleteByUserId(userId: UUID) {
+            folders.removeIf { it.userId == userId }
+        }
     }
 }
