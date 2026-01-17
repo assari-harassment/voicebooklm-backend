@@ -356,7 +356,6 @@ class ListMemosUseCaseTest {
         assertEquals("B-Title", result.memos[1].memo.formatting.title)
         assertEquals("C-Title", result.memos[2].memo.formatting.title)
     }
-}
 
 
     @Test
@@ -501,47 +500,48 @@ class ListMemosUseCaseTest {
         assertEquals(memo1.id, result.memos[0].memo.id)
     }
 
-// インメモリで動作する FolderRepository のテストダブル。
-private class InMemoryFolderRepository(
-    initialFolders: List<Folder> = emptyList(),
-) : FolderRepository {
-    private val folders = initialFolders.toMutableList()
+    // インメモリで動作する FolderRepository のテストダブル。
+    private class InMemoryFolderRepository(
+        initialFolders: List<Folder> = emptyList(),
+    ) : FolderRepository {
+        private val folders = initialFolders.toMutableList()
 
-    override suspend fun save(folder: Folder): Folder {
-        folders.removeIf { it.id == folder.id }
-        folders += folder
-        return folder
-    }
-
-    override suspend fun findById(id: UUID): Folder? = folders.find { it.id == id }
-
-    override suspend fun findByUserId(userId: UUID): List<Folder> = folders.filter { it.userId == userId }
-
-    override suspend fun findByUserIdAndParentId(userId: UUID, parentId: UUID?): List<Folder> =
-        folders.filter { it.userId == userId && it.parentId == parentId }
-
-    override suspend fun findByUserIdAndPath(userId: UUID, path: String): Folder? = null
-
-    override suspend fun findDescendantIds(folderId: UUID): List<UUID> = emptyList()
-
-    override suspend fun delete(id: UUID) {
-        folders.removeIf { it.id == id }
-    }
-
-    override suspend fun existsByUserIdAndParentIdAndName(
-        userId: UUID,
-        parentId: UUID?,
-        name: String,
-        excludeId: UUID?,
-    ): Boolean =
-        folders.any {
-            it.userId == userId &&
-                it.parentId == parentId &&
-                it.name == name &&
-                (excludeId == null || it.id != excludeId)
+        override suspend fun save(folder: Folder): Folder {
+            folders.removeIf { it.id == folder.id }
+            folders += folder
+            return folder
         }
 
-    override fun deleteByUserId(userId: UUID) {
-        folders.removeIf { it.userId == userId }
+        override suspend fun findById(id: UUID): Folder? = folders.find { it.id == id }
+
+        override suspend fun findByUserId(userId: UUID): List<Folder> = folders.filter { it.userId == userId }
+
+        override suspend fun findByUserIdAndParentId(userId: UUID, parentId: UUID?): List<Folder> =
+            folders.filter { it.userId == userId && it.parentId == parentId }
+
+        override suspend fun findByUserIdAndPath(userId: UUID, path: String): Folder? = null
+
+        override suspend fun findDescendantIds(folderId: UUID): List<UUID> = emptyList()
+
+        override suspend fun delete(id: UUID) {
+            folders.removeIf { it.id == id }
+        }
+
+        override suspend fun existsByUserIdAndParentIdAndName(
+            userId: UUID,
+            parentId: UUID?,
+            name: String,
+            excludeId: UUID?,
+        ): Boolean =
+            folders.any {
+                it.userId == userId &&
+                        it.parentId == parentId &&
+                        it.name == name &&
+                        (excludeId == null || it.id != excludeId)
+            }
+
+        override fun deleteByUserId(userId: UUID) {
+            folders.removeIf { it.userId == userId }
+        }
     }
 }
