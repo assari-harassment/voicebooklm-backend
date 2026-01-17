@@ -27,6 +27,7 @@ data class FolderResponse(
     val name: String,
     val parentId: UUID?,
     val path: String,
+    val memoCount: Int,
 ) {
     companion object {
         fun from(folderWithPath: FolderWithPath): FolderResponse {
@@ -35,6 +36,7 @@ data class FolderResponse(
                 name = folderWithPath.folder.name,
                 parentId = folderWithPath.folder.parentId,
                 path = folderWithPath.path,
+                memoCount = folderWithPath.memoCount,
             )
         }
 
@@ -44,6 +46,7 @@ data class FolderResponse(
                 name = folder.name,
                 parentId = folder.parentId,
                 path = path,
+                memoCount = 0, // フォルダー作成/更新APIではメモ数は返さない仕様のため常に0（一覧APIでは実装済み）
             )
         }
     }

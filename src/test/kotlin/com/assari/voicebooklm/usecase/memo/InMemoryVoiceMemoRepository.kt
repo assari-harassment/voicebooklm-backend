@@ -43,6 +43,21 @@ internal class InMemoryVoiceMemoRepository(
     override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
         memos.any { it.userId == userId && it.formatting.folderId == folderId && !it.deleted }
 
+    override suspend fun countByFolderIds(
+        userId: UUID,
+        folderIdsWithDescendants: Map<UUID, List<UUID>>,
+    ): Map<UUID, Int> {
+        // ユーザーの削除されていないメモをフィルタ
+        val userMemos = memos.filter { it.userId == userId && !it.deleted }
+
+        // 各フォルダーIDについて、そのフォルダーと子孫フォルダーに属するメモをカウント
+        return folderIdsWithDescendants.mapValues { (_, descendantIds) ->
+            userMemos.count { memo ->
+                memo.formatting.folderId != null && memo.formatting.folderId in descendantIds
+            }
+        }
+    }
+
     /**
      * テスト用：削除済みメモも含めて取得するメソッド
      */

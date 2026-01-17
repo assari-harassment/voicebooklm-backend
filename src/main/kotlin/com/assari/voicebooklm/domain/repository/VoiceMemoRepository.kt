@@ -41,4 +41,17 @@ interface VoiceMemoRepository {
      * @return メモが存在する場合true
      */
     suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean
+
+    /**
+     * 複数のフォルダー（子フォルダー含む）のメモ数をカウントする
+     *
+     * @param userId ユーザーID
+     * @param folderIdsWithDescendants フォルダーIDとその子孫フォルダーIDのマップ
+     *                                 キー: フォルダーID、値: そのフォルダーID + 子孫フォルダーIDのリスト
+     * @return フォルダーIDをキー、メモ数を値とするマップ
+     */
+    suspend fun countByFolderIds(
+        userId: UUID,
+        folderIdsWithDescendants: Map<UUID, List<UUID>>,
+    ): Map<UUID, Int>
 }

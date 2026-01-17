@@ -2,6 +2,7 @@ package com.assari.voicebooklm.infrastructure.postgres_jdbc.memo
 
 import org.springframework.data.jdbc.repository.query.Modifying
 import org.springframework.data.jdbc.repository.query.Query
+import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.repository.CrudRepository
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
@@ -73,4 +74,34 @@ interface MemoJdbcRepository : CrudRepository<MemoEntity, UUID> {
         @Param("userId") userId: UUID,
         @Param("folderId") folderId: UUID,
     ): Boolean
+
+    /**
+     * 複数のフォルダー（子フォルダー含む）のメモ数をカウントする
+     *
+     * @param userId ユーザーID
+     * @param folderIds カウント対象のフォルダーIDリスト（親フォルダーID + 子孫フォルダーIDを含む）
+     * @return フォルダーIDをキー、メモ数を値とするマップ（Row型）
+     */
+    @Query("""
+        SELECT folder_id, COUNT(*) as count
+        FROM memos
+        WHERE user_id = :userId 
+          AND folder_id IN (:folderIds)
+          AND deleted = false
+        GROUP BY folder_id
+    """)
+    fun countByFolderIds(
+        @Param("userId") userId: UUID,
+        @Param("folderIds") folderIds: List<UUID>,
+    ): List<FolderMemoCount>
 }
+
+/**
+ * フォルダーごとのメモ数（SQLクエリ結果用）
+ */
+data class FolderMemoCount(
+    @Column("folder_id")
+    val folderId: UUID,
+    @Column("count")
+    val count: Long,
+)

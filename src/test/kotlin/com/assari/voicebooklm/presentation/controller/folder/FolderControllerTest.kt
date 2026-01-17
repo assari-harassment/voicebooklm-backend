@@ -74,8 +74,8 @@ class FolderControllerTest {
         val input = ListFoldersInput(userId = userId)
         coEvery { listFoldersUseCase.execute(input) } returns ListFoldersOutput(
             folders = listOf(
-                FolderWithPath(folder = folder1, path = "仕事"),
-                FolderWithPath(folder = folder2, path = "プライベート"),
+                FolderWithPath(folder = folder1, path = "仕事", memoCount = 0),
+                FolderWithPath(folder = folder2, path = "プライベート", memoCount = 0),
             ),
         )
 
@@ -87,9 +87,11 @@ class FolderControllerTest {
         assertEquals(folder1.id, body.folders[0].id)
         assertEquals("仕事", body.folders[0].name)
         assertEquals("仕事", body.folders[0].path)
+        assertEquals(0, body.folders[0].memoCount) // メモ数が含まれる
         assertEquals(folder2.id, body.folders[1].id)
         assertEquals("プライベート", body.folders[1].name)
         assertEquals("プライベート", body.folders[1].path)
+        assertEquals(0, body.folders[1].memoCount) // メモ数が含まれる
     }
 
     @Test
@@ -110,8 +112,8 @@ class FolderControllerTest {
         val input = ListFoldersInput(userId = userId)
         coEvery { listFoldersUseCase.execute(input) } returns ListFoldersOutput(
             folders = listOf(
-                FolderWithPath(folder = parentFolder, path = "仕事"),
-                FolderWithPath(folder = childFolder, path = "仕事/プロジェクトA"),
+                FolderWithPath(folder = parentFolder, path = "仕事", memoCount = 0),
+                FolderWithPath(folder = childFolder, path = "仕事/プロジェクトA", memoCount = 0),
             ),
         )
 
@@ -121,8 +123,10 @@ class FolderControllerTest {
         val body = requireNotNull(response.body) { "response body should not be null" }
         assertEquals(2, body.folders.size)
         assertEquals("仕事", body.folders[0].path)
+        assertEquals(0, body.folders[0].memoCount) // メモ数が含まれる
         assertEquals("仕事/プロジェクトA", body.folders[1].path)
         assertEquals(parentFolder.id, body.folders[1].parentId)
+        assertEquals(0, body.folders[1].memoCount) // メモ数が含まれる
     }
 
     @Test
@@ -130,7 +134,7 @@ class FolderControllerTest {
         val userId = UUID.randomUUID()
         val input = ListFoldersInput(userId = userId)
         coEvery { listFoldersUseCase.execute(input) } returns ListFoldersOutput(
-            folders = emptyList(),
+            folders = emptyList()
         )
 
         val response = controller.listFolders(userId)
@@ -179,6 +183,7 @@ class FolderControllerTest {
         assertEquals("仕事", body.name)
         assertNull(body.parentId)
         assertEquals("仕事", body.path)
+        assertEquals(0, body.memoCount) // フォルダー作成時はメモ数0
     }
 
     @Test
@@ -210,6 +215,7 @@ class FolderControllerTest {
         assertEquals("プロジェクトA", body.name)
         assertEquals(parentId, body.parentId)
         assertEquals("仕事/プロジェクトA", body.path)
+        assertEquals(0, body.memoCount) // フォルダー作成時はメモ数0
     }
 
     @Test
@@ -294,6 +300,7 @@ class FolderControllerTest {
         assertEquals(folderId, body.id)
         assertEquals("Work", body.name)
         assertEquals("Work", body.path)
+        assertEquals(0, body.memoCount) // フォルダー更新時はメモ数0
     }
 
     @Test
@@ -327,6 +334,7 @@ class FolderControllerTest {
         assertEquals(folderId, body.id)
         assertEquals(newParentId, body.parentId)
         assertEquals("プライベート/プロジェクトA", body.path)
+        assertEquals(0, body.memoCount) // フォルダー更新時はメモ数0
     }
 
     @Test
@@ -359,6 +367,7 @@ class FolderControllerTest {
         assertEquals(folderId, body.id)
         assertNull(body.parentId)
         assertEquals("プロジェクトA", body.path)
+        assertEquals(0, body.memoCount) // フォルダー更新時はメモ数0
     }
 
     @Test
@@ -397,6 +406,7 @@ class FolderControllerTest {
         assertEquals("趣味プロジェクト", body.name)
         assertEquals(newParentId, body.parentId)
         assertEquals("プライベート/趣味プロジェクト", body.path)
+        assertEquals(0, body.memoCount) // フォルダー更新時はメモ数0
     }
 
     @Test

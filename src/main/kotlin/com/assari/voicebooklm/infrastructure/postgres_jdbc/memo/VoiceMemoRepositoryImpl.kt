@@ -41,6 +41,27 @@ class VoiceMemoRepositoryImpl(
     override suspend fun existsByUserIdAndFolderId(userId: UUID, folderId: UUID): Boolean =
         memoJdbcRepository.existsByUserIdAndFolderId(userId, folderId)
 
+    override suspend fun countByFolderIds(
+        userId: UUID,
+        folderIdsWithDescendants: Map<UUID, List<UUID>>,
+    ): Map<UUID, Int> {
+        // すべてのフォルダーID（親 + 子孫）をフラット化
+        val allFolderIds = folderIdsWithDescendants.values.flatten().distinct()
+
+        if (allFolderIds.isEmpty()) {
+            return emptyMap()
+        }
+
+        // データベースからメモ数を取得
+        val counts = memoJdbcRepository.countByFolderIds(userId, allFolderIds)
+        val countMap = counts.associate { it.folderId to it.count.toInt() }
+
+        // 各フォルダーIDについて、そのフォルダーと子孫フォルダーのメモ数を合計
+        return folderIdsWithDescendants.mapValues { (_, descendantIds) ->
+            descendantIds.sumOf { folderId -> countMap[folderId] ?: 0 }
+        }
+    }
+
     /**
      * SQLワイルドカード文字（%、_）をエスケープする
      */
