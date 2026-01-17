@@ -89,9 +89,7 @@ open class ListMemosUseCase(
 
         // 7. offset適用
         val offset = input.offset ?: 0
-        if (offset > 0) {
-            memosWithFolder = memosWithFolder.drop(offset)
-        }
+        memosWithFolder = memosWithFolder.drop(offset)
 
         // 8. limit適用
         if (input.limit != null && input.limit > 0) {

@@ -9,6 +9,9 @@ import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import java.time.Instant
 import java.util.UUID
 
+/**
+ * メモ一覧レスポンス
+ */
 data class ListMemosResponse(
     val memos: List<MemoListItemResponse>,
     val total: Int,
