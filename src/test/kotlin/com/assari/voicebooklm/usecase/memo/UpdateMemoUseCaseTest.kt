@@ -2,21 +2,16 @@ package com.assari.voicebooklm.usecase.memo
 
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
-import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import com.assari.voicebooklm.usecase.folder.InMemoryFolderRepository
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 /**
  * UpdateMemoUseCase の振る舞いをテストダブルで検証。
  */
-@Disabled("フォルダー機能が実装されていないため一時的に無効化")
 class UpdateMemoUseCaseTest {
 
     /**
@@ -28,7 +23,6 @@ class UpdateMemoUseCaseTest {
         title: String = "テストタイトル",
         content: String = "テスト本文",
         tags: List<String> = listOf("tag1", "tag2"),
-        folderId: UUID? = null,
     ): VoiceMemo {
         return VoiceMemo.create(id = id, userId = userId)
             .startTranscription()
@@ -38,7 +32,7 @@ class UpdateMemoUseCaseTest {
                 title = title,
                 content = content,
                 tags = tags,
-                folderId = folderId,
+                folderId = null,
             )
     }
 
@@ -49,8 +43,7 @@ class UpdateMemoUseCaseTest {
         val memo = createCompletedMemo(id = memoId, userId = userId, title = "旧タイトル")
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val result = useCase.execute(
             UpdateMemoInput(
@@ -59,8 +52,6 @@ class UpdateMemoUseCaseTest {
                 title = "新タイトル",
                 content = null,
                 tags = null,
-                folderId = null,
-                removeFolder = false,
             )
         )
 
@@ -76,8 +67,7 @@ class UpdateMemoUseCaseTest {
         val memo = createCompletedMemo(id = memoId, userId = userId, content = "旧本文")
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val result = useCase.execute(
             UpdateMemoInput(
@@ -86,8 +76,6 @@ class UpdateMemoUseCaseTest {
                 title = null,
                 content = "新本文",
                 tags = null,
-                folderId = null,
-                removeFolder = false,
             )
         )
 
@@ -103,8 +91,7 @@ class UpdateMemoUseCaseTest {
         val memo = createCompletedMemo(id = memoId, userId = userId, tags = listOf("old1", "old2"))
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val result = useCase.execute(
             UpdateMemoInput(
@@ -113,44 +100,12 @@ class UpdateMemoUseCaseTest {
                 title = null,
                 content = null,
                 tags = listOf("new1", "new2", "new3"),
-                folderId = null,
-                removeFolder = false,
             )
         )
 
         assertEquals("テストタイトル", result.memo.title) // 変更されていない
         assertEquals("テスト本文", result.memo.content) // 変更されていない
         assertEquals(listOf("new1", "new2", "new3"), result.memo.tags)
-    }
-
-    @Test
-    fun `フォルダーのみ更新できる`() = runTest {
-        val userId = UUID.randomUUID()
-        val memoId = UUID.randomUUID()
-        val folderId = UUID.randomUUID()
-        val folder = Folder.create(id = folderId, userId = userId, name = "テストフォルダー")
-        val memo = createCompletedMemo(id = memoId, userId = userId, folderId = null)
-
-        val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository(initialFolders = listOf(folder))
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
-
-        val result = useCase.execute(
-            UpdateMemoInput(
-                memoId = memoId,
-                userId = userId,
-                title = null,
-                content = null,
-                tags = null,
-                folderId = folderId,
-                removeFolder = false,
-            )
-        )
-
-        assertEquals("テストタイトル", result.memo.title) // 変更されていない
-        assertEquals("テスト本文", result.memo.content) // 変更されていない
-        assertEquals(listOf("tag1", "tag2"), result.memo.tags) // 変更されていない
-        assertEquals(folderId, result.memo.formatting.folderId)
     }
 
     @Test
@@ -166,8 +121,7 @@ class UpdateMemoUseCaseTest {
         )
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val result = useCase.execute(
             UpdateMemoInput(
@@ -176,40 +130,12 @@ class UpdateMemoUseCaseTest {
                 title = "新タイトル",
                 content = "新本文",
                 tags = listOf("new1", "new2"),
-                folderId = null,
-                removeFolder = false,
             )
         )
 
         assertEquals("新タイトル", result.memo.title)
         assertEquals("新本文", result.memo.content)
         assertEquals(listOf("new1", "new2"), result.memo.tags)
-    }
-
-    @Test
-    fun `フォルダー解除できる`() = runTest {
-        val userId = UUID.randomUUID()
-        val memoId = UUID.randomUUID()
-        val folderId = UUID.randomUUID()
-        val memo = createCompletedMemo(id = memoId, userId = userId, folderId = folderId)
-
-        val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
-
-        val result = useCase.execute(
-            UpdateMemoInput(
-                memoId = memoId,
-                userId = userId,
-                title = null,
-                content = null,
-                tags = null,
-                folderId = null,
-                removeFolder = true,
-            )
-        )
-
-        assertNull(result.memo.formatting.folderId)
     }
 
     @Test
@@ -220,8 +146,7 @@ class UpdateMemoUseCaseTest {
         val memo = createCompletedMemo(id = memoId, userId = ownerId)
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val exception = assertThrows<DomainException> {
             useCase.execute(
@@ -231,8 +156,6 @@ class UpdateMemoUseCaseTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         }
@@ -251,8 +174,7 @@ class UpdateMemoUseCaseTest {
             .completeTranscription("テスト文字起こし")
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val exception = assertThrows<DomainException> {
             useCase.execute(
@@ -262,8 +184,6 @@ class UpdateMemoUseCaseTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         }
@@ -277,8 +197,7 @@ class UpdateMemoUseCaseTest {
         val nonExistentMemoId = UUID.randomUUID()
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository()
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val exception = assertThrows<DomainException> {
             useCase.execute(
@@ -288,8 +207,6 @@ class UpdateMemoUseCaseTest {
                     title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = null,
-                    removeFolder = false,
                 )
             )
         }
@@ -298,61 +215,61 @@ class UpdateMemoUseCaseTest {
     }
 
     @Test
-    fun `存在しないフォルダーを指定するとFOLDER_NOT_FOUNDエラーになる`() = runTest {
+    fun `整形失敗のメモを更新しようとするとFORMATTING_FAILEDエラーになる`() = runTest {
         val userId = UUID.randomUUID()
         val memoId = UUID.randomUUID()
-        val nonExistentFolderId = UUID.randomUUID()
-        val memo = createCompletedMemo(id = memoId, userId = userId)
+        // 整形処理が失敗した状態
+        val memo = VoiceMemo.create(id = memoId, userId = userId)
+            .startTranscription()
+            .completeTranscription("テスト文字起こし")
+            .startFormatting()
+            .failFormatting()
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository()
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
         val exception = assertThrows<DomainException> {
             useCase.execute(
                 UpdateMemoInput(
                     memoId = memoId,
                     userId = userId,
-                    title = null,
+                    title = "新タイトル",
                     content = null,
                     tags = null,
-                    folderId = nonExistentFolderId,
-                    removeFolder = false,
                 )
             )
         }
 
-        assertEquals(ErrorCode.FOLDER_NOT_FOUND, exception.code)
+        assertEquals(ErrorCode.FORMATTING_FAILED, exception.code)
     }
 
     @Test
-    fun `他人のフォルダーを指定するとFOLDER_NOT_FOUNDエラーになる`() = runTest {
+    fun `全フィールドnullで更新しても元の値が保持される`() = runTest {
         val userId = UUID.randomUUID()
-        val otherUserId = UUID.randomUUID()
         val memoId = UUID.randomUUID()
-        val folderId = UUID.randomUUID()
-        val otherUserFolder = Folder.create(id = folderId, userId = otherUserId, name = "他人のフォルダー")
-        val memo = createCompletedMemo(id = memoId, userId = userId)
+        val memo = createCompletedMemo(
+            id = memoId,
+            userId = userId,
+            title = "元のタイトル",
+            content = "元の本文",
+            tags = listOf("tag1", "tag2"),
+        )
 
         val voiceMemoRepository = InMemoryVoiceMemoRepository(initialMemos = listOf(memo))
-        val folderRepository = InMemoryFolderRepository(initialFolders = listOf(otherUserFolder))
-        val useCase = UpdateMemoUseCase(voiceMemoRepository, folderRepository)
+        val useCase = UpdateMemoUseCase(voiceMemoRepository)
 
-        val exception = assertThrows<DomainException> {
-            useCase.execute(
-                UpdateMemoInput(
-                    memoId = memoId,
-                    userId = userId,
-                    title = null,
-                    content = null,
-                    tags = null,
-                    folderId = folderId,
-                    removeFolder = false,
-                )
+        val result = useCase.execute(
+            UpdateMemoInput(
+                memoId = memoId,
+                userId = userId,
+                title = null,
+                content = null,
+                tags = null,
             )
-        }
+        )
 
-        // フォルダーの存在を推測されないよう、403ではなく404を返す
-        assertEquals(ErrorCode.FOLDER_NOT_FOUND, exception.code)
+        assertEquals("元のタイトル", result.memo.title)
+        assertEquals("元の本文", result.memo.content)
+        assertEquals(listOf("tag1", "tag2"), result.memo.tags)
     }
 }
