@@ -42,16 +42,21 @@ open class GetMemoUseCase(
             throw DomainException(ErrorCode.MEMO_NOT_FOUND)
         }
 
-        // 3. フォルダー情報を取得
+        // 3. メモにフォルダーが紐づいていない場合は、フォルダー情報を取得せずに返却
+        if (memo.formatting.folderId == null) {
+            return GetMemoOutput(memo, null, null)
+        }
+
+        // 4. フォルダー情報を取得
         val folders = folderRepository.findByUserId(input.userId)
         val folderMap = folders.associateBy { it.id }
         val folderPathMap = folders.associate { it.id to it.buildPath(folderMap) }
 
-        // 4. メモに紐づくフォルダー情報を取得
+        // 5. メモに紐づくフォルダー情報を取得
         val folder = memo.formatting.folderId?.let { folderMap[it] }
         val folderPath = memo.formatting.folderId?.let { folderPathMap[it] }
 
-        // 5. 結果を返却
+        // 6. 結果を返却
         return GetMemoOutput(memo, folder, folderPath)
     }
 }

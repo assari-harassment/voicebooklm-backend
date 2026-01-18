@@ -4,7 +4,7 @@ import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
-import com.assari.voicebooklm.domain.repository.FolderRepository
+import com.assari.voicebooklm.usecase.folder.InMemoryFolderRepository
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -185,48 +185,38 @@ class GetMemoUseCaseTest {
         assertEquals("仕事/プロジェクトA", result.folderPath)
     }
 
-    // インメモリで動作する FolderRepository のテストダブル
-    private class InMemoryFolderRepository(
-        initialFolders: List<Folder> = emptyList(),
-    ) : FolderRepository {
-        private val folders = initialFolders.toMutableList()
+    @Test
+    fun `削除されたフォルダーに紐づくメモを取得するとfolderとfolderPathがnullになる`() = runTest {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val deletedFolderId = UUID.randomUUID()
 
-        override suspend fun save(folder: Folder): Folder {
-            folders.removeIf { it.id == folder.id }
-            folders += folder
-            return folder
-        }
+        // フォルダーに紐づくメモを作成（フォルダーは既に削除されている）
+        val memo = VoiceMemo.create(id = memoId, userId = userId)
+            .completeFormatting(
+                title = "テストメモ",
+                content = "コンテンツ",
+                tags = emptyList(),
+                folderId = deletedFolderId,
+            )
 
-        override suspend fun findById(id: UUID): Folder? = folders.find { it.id == id }
+        val voiceMemoRepository = InMemoryVoiceMemoRepository(
+            initialMemos = listOf(memo),
+        )
+        // フォルダーは存在しない（削除済み）ため、空のリポジトリを使用
+        val folderRepository = InMemoryFolderRepository(
+            initialFolders = emptyList(),
+        )
+        val useCase = GetMemoUseCase(voiceMemoRepository, folderRepository)
 
-        override suspend fun findByUserId(userId: UUID): List<Folder> = folders.filter { it.userId == userId }
+        val result = useCase.execute(GetMemoInput(memoId = memoId, userId = userId))
 
-        override suspend fun findByUserIdAndParentId(userId: UUID, parentId: UUID?): List<Folder> =
-            folders.filter { it.userId == userId && it.parentId == parentId }
+        // メモ情報を確認
+        assertEquals(memoId, result.memo.id)
+        assertEquals(userId, result.memo.userId)
 
-        override suspend fun findByUserIdAndPath(userId: UUID, path: String): Folder? = null
-
-        override suspend fun findDescendantIds(folderId: UUID): List<UUID> = emptyList()
-
-        override suspend fun delete(id: UUID) {
-            folders.removeIf { it.id == id }
-        }
-
-        override suspend fun existsByUserIdAndParentIdAndName(
-            userId: UUID,
-            parentId: UUID?,
-            name: String,
-            excludeId: UUID?,
-        ): Boolean =
-            folders.any {
-                it.userId == userId &&
-                        it.parentId == parentId &&
-                        it.name == name &&
-                        (excludeId == null || it.id != excludeId)
-            }
-
-        override fun deleteByUserId(userId: UUID) {
-            folders.removeIf { it.userId == userId }
-        }
+        // フォルダー情報はnull（フォルダーが存在しないため）
+        assertNull(result.folder)
+        assertNull(result.folderPath)
     }
 }
