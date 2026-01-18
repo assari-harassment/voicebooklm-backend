@@ -5,7 +5,6 @@ import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
 import java.time.Duration
-import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
@@ -15,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import org.slf4j.LoggerFactory
 
 /**
  * Gemini（Flash）を用いてメモを整形するクライアント実装。
@@ -25,6 +25,7 @@ import reactor.netty.http.client.HttpClient
 class GeminiAiMemoFormatter(
     geminiProperties: GeminiProperties,
 ) : MemoFormatter {
+    private val logger = LoggerFactory.getLogger(GeminiAiMemoFormatter::class.java)
     private val apiKey: String = geminiProperties.apiKey
     private val model: String = geminiProperties.model
     private val timeout: Duration = Duration.ofSeconds(geminiProperties.timeoutSeconds)
@@ -35,7 +36,7 @@ class GeminiAiMemoFormatter(
         .clientConnector(
             ReactorClientHttpConnector(
                 HttpClient.create()
-                    .responseTimeout(timeout),
+                    .responseTimeout(timeout)
             ),
         )
         .baseUrl(baseUrl)
@@ -57,11 +58,20 @@ class GeminiAiMemoFormatter(
                 .retrieve()
                 .bodyToMono(GeminiResponse::class.java)
                 .timeout(timeout)
-                .onErrorResume { Mono.empty() } // フォールバックへ
+                .onErrorResume { error ->
+                    logger.error("Gemini API call failed", error)
+                    Mono.empty()
+                }
                 .awaitSingleOrNull()
                 ?.toResult(command.transcript)
-                ?: fallbackResult(command.transcript)
-        }.getOrElse { fallbackResult(command.transcript) }
+                ?: run {
+                    logger.warn("Gemini API returned empty response, using fallback")
+                    fallbackResult(command.transcript)
+                }
+        }.getOrElse { error ->
+            logger.error("Unexpected error during Gemini API call", error)
+            fallbackResult(command.transcript)
+        }
     }
 
     private fun fallbackResult(transcript: String): MemoFormatResult {
@@ -78,51 +88,92 @@ class GeminiAiMemoFormatter(
 }
 
 data class GeminiRequest(
-    val contents: List<Content>,
+    val contents: List<GeminiRequestContent>,
 ) {
     companion object {
-        fun fromTranscript(transcript: String, existingFolderPaths: List<String> = emptyList()): GeminiRequest {
+        fun fromTranscript(
+            transcript: String,
+            existingFolderPaths: List<String> = emptyList(),
+        ): GeminiRequest {
             val folderSection = if (existingFolderPaths.isNotEmpty()) {
-                val folderList = existingFolderPaths.joinToString("\n") { "  - $it" }
+                val folderList = existingFolderPaths.joinToString("\n") { "- $it" }
                 """
-                - 適切なフォルダー（以下から選択または新規作成、最大3階層）
-
                 【既存フォルダー】
                 $folderList
+
+                上記から内容に最も合うフォルダーを1つ選択してください。
+                適切なものがなければ新規作成してください（最大3階層）。
                 """.trimIndent()
             } else {
-                "- 適切なフォルダー名を1〜3階層で作成（例: \"仕事/会議\"）※分類困難な場合は「未分類」"
+                """
+                フォルダー名を1〜3階層で作成してください（例: "仕事/会議"）。
+                分類が難しい場合は「未分類」にしてください。
+                """.trimIndent()
             }
 
             val prompt = """
-                次の文字起こしを要約し、Markdown のメモを生成してください。
-                - 30 文字以内のタイトル
-                - 文字起こしを構造化したMarkdown本文
-                - 2-4 個の日本語単語タグ
+                あなたは音声メモの文字起こしを「読みやすい文章」に整えるアシスタントです。
+                以下の文字起こしテキストをもとに、内容の流れを保ちながら、
+                人が書いたような自然な文章のMarkdownメモを作成してください。
+
+                【出力形式（厳守）】
+                - 出力は必ず次の順で行う（順番変更禁止）
+                  タイトル: <30文字以内>
+                  フォルダー: <1つだけ>
+                  タグ: <2〜4個をカンマ区切り（例: 会議, メモ）>
+                  ---
+                  <本文（Markdown）>
+                - 1〜4行目（タイトル/フォルダー/タグ/---）は必ず出力する
+                - タイトル/フォルダー/タグの行はそれぞれ1行のみ（候補・補足・説明を書かない）
+                - 本文内にメタ情報（タイトル/フォルダー/タグ/---）を書かない
+                - 前置き・説明・注意書きは一切書かない
+
+                【フォルダー選定ルール】
+                - 既存フォルダーがある場合は、内容に最も合うものを1つ選ぶ
+                - 適切なものがなければ新規作成（最大3階層）
+                - 判断が難しい場合は「未分類」
+
                 $folderSection
 
-                【出力形式】
-                タイトル: ...
-                フォルダー: ...
-                タグ: ...
-                ---
-                本文...
+                【基本方針】
+                - 箇条書きよりも文章を優先する
+                - 会話調・口語表現は自然な書き言葉に直す
+                - フィラー（えー、あの等）、言い直し、重複は削除する
+                - 文脈が分かるよう主語や接続語を補う（推測はしない）
 
-                Transcript:
+                【Markdownのルール】
+                - 内容のまとまりごとに見出し(##, ###)を使う
+                - 各見出しの直下は短い段落の文章にする
+                - 1段落は2〜4文程度
+                - 行は適度に改行する
+
+                【強調と整理】
+                - **結論・重要な判断・期限・数値・重要語**は太字
+                - 並列関係が明確な場合のみ箇条書きを使用
+                - TODOがあれば最後にチェックリストでまとめる
+
+                【禁止事項】
+                - 元の発言の単なる書き写し
+                - 箇条書きだけの本文
+                - 過度な要約
+                - 事実の推測や補完
+
+                【文字起こしテキスト】
                 $transcript
             """.trimIndent()
-            val part = Part(text = prompt)
-            val content = Content(parts = listOf(part))
+
+            val part = GeminiRequestPart(text = prompt)
+            val content = GeminiRequestContent(parts = listOf(part))
             return GeminiRequest(contents = listOf(content))
         }
     }
 }
 
-data class Content(
-    val parts: List<Part>,
+data class GeminiRequestContent(
+    val parts: List<GeminiRequestPart>,
 )
 
-data class Part(
+data class GeminiRequestPart(
     val text: String,
 )
 
@@ -147,10 +198,11 @@ data class GeminiResponse(
         val title = parseTitle(text)
         val tags = parseTags(text)
         val folderPath = parseFolderPath(text)
+        val content = parseContent(text)
 
         return MemoFormatResult(
             title = title,
-            content = text,
+            content = content,
             tags = tags,
             folderPath = folderPath,
         )
@@ -177,7 +229,7 @@ data class GeminiResponse(
             ?: return emptyList()
 
         return normalized.split(",", "・", " ")
-            .map { it.trim().trimStart('#') }
+            .map { it.trim() }
             .filter { it.isNotBlank() }
             .filterNot { it.equals("tags", ignoreCase = true) }
             .take(4)
@@ -200,8 +252,43 @@ data class GeminiResponse(
             folderPath
         }
     }
+
+    /**
+     * レスポンステキストから本文部分だけを抽出する
+     * 「---」以降の部分を本文として扱い、メタデータ（タイトル、フォルダー、タグ）は除外する
+     */
+    private fun parseContent(text: String): String {
+        // 「---」で分割して本文部分を取得
+        val parts = text.split("---", limit = 2)
+        if (parts.size == 2) {
+            return parts[1].trim()
+        }
+
+        // 「---」がない場合は、メタデータ行を除外して本文を抽出
+        val lines = text.lines()
+        val contentLines = lines.dropWhile { line ->
+            val trimmed = line.trim()
+            trimmed.startsWith("タイトル:", ignoreCase = true) ||
+            trimmed.startsWith("title:", ignoreCase = true) ||
+            trimmed.startsWith("フォルダー:", ignoreCase = true) ||
+            trimmed.startsWith("folder:", ignoreCase = true) ||
+            trimmed.startsWith("タグ:", ignoreCase = true) ||
+            trimmed.startsWith("tags:", ignoreCase = true) ||
+            trimmed.isBlank()
+        }
+
+        return contentLines.joinToString("\n").trim()
+    }
 }
 
+data class GeminiResponseContent(
+    val parts: List<GeminiResponsePart> = emptyList(),
+)
+
+data class GeminiResponsePart(
+    val text: String? = null,
+)
+
 data class Candidate(
-    val content: Content? = null,
+    val content: GeminiResponseContent? = null,
 )
