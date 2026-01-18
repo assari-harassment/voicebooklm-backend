@@ -88,12 +88,20 @@ data class MemoDetailResponse(
     val transcriptionText: String?,
     val transcriptionStatus: String,
     val formattingStatus: String,
+    val folder: FolderInfo?,
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
     companion object {
         fun from(result: GetMemoOutput): MemoDetailResponse {
             val memo = result.memo
+            val folderInfo = result.folder?.let { folder ->
+                FolderInfo(
+                    id = folder.id,
+                    name = folder.name,
+                    path = result.folderPath ?: folder.name,
+                )
+            }
             return MemoDetailResponse(
                 memoId = memo.id,
                 title = memo.title,
@@ -102,6 +110,7 @@ data class MemoDetailResponse(
                 transcriptionText = memo.transcriptionText,
                 transcriptionStatus = memo.transcription.status.name,
                 formattingStatus = memo.formatting.status.name,
+                folder = folderInfo,
                 createdAt = memo.createdAt,
                 updatedAt = memo.updatedAt,
             )
@@ -117,6 +126,7 @@ data class MemoDetailResponse(
                 transcriptionText = memo.transcriptionText,
                 transcriptionStatus = memo.transcription.status.name,
                 formattingStatus = memo.formatting.status.name,
+                folder = null, // UpdateMemoOutput にはフォルダー情報が含まれていないため null
                 createdAt = memo.createdAt,
                 updatedAt = memo.updatedAt,
             )
@@ -132,6 +142,7 @@ data class MemoDetailResponse(
                 transcriptionText = memo.transcriptionText,
                 transcriptionStatus = memo.transcription.status.name,
                 formattingStatus = memo.formatting.status.name,
+                folder = null, // ResummarizeOutput にはフォルダー情報が含まれていないため null
                 createdAt = memo.createdAt,
                 updatedAt = memo.updatedAt,
             )
