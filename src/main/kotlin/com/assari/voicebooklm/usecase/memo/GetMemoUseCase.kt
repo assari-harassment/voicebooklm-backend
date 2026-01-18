@@ -2,7 +2,10 @@ package com.assari.voicebooklm.usecase.memo
 
 import com.assari.voicebooklm.domain.exception.DomainException
 import com.assari.voicebooklm.domain.exception.ErrorCode
+import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
+import com.assari.voicebooklm.domain.model.buildPath
+import com.assari.voicebooklm.domain.repository.FolderRepository
 import com.assari.voicebooklm.domain.repository.VoiceMemoRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -18,6 +21,7 @@ import java.util.UUID
 @Service
 open class GetMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
+    private val folderRepository: FolderRepository,
 ) {
     /**
      * メモを取得する
@@ -38,8 +42,17 @@ open class GetMemoUseCase(
             throw DomainException(ErrorCode.MEMO_NOT_FOUND)
         }
 
-        // 3. 結果を返却
-        return GetMemoOutput(memo)
+        // 3. フォルダー情報を取得
+        val folders = folderRepository.findByUserId(input.userId)
+        val folderMap = folders.associateBy { it.id }
+        val folderPathMap = folders.associate { it.id to it.buildPath(folderMap) }
+
+        // 4. メモに紐づくフォルダー情報を取得
+        val folder = memo.formatting.folderId?.let { folderMap[it] }
+        val folderPath = memo.formatting.folderId?.let { folderPathMap[it] }
+
+        // 5. 結果を返却
+        return GetMemoOutput(memo, folder, folderPath)
     }
 }
 
@@ -56,4 +69,6 @@ data class GetMemoInput(
  */
 data class GetMemoOutput(
     val memo: VoiceMemo,
+    val folder: Folder?,
+    val folderPath: String?,
 )

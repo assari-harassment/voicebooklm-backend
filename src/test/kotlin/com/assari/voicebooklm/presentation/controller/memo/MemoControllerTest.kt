@@ -217,7 +217,7 @@ class MemoControllerTest {
                 tags = listOf("tag1", "tag2"),
             )
 
-        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo)
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo, null, null)
 
         val response = controller.getMemo(memoId, userId)
 
@@ -238,7 +238,7 @@ class MemoControllerTest {
         val memoId = UUID.randomUUID()
         val memo = VoiceMemo.create(id = memoId, userId = userId)
 
-        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo)
+        coEvery { getMemoUseCase.execute(GetMemoInput(memoId, userId)) } returns GetMemoOutput(memo, null, null)
 
         val response = controller.getMemo(memoId, userId)
 
