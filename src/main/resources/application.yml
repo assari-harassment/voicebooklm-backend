@@ -3,7 +3,7 @@ spring:
     name: voicebooklm-backend
 
   profiles:
-    active: dev # デフォルトは開発環境
+    active: dev  # デフォルトは開発環境
 
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/voicebooklm}
@@ -17,7 +17,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate # 本番環境は validate、Flyway がスキーマ管理
+      ddl-auto: validate  # 本番環境は validate、Flyway がスキーマ管理
     show-sql: false
     properties:
       hibernate:
@@ -43,7 +43,7 @@ spring:
 
   mvc:
     async:
-      request-timeout: 65s # 音声→AI で時間がかかるため Tomcat デフォルト30秒を超えるタイムアウトを設定
+      request-timeout: 65s   # 音声→AI で時間がかかるため Tomcat デフォルト30秒を超えるタイムアウトを設定
 
   # Spring Boot 3.4 新機能: Virtual Threads
   # AI API呼び出しや音声処理などのI/Oバウンドな処理を高速化
@@ -55,7 +55,7 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 100MB # 音声ファイル用に大きめに設定
+      max-file-size: 100MB      # 音声ファイル用に大きめに設定
       max-request-size: 100MB
       file-size-threshold: 1MB
 
@@ -81,8 +81,8 @@ spring:
 # JWT 設定
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only-must-be-at-least-256-bits}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000} # 1日（ミリ秒）
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:15552000000} # 180日（ミリ秒）
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}  # 1日（ミリ秒）
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:15552000000}  # 180日（ミリ秒）
 
 # Google Cloud 設定
 google:
@@ -102,12 +102,12 @@ google:
     # Speech-to-Text（音声文字起こし）
     speech:
       default-language: ja-JP
-      timeout-seconds: 300 # LongRunningRecognize 用に延長
+      timeout-seconds: 300  # LongRunningRecognize 用に延長
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
 
-  # gemini-2.5-flash, gemini-2.5-flash-lite など
+# gemini-2.5-flash, gemini-2.5-flash-lite など
   model: ${GEMINI_MODEL:gemini-2.5-flash}
   timeout-seconds: 60
   base-url: https://generativelanguage.googleapis.com
@@ -116,16 +116,16 @@ gemini:
 rate-limit:
   enabled: true
   auth:
-    capacity: 10 # 最大リクエスト数
-    refill-tokens: 10 # リフィルされるトークン数
-    refill-duration-seconds: 60 # リフィル間隔（秒）
+    capacity: 10              # 最大リクエスト数
+    refill-tokens: 10         # リフィルされるトークン数
+    refill-duration-seconds: 60  # リフィル間隔（秒）
 
 # CORS 設定
 cors:
   allowed-origin-patterns:
-    - "http://localhost:*" # Metro bundler
-    - "http://127.0.0.1:*" # Metro bundler (IPv4)
-    - "https://192.168.*.*:*" # ローカルネットワーク（実機テスト用）
+    - "http://localhost:*"        # Metro bundler
+    - "http://127.0.0.1:*"        # Metro bundler (IPv4)
+    - "https://192.168.*.*:*"      # ローカルネットワーク（実機テスト用）
   allowed-methods:
     - GET
     - POST

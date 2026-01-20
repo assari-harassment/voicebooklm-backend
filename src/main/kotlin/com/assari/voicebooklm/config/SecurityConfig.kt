@@ -46,7 +46,6 @@ class SecurityConfig(
                         "/swagger-ui/**", // Swagger UI リソース
                         "/v3/api-docs/**", // OpenAPI 仕様
                         "/api-docs/**", // OpenAPI 仕様（代替パス）
-                        "/ws/**", // WebSocket エンドポイント（認証はハンドラー側で実施）
                     )
                     .permitAll()
                     // その他は認証が必要

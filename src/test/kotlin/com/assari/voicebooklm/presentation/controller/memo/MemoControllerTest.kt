@@ -16,10 +16,6 @@ import com.assari.voicebooklm.usecase.memo.ListMemosOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosUseCase
 import com.assari.voicebooklm.usecase.memo.MemoWithFolder
 import com.assari.voicebooklm.usecase.memo.ResummarizeUseCase
-import com.assari.voicebooklm.usecase.memo.FormatMemoInput
-import com.assari.voicebooklm.usecase.memo.FormatMemoOutput
-import com.assari.voicebooklm.usecase.memo.FormatMemoUseCase
-import com.assari.voicebooklm.usecase.memo.FormatProcessingTime
 import com.assari.voicebooklm.usecase.memo.UpdateMemoInput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoUseCase
@@ -27,7 +23,6 @@ import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.mockk
 import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -49,7 +44,6 @@ class MemoControllerTest {
     private lateinit var updateMemoUseCase: UpdateMemoUseCase
     private lateinit var deleteMemoUseCase: DeleteMemoUseCase
     private lateinit var resummarizeUseCase: ResummarizeUseCase
-    private lateinit var formatMemoUseCase: FormatMemoUseCase
     private lateinit var controller: MemoController
 
     @BeforeEach
@@ -60,7 +54,6 @@ class MemoControllerTest {
         updateMemoUseCase = mockk()
         deleteMemoUseCase = mockk()
         resummarizeUseCase = mockk()
-        formatMemoUseCase = mockk()
         controller = MemoController(
             listMemosUseCase = listMemosUseCase,
             getMemoUseCase = getMemoUseCase,
@@ -68,7 +61,6 @@ class MemoControllerTest {
             updateMemoUseCase = updateMemoUseCase,
             deleteMemoUseCase = deleteMemoUseCase,
             resummarizeUseCase = resummarizeUseCase,
-            formatMemoUseCase = formatMemoUseCase,
         )
     }
 
@@ -599,134 +591,5 @@ class MemoControllerTest {
         }
 
         assertEquals(ErrorCode.TRANSCRIPTION_FAILED, exception.code)
-    }
-
-    // ===== formatMemo エンドポイントのテスト =====
-
-    @Test
-    fun `認証済みユーザーがformatMemoを呼ぶと201が返る`() = runBlocking {
-        val userId = UUID.randomUUID()
-        val memoId = UUID.randomUUID()
-        val transcriptionText = "これは文字起こしテキストです"
-
-        val memo = VoiceMemo.create(id = memoId, userId = userId)
-            .startTranscription()
-            .completeTranscription(transcriptionText)
-            .startFormatting()
-            .completeFormatting(
-                title = "整形されたタイトル",
-                content = "整形された本文",
-                tags = listOf("タグ1", "タグ2"),
-            )
-
-        coEvery {
-            formatMemoUseCase.execute(
-                FormatMemoInput(
-                    userId = userId,
-                    transcription = transcriptionText,
-                    language = "ja-JP",
-                )
-            )
-        } returns FormatMemoOutput(
-            voiceMemo = memo,
-            processingTime = FormatProcessingTime(
-                formatting = 200.milliseconds,
-                persistence = 50.milliseconds,
-                total = 250.milliseconds,
-            ),
-        )
-
-        val request = FormatMemoRequest(
-            transcription = transcriptionText,
-            language = "ja-JP",
-        )
-
-        val response = controller.formatMemo(userId, request)
-
-        assertEquals(HttpStatus.CREATED, response.statusCode)
-        val body = requireNotNull(response.body) { "response body should not be null" }
-        assertEquals(memoId, body.memoId)
-        assertEquals("整形されたタイトル", body.title)
-        assertEquals("整形された本文", body.content)
-        assertEquals(listOf("タグ1", "タグ2"), body.tags)
-        assertEquals("COMPLETED", body.formattingStatus)
-    }
-
-    @Test
-    fun `formatMemo 未認証の場合はResponseStatusExceptionがスローされる`() = runBlocking {
-        val request = FormatMemoRequest(
-            transcription = "テスト",
-            language = null,
-        )
-
-        val exception = assertThrows<ResponseStatusException> {
-            controller.formatMemo(null, request)
-        }
-
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.statusCode)
-    }
-
-    @Test
-    fun `formatMemo ユースケースがIllegalArgumentExceptionをスローするとBAD_REQUESTが返る`() = runBlocking {
-        val userId = UUID.randomUUID()
-        val request = FormatMemoRequest(
-            transcription = "テスト",
-            language = null,
-        )
-
-        coEvery {
-            formatMemoUseCase.execute(any())
-        } throws IllegalArgumentException("文字起こしテキストが空です")
-
-        val exception = assertThrows<ResponseStatusException> {
-            controller.formatMemo(userId, request)
-        }
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.statusCode)
-    }
-
-    @Test
-    fun `formatMemo 言語コード未指定でも正常に動作する`() = runBlocking {
-        val userId = UUID.randomUUID()
-        val memoId = UUID.randomUUID()
-        val transcriptionText = "テスト"
-
-        val memo = VoiceMemo.create(id = memoId, userId = userId)
-            .startTranscription()
-            .completeTranscription(transcriptionText)
-            .startFormatting()
-            .completeFormatting(
-                title = "タイトル",
-                content = "本文",
-                tags = emptyList(),
-            )
-
-        coEvery {
-            formatMemoUseCase.execute(
-                FormatMemoInput(
-                    userId = userId,
-                    transcription = transcriptionText,
-                    language = null,
-                )
-            )
-        } returns FormatMemoOutput(
-            voiceMemo = memo,
-            processingTime = FormatProcessingTime(
-                formatting = 100.milliseconds,
-                persistence = 30.milliseconds,
-                total = 130.milliseconds,
-            ),
-        )
-
-        val request = FormatMemoRequest(
-            transcription = transcriptionText,
-            language = null,
-        )
-
-        val response = controller.formatMemo(userId, request)
-
-        assertEquals(HttpStatus.CREATED, response.statusCode)
-        val body = requireNotNull(response.body) { "response body should not be null" }
-        assertEquals(memoId, body.memoId)
     }
 }

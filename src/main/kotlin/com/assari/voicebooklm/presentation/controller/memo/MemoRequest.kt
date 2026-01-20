@@ -24,17 +24,3 @@ data class ResummarizeRequest(
     @field:NotBlank(message = "編集された文字起こしテキストは必須です")
     val editedTranscription: String,
 )
-
-/**
- * 文字起こしテキストをAI整形して保存するリクエスト
- *
- * WebSocketで受信した文字起こしテキストを受け取り、
- * AI整形してメモとして保存する。
- */
-data class FormatMemoRequest(
-    @field:NotBlank(message = "文字起こしテキストは必須です")
-    val transcription: String,
-
-    /** 言語コード（例: ja-JP）。指定がない場合は ja-JP がデフォルト */
-    val language: String? = null,
-)

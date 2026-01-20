@@ -1,8 +1,12 @@
 package com.assari.voicebooklm.usecase.memo
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
 import com.assari.voicebooklm.domain.model.Folder
 import com.assari.voicebooklm.domain.model.VoiceMemo
 import com.assari.voicebooklm.domain.model.buildPath
@@ -20,64 +24,94 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * 文字起こしテキストを受け取り、AI整形してメモを保存するユースケース
+ * 音声文字起こしと AI 整形を経て VoiceMemo を生成するユースケース
  *
- * WebSocketで受け取った文字起こしテキストを整形して保存する。
- * 既存のCreateMemoUseCaseから文字起こし部分を除いた簡略版。
+ * 文字起こしが失敗した場合は例外をスローし、AI整形は実行しない。
+ * AI整形が失敗した場合のみフォールバックで進行する。
  */
 @Service
-open class FormatMemoUseCase(
+open class CreateMemoUseCase(
     private val voiceMemoRepository: VoiceMemoRepository,
+    private val speechTranscriber: SpeechTranscriber,
     private val memoFormatter: MemoFormatter,
     private val folderRepository: FolderRepository,
     private val folderPathResolver: FolderPathResolver,
     private val executionTimer: ExecutionTimer = MonotonicExecutionTimer(),
     private val timeSource: TimeSource = TimeSource.Monotonic,
 ) {
-    private val logger = LoggerFactory.getLogger(FormatMemoUseCase::class.java)
+    private val logger = LoggerFactory.getLogger(CreateMemoUseCase::class.java)
 
     @Transactional
-    open suspend fun execute(input: FormatMemoInput): FormatMemoOutput {
-        require(input.transcription.isNotBlank()) { "Transcription text must not be empty" }
+    open suspend fun execute(input: CreateMemoInput): CreateMemoOutput {
+        require(input.audio.isNotEmpty()) { "Audio data must not be empty" }
 
         val overallMark = timeSource.markNow()
         val languageCode = input.language ?: "ja-JP"
 
-        // 1. VoiceMemo を作成（文字起こし完了状態で作成）
+        // 1. VoiceMemo を作成（処理待ち状態）
         var voiceMemo = VoiceMemo.create(
             id = UuidCreator.getTimeOrderedEpoch(),
             userId = input.userId,
             languageCode = languageCode,
         )
+
+        // 2. 文字起こし処理（失敗したら例外をスロー）
         voiceMemo = voiceMemo.startTranscription()
+        val transcriptionResult = executionTimer.measure {
+            runCatching {
+                speechTranscriber.transcribe(
+                    SpeechTranscriptionCommand(
+                        userId = input.userId,
+                        audio = input.audio,
+                        mimeType = input.audioMimeType,
+                        languageCode = languageCode,
+                    ),
+                )
+            }.getOrElse { ex ->
+                logger.error("Speech transcription failed", ex)
+                // 失敗状態で保存して例外をスロー
+                voiceMemo = voiceMemo.failTranscription()
+                voiceMemoRepository.save(voiceMemo)
+                throw DomainException(ErrorCode.TRANSCRIPTION_FAILED, "文字起こしに失敗しました", ex)
+            }
+        }
+
+        val transcriptionText = transcriptionResult.value.text
+        if (transcriptionText.isBlank()) {
+            logger.warn("Speech transcription returned empty result")
+            voiceMemo = voiceMemo.failTranscription()
+            voiceMemoRepository.save(voiceMemo)
+            throw DomainException(ErrorCode.TRANSCRIPTION_FAILED, "文字起こし結果が空でした。音声が認識できなかった可能性があります。")
+        }
+
         voiceMemo = voiceMemo.completeTranscription(
-            text = input.transcription,
+            text = transcriptionText,
             fallbackUsed = false,
         )
 
-        // 2. 既存フォルダーパスを取得（AI整形用）
+        // 3. 既存フォルダーパスを取得（AI整形用）
         val existingFolderPaths = getExistingFolderPaths(input.userId)
 
-        // 3. AI整形処理（失敗した場合はフォールバックで続行）
+        // 4. AI整形処理（失敗した場合はフォールバックで続行）
         voiceMemo = voiceMemo.startFormatting()
         val formatResult = executionTimer.measure {
             runCatching {
                 memoFormatter.format(
                     MemoFormatCommand(
                         userId = input.userId,
-                        transcript = input.transcription,
+                        transcript = transcriptionText,
                         existingFolderPaths = existingFolderPaths,
                     ),
                 )
             }.onFailure { ex ->
                 logger.warn("AI memo formatting failed; fallback will be used", ex)
             }.getOrElse {
-                fallbackFormatResult(input.transcription)
+                fallbackFormatResult(transcriptionText)
             }
         }
         val memoFormat = formatResult.value
 
-        // 4. フォルダーパスをIDに解決（必要に応じて作成）
+        // 5. フォルダーパスをIDに解決（必要に応じて作成）
         val folderId = resolveFolderId(input.userId, memoFormat.folderPath)
 
         val formattingFallbackUsed = memoFormat.title == "ボイスメモ" && memoFormat.tags.isEmpty()
@@ -89,24 +123,17 @@ open class FormatMemoUseCase(
             folderId = folderId,
         )
 
-        // 5. 永続化
+        // 6. 永続化
         val (savedVoiceMemo, persistenceDuration) = executionTimer.measure {
             voiceMemoRepository.save(voiceMemo)
         }
 
         val totalDuration = overallMark.elapsedNow()
 
-        logger.info(
-            "memo formatted and saved memoId={} userId={} totalMs={} fallbackF={}",
-            savedVoiceMemo.id,
-            input.userId,
-            totalDuration.inWholeMilliseconds,
-            savedVoiceMemo.formatting.fallbackUsed,
-        )
-
-        return FormatMemoOutput(
+        return CreateMemoOutput(
             voiceMemo = savedVoiceMemo,
-            processingTime = FormatProcessingTime(
+            processingTime = ProcessingTime(
+                transcription = transcriptionResult.duration,
                 formatting = formatResult.duration,
                 persistence = persistenceDuration,
                 total = totalDuration,
@@ -147,28 +174,28 @@ open class FormatMemoUseCase(
 }
 
 /**
- * 整形入力
+ * メモ生成Input
  */
-data class FormatMemoInput(
+data class CreateMemoInput(
     val userId: UUID,
-    /** 文字起こしテキスト（WebSocketで受信済み） */
-    val transcription: String,
-    /** 言語コード（例: ja-JP） */
+    val audio: ByteArray,
+    val audioMimeType: String,
     val language: String? = null,
 )
 
 /**
- * 整形出力
+ * メモ生成Output
  */
-data class FormatMemoOutput(
+data class CreateMemoOutput(
     val voiceMemo: VoiceMemo,
-    val processingTime: FormatProcessingTime,
+    val processingTime: ProcessingTime,
 )
 
 /**
- * 処理時間メトリクス
+ * 各工程の処理時間メトリクス
  */
-data class FormatProcessingTime(
+data class ProcessingTime(
+    val transcription: Duration,
     val formatting: Duration,
     val persistence: Duration,
     val total: Duration,

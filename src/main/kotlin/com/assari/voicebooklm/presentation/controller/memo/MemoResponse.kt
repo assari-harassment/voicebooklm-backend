@@ -1,6 +1,5 @@
 package com.assari.voicebooklm.presentation.controller.memo
 
-import com.assari.voicebooklm.usecase.memo.FormatMemoOutput
 import com.assari.voicebooklm.usecase.memo.GetMemoOutput
 import com.assari.voicebooklm.usecase.memo.GetTranscriptionOutput
 import com.assari.voicebooklm.usecase.memo.ListMemosOutput
@@ -9,8 +8,6 @@ import com.assari.voicebooklm.usecase.memo.ResummarizeOutput
 import com.assari.voicebooklm.usecase.memo.UpdateMemoOutput
 import java.time.Instant
 import java.util.UUID
-import kotlin.time.Duration
-import kotlin.time.toJavaDuration
 
 /**
  * メモ一覧レスポンス
@@ -165,46 +162,3 @@ data class TranscriptionResponse(
         }
     }
 }
-
-/**
- * AI整形メモ作成レスポンス
- */
-data class FormatMemoResponse(
-    val memoId: UUID,
-    val title: String,
-    val content: String,
-    val tags: List<String>,
-    val formattingStatus: String,
-    val processingTimeMillis: FormatProcessingTimeResponse,
-    val fallbackUsed: Boolean,
-) {
-    companion object {
-        fun from(result: FormatMemoOutput): FormatMemoResponse {
-            val voiceMemo = result.voiceMemo
-            return FormatMemoResponse(
-                memoId = voiceMemo.id,
-                title = voiceMemo.title ?: "",
-                content = voiceMemo.content ?: "",
-                tags = voiceMemo.tags,
-                formattingStatus = voiceMemo.formatting.status.name,
-                processingTimeMillis = FormatProcessingTimeResponse(
-                    formatting = result.processingTime.formatting.toMillis(),
-                    persistence = result.processingTime.persistence.toMillis(),
-                    total = result.processingTime.total.toMillis(),
-                ),
-                fallbackUsed = voiceMemo.formatting.fallbackUsed,
-            )
-        }
-    }
-}
-
-/**
- * 整形処理時間レスポンス
- */
-data class FormatProcessingTimeResponse(
-    val formatting: Long,
-    val persistence: Long,
-    val total: Long,
-)
-
-private fun Duration.toMillis(): Long = this.toJavaDuration().toMillis()

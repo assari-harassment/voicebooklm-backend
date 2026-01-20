@@ -16,7 +16,6 @@ repositories {
 dependencies {
     // Spring Boot Core
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -48,12 +47,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     // Google Cloud Speech-to-Text（音声文字起こし）
-    implementation("com.google.cloud:google-cloud-speech:4.53.0") {
-        // Spring Boot WebFlux の Netty と競合するため、shaded版を除外
-        exclude(group = "io.grpc", module = "grpc-netty-shaded")
-    }
-    // 代わりに通常の grpc-netty を使用（Spring Boot 管理の Netty を使用）
-    implementation("io.grpc:grpc-netty:1.69.0")
+    implementation("com.google.cloud:google-cloud-speech:4.53.0")
 
     // Google Cloud Storage（音声ファイル一時保存）
     implementation("com.google.cloud:google-cloud-storage:2.45.0")
@@ -71,7 +65,7 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-
+    
     // .env ファイル読み込み
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
 
