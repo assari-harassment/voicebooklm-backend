@@ -96,3 +96,10 @@ React Native からのアクセスは自動的に許可されます：
 ### 各自のユーザーidのテストデータの追加
 
 [src/main/resources/dev/README.md](src/main/resources/dev/README.md)
+
+### リアルタイム文字起こしユーザーテスト用htmlファイル
+
+```bash
+cd tools                                                                                               
+python3 -m http.server 3000
+```
