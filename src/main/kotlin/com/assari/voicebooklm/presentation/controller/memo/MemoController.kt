@@ -3,6 +3,8 @@ package com.assari.voicebooklm.presentation.controller.memo
 import com.assari.voicebooklm.presentation.controller.auth.ErrorResponse
 import com.assari.voicebooklm.usecase.memo.DeleteMemoInput
 import com.assari.voicebooklm.usecase.memo.DeleteMemoUseCase
+import com.assari.voicebooklm.usecase.memo.FormatMemoInput
+import com.assari.voicebooklm.usecase.memo.FormatMemoUseCase
 import com.assari.voicebooklm.usecase.memo.GetMemoInput
 import com.assari.voicebooklm.usecase.memo.GetMemoUseCase
 import com.assari.voicebooklm.usecase.memo.GetTranscriptionInput
@@ -50,6 +52,7 @@ class MemoController(
     private val updateMemoUseCase: UpdateMemoUseCase,
     private val deleteMemoUseCase: DeleteMemoUseCase,
     private val resummarizeUseCase: ResummarizeUseCase,
+    private val formatMemoUseCase: FormatMemoUseCase,
 ) {
     @GetMapping("/memos")
     @Operation(
@@ -370,5 +373,58 @@ class MemoController(
 
         // レスポンス返却
         return ResponseEntity.ok(MemoDetailResponse.from(result))
+    }
+
+    @PostMapping("/memos/format")
+    @Operation(
+        summary = "文字起こしテキストをAI整形してメモ保存",
+        description = "WebSocketで受信した文字起こしテキストをAI整形し、メモとして保存します。",
+        responses = [
+            ApiResponse(
+                responseCode = "201",
+                description = "メモ生成成功",
+                content = [Content(schema = Schema(implementation = FormatMemoResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "400",
+                description = "バリデーションエラー（文字起こしテキストが空など）",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "401",
+                description = "認証エラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+            ApiResponse(
+                responseCode = "500",
+                description = "サーバエラー",
+                content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+            ),
+        ],
+    )
+    suspend fun formatMemo(
+        @AuthenticationPrincipal userId: UUID?,
+        @Valid @RequestBody request: FormatMemoRequest,
+    ): ResponseEntity<FormatMemoResponse> {
+        // 認証チェック
+        if (userId == null) {
+            throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
+        }
+
+        // ユースケース実行
+        val result = try {
+            formatMemoUseCase.execute(
+                FormatMemoInput(
+                    userId = userId,
+                    transcription = request.transcription,
+                    language = request.language,
+                )
+            )
+        } catch (ex: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, ex.message)
+        }
+
+        // レスポンス返却
+        return ResponseEntity.status(HttpStatus.CREATED).body(FormatMemoResponse.from(result))
     }
 }
