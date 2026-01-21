@@ -170,6 +170,7 @@ class TranscriptionWebSocketHandler(
                     sessionManager.removeSession(userId, session.id)
                 }
             }.invokeOnCompletion {
+                // クリーンアップ完了後にスコープをキャンセル（他のコルーチンも停止）
                 scope.cancel()
             }
         }
