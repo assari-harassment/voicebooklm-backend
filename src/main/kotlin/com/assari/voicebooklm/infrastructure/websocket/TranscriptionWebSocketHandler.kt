@@ -217,7 +217,7 @@ class TranscriptionWebSocketHandler(
         val config = StreamingTranscriptionConfig(
             languageCode = languageCode,
             sampleRateHertz = 16000,
-            enableInterimResults = true,
+            enableInterimResults = false,
         )
 
         val transcriptionSession = sessionManager.createSession(userId, session.id, config)
