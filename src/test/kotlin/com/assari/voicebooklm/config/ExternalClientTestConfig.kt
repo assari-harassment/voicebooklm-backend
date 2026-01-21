@@ -3,9 +3,13 @@ package com.assari.voicebooklm.config
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriber
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionCommand
-import com.assari.voicebooklm.domain.gateway.SpeechTranscriptionResult
+import com.assari.voicebooklm.domain.gateway.StreamingSpeechTranscriber
+import com.assari.voicebooklm.domain.gateway.StreamingTranscriptionConfig
+import com.assari.voicebooklm.domain.gateway.StreamingTranscriptionSession
+import com.assari.voicebooklm.domain.model.TranscriptionResult
+import kotlin.time.Duration
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Profile
@@ -19,15 +23,7 @@ import org.springframework.context.annotation.Profile
 class ExternalClientTestConfig {
 
     @Bean
-    fun speechTranscriber(): SpeechTranscriber = object : SpeechTranscriber {
-        override suspend fun transcribe(command: SpeechTranscriptionCommand): SpeechTranscriptionResult {
-            // テストではアップロード内容に依存せず固定文字列を返す
-            return SpeechTranscriptionResult(
-                text = "stub transcription",
-                languageCode = command.languageCode,
-            )
-        }
-    }
+    fun streamingSpeechTranscriber(): StreamingSpeechTranscriber = FakeStreamingSpeechTranscriber()
 
     @Bean
     fun memoFormatter(): MemoFormatter = object : MemoFormatter {
@@ -39,5 +35,37 @@ class ExternalClientTestConfig {
                 tags = emptyList(),
             )
         }
+    }
+}
+
+/**
+ * テスト用のフェイクストリーミング文字起こし実装
+ */
+class FakeStreamingSpeechTranscriber : StreamingSpeechTranscriber {
+    override suspend fun startSession(config: StreamingTranscriptionConfig): StreamingTranscriptionSession {
+        return FakeStreamingTranscriptionSession()
+    }
+}
+
+/**
+ * テスト用のフェイクストリーミングセッション
+ */
+class FakeStreamingTranscriptionSession : StreamingTranscriptionSession {
+    private val _results = MutableSharedFlow<TranscriptionResult>()
+
+    override val results: Flow<TranscriptionResult> = _results
+
+    override suspend fun awaitReady(timeout: Duration): Boolean {
+        // テスト用: 即座に準備完了とする
+        return true
+    }
+
+    override suspend fun sendAudio(audioData: ByteArray) {
+        // テスト用: 固定のテキストを返す
+        _results.emit(TranscriptionResult(text = "stub transcription", isFinal = true))
+    }
+
+    override suspend fun close() {
+        // no-op
     }
 }
