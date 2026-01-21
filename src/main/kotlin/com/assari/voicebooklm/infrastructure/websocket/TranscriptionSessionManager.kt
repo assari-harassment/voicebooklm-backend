@@ -44,8 +44,13 @@ class TranscriptionSessionManager(
             return null
         }
 
-        // 新しいセッションを作成
-        val session = streamingSpeechTranscriber.startSession(config)
+        // 新しいセッションを作成（失敗時はロールバック）
+        val session = try {
+            streamingSpeechTranscriber.startSession(config)
+        } catch (e: Exception) {
+            userSessions.remove(userId)
+            throw e
+        }
         transcriptionSessions[webSocketSessionId] = session
 
         logger.info("Created transcription session for user {}: webSocketSession={}",
@@ -63,11 +68,15 @@ class TranscriptionSessionManager(
 
     /**
      * セッションを削除
+     *
+     * 削除順序: transcriptionSessions → session.close() → userSessions
+     * userSessions を最後に削除することで、古いセッションが終了する前に
+     * 新しいセッションが作成されることを防ぐ。
      */
     suspend fun removeSession(userId: UUID, webSocketSessionId: String) {
         val session = transcriptionSessions.remove(webSocketSessionId)
-        userSessions.remove(userId)
         session?.close()
+        userSessions.remove(userId)
 
         logger.info("Removed transcription session: user={}, webSocketSession={}", userId, webSocketSessionId)
     }

@@ -15,6 +15,8 @@ import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.BinaryWebSocketHandler
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -192,12 +194,15 @@ class TranscriptionWebSocketHandler(
         val uri = session.uri ?: return null
         val query = uri.query ?: return null
 
-        val token = query.split("&")
+        val encodedToken = query.split("&")
             .map { it.split("=", limit = 2) }
             .filter { it.size == 2 }
             .firstOrNull { it[0] == "token" }
             ?.get(1)
             ?: return null
+
+        // URLデコード（トークンに特殊文字が含まれる場合に対応）
+        val token = URLDecoder.decode(encodedToken, StandardCharsets.UTF_8)
 
         // トークン検証
         if (!jwtTokenProvider.validateToken(token) || !jwtTokenProvider.isAccessToken(token)) {
@@ -250,17 +255,6 @@ class TranscriptionWebSocketHandler(
             )
         )
         session.sendMessage(TextMessage(startedMessage))
-    }
-
-    private fun extractLanguageCode(session: WebSocketSession): String? {
-        val uri = session.uri ?: return null
-        val query = uri.query ?: return null
-
-        return query.split("&")
-            .map { it.split("=", limit = 2) }
-            .filter { it.size == 2 }
-            .firstOrNull { it[0] == "language" }
-            ?.get(1)
     }
 }
 

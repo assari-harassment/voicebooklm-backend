@@ -114,12 +114,12 @@ class GoogleStreamingTranscriptionSession(
             override fun onError(t: Throwable) {
                 logger.error("Streaming transcription error (onError called)", t)
                 readyDeferred.completeExceptionally(t)
-                close(t)
+                channel.close(t)
             }
 
             override fun onCompleted() {
                 logger.info("Streaming transcription completed (onCompleted called)")
-                close()
+                channel.close()
             }
         }
 
@@ -199,9 +199,13 @@ class GoogleStreamingTranscriptionSession(
             return
         }
 
-        logger.info("Closing streaming transcription session (closeSession called)")
-        val stackTrace = Thread.currentThread().stackTrace.take(10).joinToString("\n  ") { it.toString() }
-        logger.info("closeSession stack trace:\n  {}", stackTrace)
+        logger.info("Closing streaming transcription session")
+        if (logger.isDebugEnabled) {
+            val stackTrace = Thread.currentThread().stackTrace
+                .take(10)
+                .joinToString("\n  ") { it.toString() }
+            logger.debug("closeSession stack trace:\n  {}", stackTrace)
+        }
         try {
             requestObserver?.onCompleted()
         } catch (e: Exception) {

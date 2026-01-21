@@ -3,6 +3,7 @@ package com.assari.voicebooklm.config
 import com.assari.voicebooklm.infrastructure.websocket.TranscriptionWebSocketHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.web.socket.config.annotation.EnableWebSocket
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
@@ -38,6 +39,7 @@ class WebSocketConfig(
      * バッファサイズを増やして大きな音声データを受信できるようにする。
      */
     @Bean
+    @Profile("!test")
     fun createWebSocketContainer(): ServletServerContainerFactoryBean {
         val container = ServletServerContainerFactoryBean()
         container.setMaxBinaryMessageBufferSize(MAX_BINARY_MESSAGE_SIZE)
