@@ -26,7 +26,7 @@ import java.util.UUID
 /**
  * プロフィール REST API コントローラー
  *
- * ユーザーのプロフィール情報を取得する。
+ * ユーザーのプロフィール情報の取得・更新を行う。
  */
 @RestController
 @RequestMapping("/api/profile")

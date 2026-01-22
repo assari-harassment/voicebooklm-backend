@@ -27,7 +27,7 @@ class UpdateProfileUseCaseTest {
     }
 
     @Test
-    fun `should update profile name successfully`() {
+    fun `プロフィール名を正常に更新できる`() {
         // Given
         val userId = UUID.randomUUID()
         val oldName = "Old Name"
@@ -61,7 +61,7 @@ class UpdateProfileUseCaseTest {
     }
 
     @Test
-    fun `should throw exception when user not found`() {
+    fun `ユーザーが存在しない場合は例外をスローする`() {
         // Given
         val userId = UUID.randomUUID()
         val newName = "New Name"
@@ -79,7 +79,7 @@ class UpdateProfileUseCaseTest {
     }
 
     @Test
-    fun `should preserve other user fields when updating name`() {
+    fun `名前更新時に他のユーザーフィールドが保持される`() {
         // Given
         val userId = UUID.randomUUID()
         val googleSub = "google-sub-12345"

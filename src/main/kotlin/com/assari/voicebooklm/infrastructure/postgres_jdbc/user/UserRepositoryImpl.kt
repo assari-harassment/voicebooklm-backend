@@ -18,7 +18,13 @@ class UserRepositoryImpl(
 ) : UserRepository {
 
     override fun save(user: User): User {
-        val entity = UserEntity.fromDomain(user)
+        // 既存のエンティティがあればversionを引き継ぐ（UPDATE判定のため）
+        val existingEntity = userJdbcRepository.findByIdOrNull(user.id)
+        val entity = if (existingEntity != null) {
+            UserEntity.fromDomainWithVersion(user, existingEntity.version)
+        } else {
+            UserEntity.fromDomain(user)
+        }
         val savedEntity = userJdbcRepository.save(entity)
         return savedEntity.toDomain()
     }
