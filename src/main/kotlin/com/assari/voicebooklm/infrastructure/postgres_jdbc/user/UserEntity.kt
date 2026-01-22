@@ -48,7 +48,8 @@ data class UserEntity(
         email = email,
         name = name,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        version = version
     )
 
     companion object {
@@ -61,7 +62,8 @@ data class UserEntity(
             email = user.email,
             name = user.name,
             createdAt = user.createdAt,
-            updatedAt = user.updatedAt
+            updatedAt = user.updatedAt,
+            version = user.version
         )
     }
 }

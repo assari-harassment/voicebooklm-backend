@@ -16,7 +16,8 @@ data class User(
     val email: String,
     val name: String,
     val createdAt: Instant = Instant.now(),
-    val updatedAt: Instant = Instant.now()
+    val updatedAt: Instant = Instant.now(),
+    val version: Long? = null
 ) {
     /**
      * ユーザー名を更新した新しい User インスタンスを返す
