@@ -90,14 +90,9 @@ google:
   ios-client-id: ${GOOGLE_IOS_CLIENT_ID:}
 
   cloud:
-    # サービスアカウント認証情報（GCS・Speech-to-Text 共通）
+    # サービスアカウント認証情報（Speech-to-Text）
     credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
     project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
-
-    # Cloud Storage（音声ファイル一時保存）
-    storage:
-      bucket-name: ${GCS_BUCKET_NAME:}
-      location: ${GCS_LOCATION:asia-northeast2}
 
     # Speech-to-Text（音声文字起こし）
     speech:

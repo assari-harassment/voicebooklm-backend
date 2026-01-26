@@ -55,9 +55,6 @@ dependencies {
     // 代わりに通常の grpc-netty を使用（Spring Boot 管理の Netty を使用）
     implementation("io.grpc:grpc-netty:1.69.0")
 
-    // Google Cloud Storage（音声ファイル一時保存）
-    implementation("com.google.cloud:google-cloud-storage:2.45.0")
-
     // UUID v7 生成（タイムオーダー UUID）
     implementation("com.github.f4b6a3:uuid-creator:6.1.1")
 
