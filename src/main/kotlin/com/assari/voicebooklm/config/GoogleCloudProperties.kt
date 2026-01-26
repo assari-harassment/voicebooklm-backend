@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.validation.annotation.Validated
 
 /**
- * Google Cloud の接続設定（GCS・Speech-to-Text 共通）
+ * Google Cloud の接続設定（Speech-to-Text）
  */
 @Validated
 @ConfigurationProperties(prefix = "google.cloud")
@@ -19,22 +19,8 @@ data class GoogleCloudProperties(
     val projectId: String,
 
     @field:Valid
-    val storage: StorageProperties,
-
-    @field:Valid
     val speech: SpeechProperties,
 ) {
-    /**
-     * Cloud Storage 設定
-     */
-    data class StorageProperties(
-        @field:NotBlank
-        val bucketName: String,
-
-        @field:NotBlank
-        val location: String = "asia-northeast2",
-    )
-
     /**
      * Speech-to-Text 設定
      */
