@@ -53,7 +53,7 @@ data class UserEntity(
 
     companion object {
         /**
-         * Domain -> Entity 変換
+         * Domain -> Entity 変換（新規作成用、versionはnull）
          */
         fun fromDomain(user: User): UserEntity = UserEntity(
             id = user.id,
@@ -62,6 +62,19 @@ data class UserEntity(
             name = user.name,
             createdAt = user.createdAt,
             updatedAt = user.updatedAt
+        )
+
+        /**
+         * Domain -> Entity 変換（更新用、既存のversionを引き継ぐ）
+         */
+        fun fromDomainWithVersion(user: User, version: Long?): UserEntity = UserEntity(
+            id = user.id,
+            googleSub = user.googleSub,
+            email = user.email,
+            name = user.name,
+            createdAt = user.createdAt,
+            updatedAt = user.updatedAt,
+            version = version
         )
     }
 }
