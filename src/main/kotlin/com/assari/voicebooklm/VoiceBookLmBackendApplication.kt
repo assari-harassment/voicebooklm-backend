@@ -1,9 +1,11 @@
 package com.assari.voicebooklm
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 class VoiceBookLmBackendApplication
 
 fun main(args: Array<String>) {

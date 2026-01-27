@@ -76,18 +76,10 @@ class OpenApiConfig {
                             .bearerFormat("JWT")
                             .description("JWT トークン認証")
                     )
-                    .addSecuritySchemes(
-                        "basicAuth",
-                        SecurityScheme()
-                            .type(SecurityScheme.Type.HTTP)
-                            .scheme("basic")
-                            .description("Basic 認証（開発環境のみ）")
-                    )
             )
             .addSecurityItem(
                 SecurityRequirement()
                     .addList("bearerAuth")
-                    .addList("basicAuth")
             )
     }
 }

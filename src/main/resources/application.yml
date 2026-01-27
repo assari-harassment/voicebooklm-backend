@@ -3,7 +3,7 @@ spring:
     name: voicebooklm-backend
 
   profiles:
-    active: dev  # デフォルトは開発環境
+    active: dev # デフォルトは開発環境
 
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/voicebooklm}
@@ -17,13 +17,20 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate  # 本番環境は validate、開発環境は update
+      ddl-auto: validate # 本番環境は validate、Flyway がスキーマ管理
     show-sql: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+
+  # Flyway マイグレーション設定
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
 
   # 日本語設定
   messages:
@@ -33,6 +40,10 @@ spring:
   web:
     locale: ja_JP
     locale-resolver: fixed
+
+  mvc:
+    async:
+      request-timeout: 65s # 音声→AI で時間がかかるため Tomcat デフォルト30秒を超えるタイムアウトを設定
 
   # Spring Boot 3.4 新機能: Virtual Threads
   # AI API呼び出しや音声処理などのI/Oバウンドな処理を高速化
@@ -44,15 +55,92 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 100MB      # 音声ファイル用に大きめに設定
+      max-file-size: 100MB # 音声ファイル用に大きめに設定
       max-request-size: 100MB
       file-size-threshold: 1MB
 
-  # Spring Security 設定
+  # Spring Security OAuth2 設定
   security:
-    user:
-      name: admin
-      password: ${ADMIN_PASSWORD:changeme}  # 本番環境では環境変数で設定
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+# JWT 設定
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only-must-be-at-least-256-bits}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000} # 1日（ミリ秒）
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:15552000000} # 180日（ミリ秒）
+
+# Google Cloud 設定
+google:
+  # iOS アプリ用 Client ID（ネイティブログイン検証用）
+  ios-client-id: ${GOOGLE_IOS_CLIENT_ID:}
+
+  cloud:
+    # サービスアカウント認証情報（Speech-to-Text）
+    credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:}
+    project-id: ${GOOGLE_CLOUD_PROJECT_ID:}
+
+    # Speech-to-Text（音声文字起こし）
+    speech:
+      default-language: ja-JP
+      timeout-seconds: 300 # LongRunningRecognize 用に延長
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+
+  # gemini-2.5-flash, gemini-2.5-flash-lite など
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  timeout-seconds: 60
+  base-url: https://generativelanguage.googleapis.com
+
+# Rate Limit 設定（認証エンドポイント）
+rate-limit:
+  enabled: true
+  auth:
+    capacity: 10 # 最大リクエスト数
+    refill-tokens: 10 # リフィルされるトークン数
+    refill-duration-seconds: 60 # リフィル間隔（秒）
+
+# CORS 設定
+cors:
+  allowed-origin-patterns:
+    - "http://localhost:*" # Metro bundler
+    - "http://127.0.0.1:*" # Metro bundler (IPv4)
+    - "https://192.168.*.*:*" # ローカルネットワーク（実機テスト用）
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - Accept
+    - X-Requested-With
+    - X-CSRF-TOKEN
+    - X-RateLimit-Remaining
+  exposed-headers:
+    - Authorization
+    - Content-Disposition
+    - X-RateLimit-Remaining
+  allow-credentials: true
+  max-age: 3600
 
 server:
   port: 8080
@@ -109,15 +197,3 @@ springdoc:
     tags-sorter: alpha
     display-request-duration: true
   show-actuator: false
-
-# AWS 設定
-aws:
-  # アクセスキー（環境変数推奨: AWS_ACCESS_KEY_ID）
-  access-key-id: ${AWS_ACCESS_KEY_ID:}
-  # シークレットキー（環境変数推奨: AWS_SECRET_ACCESS_KEY）
-  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
-  # リージョン（東京リージョン）
-  region: ${AWS_REGION:ap-northeast-1}
-  s3:
-    # バケット名（環境変数推奨: AWS_S3_BUCKET_NAME）
-    bucket-name: ${AWS_S3_BUCKET_NAME:voicebooklm-audio-files}

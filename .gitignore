@@ -36,3 +36,14 @@ docker/data/
 
 # Testcontainers
 .testcontainers.properties
+
+# Environment
+.env
+
+# AI tools
+AGENTS.md
+GEMINI.md
+
+# Kotlin
+.kotlin/
+

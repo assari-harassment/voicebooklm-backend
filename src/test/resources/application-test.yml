@@ -15,6 +15,10 @@ spring:
       - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
       - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
+# Rate Limit 無効化（統合テスト用）
+rate-limit:
+  enabled: false
+
 # ログレベル
 logging:
   level:
@@ -22,3 +26,18 @@ logging:
     com.assari.voicebooklm: DEBUG
     org.testcontainers: INFO
     org.hibernate.SQL: DEBUG
+
+# 外部サービスの必須設定をダミーで満たし、バリデーションエラーを避ける
+google:
+  cloud:
+    speech:
+      credentials-path: /tmp/dummy-google-credentials.json
+      project-id: dummy-project
+      default-language: ja-JP
+      timeout-seconds: 1
+
+gemini:
+  api-key: dummy
+  model: dummy
+  timeout-seconds: 1
+  base-url: https://example.com

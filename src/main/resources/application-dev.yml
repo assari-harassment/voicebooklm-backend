@@ -11,12 +11,16 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update  # 開発環境ではスキーマを自動更新
+      ddl-auto: validate  # Flyway がスキーマ管理するため validate に変更
     show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+  # Flyway: 開発環境では clean 許可（データベースリセット）
+  flyway:
+    clean-disabled: false
 
   # DevTools 設定
   devtools:
@@ -24,12 +28,6 @@ spring:
       enabled: true
     livereload:
       enabled: true
-
-  # Security を緩めに設定（開発しやすく）
-  security:
-    user:
-      name: dev
-      password: dev
 
 # Actuator を全公開（開発環境のみ）
 management:
