@@ -129,11 +129,12 @@ data class GeminiRequest(
                 【ユーザー指定タグ】
                 以下のタグはユーザーが事前に指定したものです。タグ行にはこれらを必ず含めてください。
                 - $tagList
-                上記に加えて、内容に合うタグを必要な分だけ追加し、タグ行は全体で2〜4個（カンマ区切り）にしてください。
+                上記に加えて、内容に合うタグを必要な分だけ追加し、ユーザー指定タグを含めてタグ行は全体で2〜4個（カンマ区切り）になることを目安にしてください。
                 """.trimIndent()
             } else {
                 ""
             }
+            val tagBlock = if (tagSection.isNotEmpty()) "\n\n$tagSection\n\n" else ""
 
             val prompt = """
                 あなたは音声メモの文字起こしを「読みやすい文章」に整えるアシスタントです。
@@ -158,9 +159,7 @@ data class GeminiRequest(
                 - 判断が難しい場合は「未分類」
 
                 $folderSection
-
-                $tagSection
-
+                $tagBlock
                 【基本方針】
                 - 箇条書きよりも文章を優先する
                 - 会話調・口語表現は自然な書き言葉に直す

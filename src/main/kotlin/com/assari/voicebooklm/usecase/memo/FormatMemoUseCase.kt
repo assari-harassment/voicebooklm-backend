@@ -68,10 +68,11 @@ open class FormatMemoUseCase(
 
         // 2. 既存フォルダーパスを取得（AI整形用）
         val existingFolderPaths = getExistingFolderPaths(input.userId)
+        val trimmedFolderPath = input.folderPath?.trim()
 
         // 3. AI整形処理（失敗した場合はフォールバックで続行）
-        val folderSpecifiedByUser = input.folderId != null || !input.folderPath.isNullOrBlank()
-        val userSpecifiedTags = input.tags.orEmpty()
+        val folderSpecifiedByUser = input.folderId != null || trimmedFolderPath?.isNotBlank() == true
+        val userSpecifiedTags = input.tags?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
         voiceMemo = voiceMemo.startFormatting()
         val formatResult = executionTimer.measure {
             runCatching {
@@ -95,20 +96,21 @@ open class FormatMemoUseCase(
         // 4. フォルダIDの決定（ユーザー指定優先、なければAIの結果を解決）
         val effectiveFolderId = when {
             input.folderId != null -> input.folderId
-            input.folderPath?.trim()?.isNotBlank() == true ->
-                resolveFolderId(input.userId, input.folderPath!!.trim())
+            trimmedFolderPath?.isNotBlank() == true ->
+                resolveFolderId(input.userId, trimmedFolderPath)
             else -> resolveFolderId(input.userId, memoFormat.folderPath)
         }
 
         // 5. タグのマージ（ユーザー指定 + AI提案、重複は小文字で除去）
-        val userTags = input.tags?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
-        val mergedTags = (userTags + memoFormat.tags).distinctBy { it.lowercase() }
+        // 大文字小文字のみ異なるタグがある場合は最初に出現したものを保持するため、
+        // ユーザー指定タグを先に結合している（ユーザー指定タグの表記を優先する）
+        val effectiveTags = (userSpecifiedTags + memoFormat.tags).distinctBy { it.lowercase() }
 
         val formattingFallbackUsed = memoFormat.title == "ボイスメモ" && memoFormat.tags.isEmpty()
         voiceMemo = voiceMemo.completeFormatting(
             title = memoFormat.title,
             content = memoFormat.content,
-            tags = mergedTags,
+            tags = effectiveTags,
             fallbackUsed = formattingFallbackUsed,
             folderId = effectiveFolderId,
         )
@@ -181,7 +183,14 @@ data class FormatMemoInput(
     val language: String? = null,
     /** 保存先フォルダーID。指定時はAIのフォルダ分類は行わない。folderPath より優先される */
     val folderId: UUID? = null,
-    /** 保存先のフォルダーパス。指定時は resolveOrCreate で解決（必要なフォルダは自動作成）。folderId が指定されている場合は無視 */
+    /**
+     * 保存先のフォルダーパス。
+     * 指定時は [FolderPathResolver.resolveOrCreate] で解決し、
+     * 指定されたパスのフォルダが存在しない場合は最大3階層まで自動作成する。
+     * 4階層以上のパスを指定した場合もバリデーションエラーにはならず、
+     * 3階層目までのフォルダが作成され、そのリーフが保存先となる。
+     * [folderId] が指定されている場合は無視される。
+     */
     val folderPath: String? = null,
     /** 録音時に付けたいタグ。AI提案タグとマージして保存する */
     val tags: List<String>? = null,
