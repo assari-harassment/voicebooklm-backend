@@ -729,4 +729,83 @@ class MemoControllerTest {
         val body = requireNotNull(response.body) { "response body should not be null" }
         assertEquals(memoId, body.memoId)
     }
+
+    @Test
+    fun `formatMemo に folderId, folderPath, tags を指定した場合に use case に正しく渡り 201 が返る`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val memoId = UUID.randomUUID()
+        val folderId = UUID.randomUUID()
+        val folderPath = "仕事/テスト"
+        val tags = listOf("ユーザータグ1", "ユーザータグ2")
+        val transcriptionText = "文字起こしテキスト"
+
+        val memo = VoiceMemo.create(id = memoId, userId = userId)
+            .startTranscription()
+            .completeTranscription(transcriptionText)
+            .startFormatting()
+            .completeFormatting(
+                title = "タイトル",
+                content = "本文",
+                tags = listOf("ユーザータグ1", "ユーザータグ2", "AIタグ"),
+            )
+
+        coEvery {
+            formatMemoUseCase.execute(
+                match {
+                    it.userId == userId &&
+                        it.transcription == transcriptionText &&
+                        it.language == "ja-JP" &&
+                        it.folderId == folderId &&
+                        it.folderPath == folderPath &&
+                        it.tags == tags
+                },
+            )
+        } returns FormatMemoOutput(
+            voiceMemo = memo,
+            processingTime = FormatProcessingTime(
+                formatting = 100.milliseconds,
+                persistence = 30.milliseconds,
+                total = 130.milliseconds,
+            ),
+        )
+
+        val request = FormatMemoRequest(
+            transcription = transcriptionText,
+            language = "ja-JP",
+            folderId = folderId,
+            folderPath = folderPath,
+            tags = tags,
+        )
+
+        val response = controller.formatMemo(userId, request)
+
+        assertEquals(HttpStatus.CREATED, response.statusCode)
+        val body = requireNotNull(response.body) { "response body should not be null" }
+        assertEquals(memoId, body.memoId)
+        assertEquals("タイトル", body.title)
+        assertEquals(listOf("ユーザータグ1", "ユーザータグ2", "AIタグ"), body.tags)
+    }
+
+    @Test
+    fun `formatMemo で folderId 指定時に FOLDER_NOT_FOUND の場合は DomainException がスローされる`() = runBlocking {
+        val userId = UUID.randomUUID()
+        val folderId = UUID.randomUUID()
+        val request = FormatMemoRequest(
+            transcription = "テスト",
+            language = null,
+            folderId = folderId,
+            folderPath = null,
+            tags = null,
+        )
+
+        coEvery {
+            formatMemoUseCase.execute(any())
+        } throws DomainException(ErrorCode.FOLDER_NOT_FOUND, "フォルダーが見つかりません: $folderId")
+
+        val exception = assertThrows<DomainException> {
+            controller.formatMemo(userId, request)
+        }
+
+        assertEquals(ErrorCode.FOLDER_NOT_FOUND, exception.code)
+    }
 }
