@@ -43,7 +43,12 @@ class GeminiAiMemoFormatter(
         .build()
 
     override suspend fun format(command: MemoFormatCommand): MemoFormatResult {
-        val request = GeminiRequest.fromTranscript(command.transcript, command.existingFolderPaths)
+        val request = GeminiRequest.fromTranscript(
+            transcript = command.transcript,
+            existingFolderPaths = command.existingFolderPaths,
+            folderSpecifiedByUser = command.folderSpecifiedByUser,
+            userSpecifiedTags = command.userSpecifiedTags,
+        )
 
         return runCatching {
             client.post()
@@ -94,22 +99,42 @@ data class GeminiRequest(
         fun fromTranscript(
             transcript: String,
             existingFolderPaths: List<String> = emptyList(),
+            folderSpecifiedByUser: Boolean = false,
+            userSpecifiedTags: List<String> = emptyList(),
         ): GeminiRequest {
-            val folderSection = if (existingFolderPaths.isNotEmpty()) {
-                val folderList = existingFolderPaths.joinToString("\n") { "- $it" }
-                """
-                【既存フォルダー】
-                $folderList
-
-                上記から内容に最も合うフォルダーを1つ選択してください。
-                適切なものがなければ新規作成してください（最大3階層）。
+            val folderSection = when {
+                folderSpecifiedByUser -> """
+                    保存先フォルダーはユーザーが指定済みです。
+                    フォルダー行には「未分類」と出力してください。
                 """.trimIndent()
-            } else {
-                """
-                フォルダー名を1〜3階層で作成してください（例: "仕事/会議"）。
-                分類が難しい場合は「未分類」にしてください。
+                existingFolderPaths.isNotEmpty() -> {
+                    val folderList = existingFolderPaths.joinToString("\n") { "- $it" }
+                    """
+                    【既存フォルダー】
+                    $folderList
+
+                    上記から内容に最も合うフォルダーを1つ選択してください。
+                    適切なものがなければ新規作成してください（最大3階層）。
+                    """.trimIndent()
+                }
+                else -> """
+                    フォルダー名を1〜3階層で作成してください（例: "仕事/会議"）。
+                    分類が難しい場合は「未分類」にしてください。
                 """.trimIndent()
             }
+
+            val tagSection = if (userSpecifiedTags.isNotEmpty()) {
+                val tagList = userSpecifiedTags.joinToString(", ")
+                """
+                【ユーザー指定タグ】
+                以下のタグはユーザーが事前に指定したものです。タグ行にはこれらを必ず含めてください。
+                - $tagList
+                上記に加えて、内容に合うタグを必要な分だけ追加し、ユーザー指定タグを含めてタグ行は全体で2〜4個（カンマ区切り）になることを目安にしてください。
+                """.trimIndent()
+            } else {
+                ""
+            }
+            val tagBlock = if (tagSection.isNotEmpty()) "\n\n$tagSection\n\n" else ""
 
             val prompt = """
                 あなたは音声メモの文字起こしを「読みやすい文章」に整えるアシスタントです。
@@ -134,7 +159,7 @@ data class GeminiRequest(
                 - 判断が難しい場合は「未分類」
 
                 $folderSection
-
+                $tagBlock
                 【基本方針】
                 - 箇条書きよりも文章を優先する
                 - 会話調・口語表現は自然な書き言葉に直す

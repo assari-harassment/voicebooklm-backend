@@ -411,13 +411,16 @@ class MemoController(
             throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "認証が必要です")
         }
 
-        // ユースケース実行
+        // ユースケース実行（DomainException は GlobalExceptionHandler が 404 等に変換する）
         val result = try {
             formatMemoUseCase.execute(
                 FormatMemoInput(
                     userId = userId,
                     transcription = request.transcription,
                     language = request.language,
+                    folderId = request.folderId,
+                    folderPath = request.folderPath,
+                    tags = request.tags,
                 )
             )
         } catch (ex: IllegalArgumentException) {

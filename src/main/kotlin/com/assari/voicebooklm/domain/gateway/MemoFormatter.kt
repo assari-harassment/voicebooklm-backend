@@ -17,6 +17,10 @@ data class MemoFormatCommand(
     val transcript: String,
     /** 既存フォルダーのパス一覧（AIが参考にする） */
     val existingFolderPaths: List<String> = emptyList(),
+    /** ユーザーがフォルダを指定済みか（folderId または folderPath）。true のときAIにフォルダ一覧を渡さない */
+    val folderSpecifiedByUser: Boolean = false,
+    /** ユーザーが指定したタグ。プロンプトに「必ず含める」として渡す */
+    val userSpecifiedTags: List<String> = emptyList(),
 )
 
 /**

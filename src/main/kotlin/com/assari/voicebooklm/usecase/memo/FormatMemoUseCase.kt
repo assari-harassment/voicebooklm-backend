@@ -1,5 +1,7 @@
 package com.assari.voicebooklm.usecase.memo
 
+import com.assari.voicebooklm.domain.exception.DomainException
+import com.assari.voicebooklm.domain.exception.ErrorCode
 import com.assari.voicebooklm.domain.gateway.MemoFormatCommand
 import com.assari.voicebooklm.domain.gateway.MemoFormatResult
 import com.assari.voicebooklm.domain.gateway.MemoFormatter
@@ -40,6 +42,15 @@ open class FormatMemoUseCase(
     open suspend fun execute(input: FormatMemoInput): FormatMemoOutput {
         require(input.transcription.isNotBlank()) { "Transcription text must not be empty" }
 
+        // folderId 指定時は AI 呼び出し前にフォルダの存在・所有を検証する
+        input.folderId?.let { folderId ->
+            val folder = folderRepository.findById(folderId)
+                ?: throw DomainException(ErrorCode.FOLDER_NOT_FOUND, "フォルダーが見つかりません: $folderId")
+            if (folder.userId != input.userId) {
+                throw DomainException(ErrorCode.FOLDER_NOT_FOUND, "フォルダーが見つかりません: $folderId")
+            }
+        }
+
         val overallMark = timeSource.markNow()
         val languageCode = input.language ?: "ja-JP"
 
@@ -57,8 +68,11 @@ open class FormatMemoUseCase(
 
         // 2. 既存フォルダーパスを取得（AI整形用）
         val existingFolderPaths = getExistingFolderPaths(input.userId)
+        val trimmedFolderPath = input.folderPath?.trim()
 
         // 3. AI整形処理（失敗した場合はフォールバックで続行）
+        val folderSpecifiedByUser = input.folderId != null || trimmedFolderPath?.isNotBlank() == true
+        val userSpecifiedTags = input.tags?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
         voiceMemo = voiceMemo.startFormatting()
         val formatResult = executionTimer.measure {
             runCatching {
@@ -67,6 +81,8 @@ open class FormatMemoUseCase(
                         userId = input.userId,
                         transcript = input.transcription,
                         existingFolderPaths = existingFolderPaths,
+                        folderSpecifiedByUser = folderSpecifiedByUser,
+                        userSpecifiedTags = userSpecifiedTags,
                     ),
                 )
             }.onFailure { ex ->
@@ -77,19 +93,29 @@ open class FormatMemoUseCase(
         }
         val memoFormat = formatResult.value
 
-        // 4. フォルダーパスをIDに解決（必要に応じて作成）
-        val folderId = resolveFolderId(input.userId, memoFormat.folderPath)
+        // 4. フォルダIDの決定（ユーザー指定優先、なければAIの結果を解決）
+        val effectiveFolderId = when {
+            input.folderId != null -> input.folderId
+            trimmedFolderPath?.isNotBlank() == true ->
+                resolveFolderId(input.userId, trimmedFolderPath)
+            else -> resolveFolderId(input.userId, memoFormat.folderPath)
+        }
+
+        // 5. タグのマージ（ユーザー指定 + AI提案、重複は小文字で除去）
+        // 大文字小文字のみ異なるタグがある場合は最初に出現したものを保持するため、
+        // ユーザー指定タグを先に結合している（ユーザー指定タグの表記を優先する）
+        val effectiveTags = (userSpecifiedTags + memoFormat.tags).distinctBy { it.lowercase() }
 
         val formattingFallbackUsed = memoFormat.title == "ボイスメモ" && memoFormat.tags.isEmpty()
         voiceMemo = voiceMemo.completeFormatting(
             title = memoFormat.title,
             content = memoFormat.content,
-            tags = memoFormat.tags,
+            tags = effectiveTags,
             fallbackUsed = formattingFallbackUsed,
-            folderId = folderId,
+            folderId = effectiveFolderId,
         )
 
-        // 5. 永続化
+        // 6. 永続化
         val (savedVoiceMemo, persistenceDuration) = executionTimer.measure {
             voiceMemoRepository.save(voiceMemo)
         }
@@ -155,6 +181,19 @@ data class FormatMemoInput(
     val transcription: String,
     /** 言語コード（例: ja-JP） */
     val language: String? = null,
+    /** 保存先フォルダーID。指定時はAIのフォルダ分類は行わない。folderPath より優先される */
+    val folderId: UUID? = null,
+    /**
+     * 保存先のフォルダーパス。
+     * 指定時は [FolderPathResolver.resolveOrCreate] で解決し、
+     * 指定されたパスのフォルダが存在しない場合は最大3階層まで自動作成する。
+     * 4階層以上のパスを指定した場合もバリデーションエラーにはならず、
+     * 3階層目までのフォルダが作成され、そのリーフが保存先となる。
+     * [folderId] が指定されている場合は無視される。
+     */
+    val folderPath: String? = null,
+    /** 録音時に付けたいタグ。AI提案タグとマージして保存する */
+    val tags: List<String>? = null,
 )
 
 /**
